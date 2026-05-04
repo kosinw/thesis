@@ -1,0 +1,363 @@
+Adam Chlipala's Paper-Writing Advice/Hangups
+
+Let's try to collect our shared ideas on paper-writing best practices
+here, as there are quite a few different norms floating around.
+
+Keep papers in Git
+
+...and not monstrosities like Overleaf! The latter (1) can't be used
+offline (e.g. on a flight without WiFi), (2) provide very primitive
+models for version control (most importantly, no way for collaborators
+to group units of related changes that should be merged as wholes), and
+(3) typically don't provide the same level of keyboard shortcuts and
+other ways for experts to amp up their editing throughput. It really
+isn't an option for some coauthors to use Overleaf and some GitHub with
+their favorite editors, because an Overleaf user always takes precedence
+in concurrency control: while Overleaf users are editing continuously,
+it is impossible for Git users to push new changes, because they are
+continuously told they need to merge.
+
+Also watch out for Google Docs
+
+Folks typically won't propose writing whole papers in Google Docs, but
+what about author responses? It's a common choice, to facilitate easy
+collaboration. However, there is a risk: since the author response can't
+be submitted as a Google Doc or PDF, a potentially error-prone process
+of converting to Markdown is saved for the end. Do you ask all of your
+coauthors to check the final Markdown version, which you may create an
+hour before the response deadline? You can try writing Markdown format
+characters within Google Docs, but you might always miss that some
+important formatting is indicated "natively," without Markdown
+characters.
+
+Adam prefers to work with Markdown within Git all along, though he's
+less adamant about this point than most on this page.
+
+One sentence per line in LaTeX source files
+
+Otherwise, arbitrary line breaking creates noncanonicity of
+representation for the same logical content. It becomes hard to read
+diffs and see what really changed in a paragraph, as adjacent sentences
+get caught in the crossfire, and as arbitrary line-wrapping consequences
+follow from small changes and trigger change attribution to sentences
+that weren't affected.
+
+One LaTeX source file for the body of the paper
+
+1.  Easier text search-and-replace
+2.  Easier to run spellcheck
+
+Capitalization in BibTeX entries is your responsibility
+
+Many common BibTeX styles (for citations) will lowercase all words of
+paper titles unless you override the behavior, by putting relevant words
+inside curly braces. Check the rendered entries for your bibliographic
+references and be sure capitalization is correct everywhere. The most
+common mistake is not preserving capitalization for acronyms or other
+proper nouns.
+
+Pretty much never cite SIGPLAN Notices
+
+Before the big-four SIGPLAN conferences moved to PACMPL, their papers
+were published in proceedings per conference edition. Those proceedings
+were also copied in SIGPLAN Notices, nominally a newsletter. For papers
+from that era, some ways to look up their citations will give you two:
+one for the proceedings and one for SIGPLAN Notices. Always choose the
+proceedings! It just conveys so much more useful information to be clear
+about which conference a paper appeared in. The reader can't be expected
+to recognize which SIGPLAN Notices volumes were proceedings of major
+conferences and therefore contain only papers that survived rigorous
+peer review, where other issues may include what are essentially opinion
+pieces.
+
+Use autoref for all references to sections, etc.
+
+I'm on-the-fence about this one, but it will probably pay off to stay
+consistent!
+
+Use esh for code syntax highlighting
+
+...including all being willing to install esh fully and rerun it to
+rehighlight snippets? (This one is getting tougher as VSCode has become
+quite competitive with Emacs, so many of my students never learn/install
+Emacs anymore.)
+
+Name paper repos in terms of content, not target publication venue
+
+It's demoralizing to have to rename the repo. ;)
+
+Save reviews and rebuttals, for all venues submitted to, in a paper's repo somehow
+
+The exact format of file-system layout, etc., isn't important.
+
+Quantifiers punctuated with periods, not commas
+
+Proper math notation looks like ∀ x. x > 7 rather than ∀ x, x > 7. We
+see the latter a lot in papers, but that's because notations from Rocq
+and friends have been imported improperly. (Note that conventions vary
+across fields; I'm explaining what has been standard in programming
+languages and formal methods.)
+
+Proper handling of multicharacter variable names in LaTeX
+
+Inside a LaTeX math formula, it's tempting to write multicharacter
+variable names without extra formatting, but LaTeX actually treats those
+"identifiers" as multiplications of multiple single-character variables,
+which leads to ugly spacing. Instead, the canonical fix is to enclose
+the variable name in \mathit{...}.
+
+Proper spacing after periods in LaTeX
+
+Be careful using periods outside math mode, in positions that don't
+correspond to ends to sentences. When followed by spaces, these periods
+need to have backslashes after them to get the proper spacing.
+
+- Bad: ~~Thank you very much, Mr. Roboto.~~
+- Good: Thank you very much, Mr.\ Roboto.
+
+English-language corner
+
+Adam is a stickler about English usage, and a number of issues aren't
+widely appreciated, even by most faculty. Here's a sampling.
+
+Proper grouping of phrases into first-class units
+
+We often take lists of words and group them together so that,
+grammatically, they function as new words. One example is "file system."
+The trouble is that parsing sentences becomes difficult, when we need to
+do some semantic analysis to discover boundaries of groupings with
+first-class status. It's unfortunate if we need to understand meaning
+before we can even find the tree structure of a sentence. Luckily,
+English has a standard fix! Less luckily, it's not widely understood.
+
+The rule of formal English is that a grouping of words into a
+first-class unit separates words by spaces when the grouping functions
+as noun, and it separates words by hyphens when the grouping functions
+as a modifier (adjective or adverb). So, here are two correct usage
+examples:
+
+- My dog invented a new file system. (The file system is an object we
+  are describing.)
+- My dog is now a file-system expert. (Knowledge of file systems is a
+  property of the expert.)
+
+As always, there are exceptions. After adverbs ending in "-ly", we don't
+include these hyphens. So, ironically, "dependently-typed" is wrong
+every single place we see it, even though it is by far the most common
+use of hyphens in our research world!
+
+More pairs of examples of correct usage, where switching the convention
+for any example is wrong:
+
+- The software for my IoT toaster is open-source. (We attach a quality
+  to the software.)
+- My IoT toaster has open source. (The word "open" is now functioning by
+  itself, as a modifier to the source that the toaster has.)
+- My language supports type inference.
+- I have implemented a type-inference algorithm.
+
+Hyphens vs. dashes
+
+A lot of folks are sloppy using the words "hyphen" and "dash." The
+former is generally written "-", and the latter is generally written
+"--". Hyphens are used to combine word sequences into what, logically
+speaking, are single words. Dashes are used to combine phrases within
+sentences, where those phrases can't just be dropped in to act like
+single words, within larger phrases. Examples:
+
+- Please send him an out-of-band message.
+- A reasonable person might object to my type-inference algorithm -- its
+  reliance on a blockchain promotes global warming and subverts
+  democracy.
+
+Plurality mismatches
+
+Many words in English have variants for singular and plural cases, and
+when words within a sentence are connected semantically, they must make
+identical decisions on singular vs. plural. Here is an example faulty
+sentence.
+
+- ~~We maintain a list of pairs of an integer and an animated GIF.~~
+  (Each pair includes a different integer and GIF, while the wording
+  here suggests a single pair of them shared across all list elements.)
+
+Here are correct sentences.
+
+- We maintain a list of pairs, each containing an integer and an
+  animated GIF.
+- We maintain a list of pairs of integers and animated GIFs.
+
+Using commas to separate phrases
+
+A sentence typically includes a subject (the noun that does something)
+and a verb and maybe object (an action, optionally with a target).
+Sometimes a subject has two different associated verb phrases in one
+sentence. We should not use a comma to separate those phrases. However,
+when we change subjects within a sentence, these phrases should be
+separated by commas. We don't get editorial freedom to include commas
+wherever we like the effects they have on reading order with breaks to
+catch our breath.
+
+Two faulty sentences:
+
+- ~~Broccoli has miraculous health properties, and tastes good.~~
+- ~~Broccoli has miraculous health properties and kale is right up there
+  as well.~~
+
+The corrected sentences:
+
+- Broccoli has miraculous health properties and tastes good.
+- Broccoli has miraculous health properties, and kale is right up there
+  as well.
+
+Semicolons in lists
+
+When writing a list of items where at least one item contains its own
+internal comma, it is important to use semicolons to separate the
+top-level items. Otherwise, a reader needs semantic understanding of the
+sentence even to parse its nested structure.
+
+Bad:
+
+- ~~The paper was coauthored by Tweedledee, who implemented the
+  Makefile, and Tweedledum, who designed the compiler.~~
+
+Good:
+
+- The paper was coauthored by Tweedledee, who implemented the Makefile;
+  and Tweedledum, who designed the compiler.
+
+Open-to-debate
+
+A number of rules within English are either controversial or are
+associated with different sets of conventions, say from different
+countries. While in the latter case, we generally agree to disagree, the
+more fully controversial decisions can get some readers really riled up.
+In those cases, you just can't win, and it's better to find ways to
+rephrase sentences so that you don't need to face the controversial
+question! Here are a few examples.
+
+Quotes and periods/commas
+
+A style popular in the U.S. says that a period or comma after a quoted
+phrase should stay within the quotes, while a style popular in Europe
+says the opposite. Adam grew up with the former and so prefers the first
+of the next two over the second, though admittedly there is genuine
+ambiguity in which style to adopt.
+
+- Whenever he hears the word "strudel," Scrappy turns into a werewolf.
+- Whenever he hears the word "strudel", Scrappy turns into a werewolf.
+
+No one is going to get too bent-out-of-shape seeing either convention.
+
+Splitting infinitives
+
+In the U.S., schoolchildren often learn the rule that one mustn't split
+an infinitive. An infinitive is a "to" phrase, like "to jump," and
+splitting involves adding extra words between "to" and the base verb. An
+example violating the rule:
+
+- ~~Kangaroos are able to easily jump over small bookshelves.~~
+
+Fixes we might apply:
+
+- Kangaroos are easily able to jump over small bookshelves.
+- Kangaroos are able to jump over small bookshelves easily.
+
+Fixes of the latter kind admittedly can make sentences harder to read
+(by moving modifiers further away from what they modify), but at least
+everyone will agree they are grammatical and convey the meaning. A
+significant fraction of readers are very serious about the
+no-split-infinitives rule, considered as part of the definition of
+formal English. A significant fraction of readers are very serious about
+this rule being a nonsensical attempt to impose Latin grammar on
+English. It is worth avoiding split infinitives, to avoid offending
+either camp.
+
+Gendered pronouns
+
+In grade school, Adam was taught that English includes no gender-neutral
+pronouns to refer to other people. In referring to an unknown person, we
+could write either of the following:
+
+- When the average consumer shops, he finds a bewildering variety of soy
+  milk on the shelves.
+- When the average consumer shops, she finds a bewildering variety of
+  soy milk on the shelves.
+
+(Some sources suggest adopting the gender of the writer, as a
+tie-breaker, while older sources say that "he" is the right default.)
+
+However, often today we'll see plural pronouns pressed into service as
+gender-neutral singulars.
+
+- When the average consumer shops, they find a bewildering variety of
+  soy milk on the shelves.
+
+Again this choice is an opportunity to make enemies by adopting either
+convention clearly. Especially using "he," some readers will say you're
+promoting sexism or intolerance for gender diversity. Using "they," some
+readers will say you're ignoring the rules of English. It's best to
+restructure sentences to avoid needing to face the question, e.g.:
+
+- While shopping, the average consumer finds a bewildering variety of
+  soy milk on the shelves.
+
+Oxford commas
+
+Another difference, on which reasonable people differ, is whether to put
+a comma before the "and" in a list of three of more items. Adam grew up
+with the first of these two variants (using what's called an "Oxford
+comma").
+
+- I come bearing syntax, semantics, and metatheory.
+- I come bearing syntax, semantics and metatheory.
+
+"That" vs. "which"
+
+Again reasonable people differ, but it tends to work better to use
+"that" for phrases that are essential to sentence meanings, reserving
+"which" for phrases adding extra color on top of phrases that still make
+sense on their own. The latter phrases are almost always separated by
+commas from what came before. Think of this distinction as about whether
+additional phrases are needed as logical constraints to determine an
+object uniquely.
+
+- Can you please send me the code that you mentioned? (Without the fact
+  that someone mentioned the code, we can't resolve "the code" uniquely
+  to one semantic object.)
+- Can you please send me your code, which I expect to find full of
+  edifying comments? (In contrast, attributing the code to a specific
+  person is apparently enough to imply which code we mean, in this
+  conversation, and we can add some bonus information about that code.)
+
+Common short prefixes
+
+It is actually incorrect to use hyphens to add some common short
+prefixes to words. For instance, "non-deterministic" is wrong, while
+"nondeterministic" is right. (You will just have to teach your
+spellchecker about all of these word variants with prefixes!)
+
+"This" and "that" as nouns
+
+It can be hard to parse sentences that use "this" and "that" as nouns
+rather than as modifiers. The reader wonders if another word nearby is
+about to be modified, and we can also usually come up with more
+descriptive replacement words (or realize that these whole phrases are
+expendable!). However, it's probably not grammatically incorrect to
+ignore this advice.
+
+- ~~The reason for this is highly technical.~~
+- The reason for this omission is highly technical.
+- The reason is highly technical. (See, that word wasn't pulling its
+  weight anyway! Removing it leaves a strictly better sentence.)
+
+Capitalizing "Boolean"
+
+Didn't you know it's named after George Boole?
+
+Contractions
+
+Some classic sources say contractions (like "don't") shouldn't appear at
+all in formal writing. (I'm taking a meta-stand here that this document
+itself probably isn't formal writing!)
