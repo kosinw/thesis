@@ -1,0 +1,141 @@
+@article{conoly2025,
+  author = {Conoly, Owen and Erbsen, Andres and Chlipala, Adam},
+  title = {Smooth, Integrated Proofs of Cryptographic Constant Time for Nondeterministic Programs and Compilers},
+  year = {2025},
+  issue_date = {June 2025},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  volume = {9},
+  number = {PLDI},
+  url = {https://doi.org/10.1145/3729318},
+  doi = {10.1145/3729318},
+  abstract = {Formal verification of software and compilers has been used to rule out large classes of security-critical issues, but risk of unintentional information leakage has received much less consideration. It is a key requirement for formal specifications to leave some details of a system's behavior unspecified so that future implementation changes can be accommodated, and yet it is nonetheless expected that these choices would not be made based on confidential information the system handles. This paper formalizes that notion using omnisemantics and plain single-copy assertions, giving for the first time a specification of what it means for a nondeterministic program to be constant-time or more generally to avoid leaking (a part of) its inputs. We use this theory to prove data-leak-free execution of core cryptographic routines compiled from Bedrock2 C to RISC-V machine code, showing that the smooth specification and proof experience omnisemantics provides for nondeterminism extends to constant-time properties in the same setting. We also study variants of the key program-compiler contract, highlighting pitfalls of tempting simplifications and subtle consequences of how inputs to nondeterministic choices are constrained. Our results are backed by modular program-logic and compiler-correctness theorems, and they integrate into a neat end-to-end theorem in the Coq proof assistant.},
+  journal = {Proc. ACM Program. Lang.},
+  month = jun,
+  articleno = {215},
+  numpages = {24},
+  keywords = {compiler verification, cryptographic constant time, omnisemantics}
+}
+
+@inproceedings{guarnieri2021,
+  author = {Guarnieri, Marco and Köpf, Boris and Reineke, Jan and Vila, Pepe},
+  title = {Hardware-Software Contracts for Secure Speculation},
+  booktitle = {2021 IEEE Symposium on Security and Privacy (SP)},
+  year = {2021},
+  pages = {1868--1883},
+  keywords = {Privacy;Programming;Tools;Software;Hardware;Security;Contracts;Hardware-software-contracts;Secure-speculation;Speculative-non-interference;Spectre;Speculative-execution-attacks;Hardware-software-co-design},
+  doi = {10.1109/SP40001.2021.00036}
+}
+
+
+@article{choi2017,
+  author = {Choi, Joonwon and Vijayaraghavan, Muralidaran and Sherman, Benjamin and Chlipala, Adam and Arvind},
+  title = {Kami: a platform for high-level parametric hardware specification and its modular verification},
+  year = {2017},
+  issue_date = {September 2017},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  volume = {1},
+  number = {ICFP},
+  url = {https://doi.org/10.1145/3110268},
+  doi = {10.1145/3110268},
+  abstract = {It has become fairly standard in the programming-languages research world to verify functional programs in proof assistants using induction, algebraic simplification, and rewriting. In this paper, we introduce Kami, a Coq library that enables similar expressive and modular reasoning for hardware designs expressed in the style of the Bluespec language. We can specify, implement, and verify realistic designs entirely within Coq, ending with automatic extraction into a pipeline that bottoms out in FPGAs. Our methodology, using labeled transition systems, has been evaluated in a case study verifying an infinite family of multicore systems, with cache-coherent shared memory and pipelined cores implementing (the base integer subset of) the RISC-V instruction set.},
+  journal = {Proc. ACM Program. Lang.},
+  month = aug,
+  articleno = {24},
+  numpages = {30},
+  keywords = {proof assistants, hardware, formal verification}
+}
+
+@inproceedings{yu2019,
+  author = {Yu, Jiyong and Yan, Mengjia and Khyzha, Artem and Morrison, Adam and Torrellas, Josep and Fletcher, Christopher W.},
+  title = {Speculative Taint Tracking (STT): A Comprehensive Protection for Speculatively Accessed Data},
+  booktitle = {Proceedings of the 52nd Annual IEEE/ACM International Symposium on Microarchitecture},
+  year = {2019},
+  pages = {954--968},
+  numpages = {15},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  isbn = {9781450369381},
+  url = {https://doi.org/10.1145/3352460.3358274},
+  doi = {10.1145/3352460.3358274},
+  abstract = {Speculative execution attacks present an enormous security threat, capable of reading arbitrary program data under malicious speculation, and later exfiltrating that data over microarchitectural covert channels. Since these attacks first rely on being able to read arbitrary data (potential secrets), a conservative approach to defeat all attacks is to delay the execution of instructions that read those secrets, until those instructions become non-speculative.This paper's premise is that it is safe to execute and selectively forward the results of speculative instructions that read secrets, which improves performance, as long as we can prove that the forwarded results do not reach potential covert channels. We propose a comprehensive hardware protection based on this idea, called Speculative Taint Tracking (STT), capable of protecting all speculatively accessed data.Our work addresses two key challenges. First, to safely selectively forward secrets, we must understand what instruction(s) can form covert channels. We provide a comprehensive study of covert channels on speculative microarchitectures, and use this study to develop hardware mechanisms that block each class of channel. Along the way, we find new classes of covert channels related to implicit flow on speculative machines. Second, for performance, it is essential to disable protection on previously protected data, as soon as doing so is safe. We identify that the earliest time is when the instruction(s) producing the protected data become non-speculative, and design a novel microarchitecture for disabling protection at this moment.We provide an extensive formal analysis showing that STT enforces a novel form of non-interference, with respect to all speculatively accessed data. We further evaluate STT on 21 SPEC and 9 PARSEC workloads, and find it adds only 8.5\%/14.5\% overhead (depending on attack model) relative to an insecure machine, while reducing overhead by 4.7\texttimes{}/18.8\texttimes{} relative to a baseline secure scheme.},
+  keywords = {Hardware, Information flow, Security, Speculative execution attacks},
+  location = {Columbus, OH, USA},
+  series = {MICRO-52}
+}
+
+@mastersthesis{duxovni2018,
+  author       = {Duxovni, Faye},
+  title        = {Mechanized Proofs that Hardware is Safe from Timing Attacks},
+  school       = {Massachusetts Institute of Technology},
+  year         = {2018},
+  type         = {Master's Thesis},
+  address      = {Cambridge, MA},
+  month        = {May},
+  note         = {Available at \url{https://hdl.handle.net/1721.1/122053}}
+}
+
+@inproceedings{rosenband2004,
+  author = {Rosenband, D.L.},
+  title = {The Ephemeral History Register: Flexible Scheduling for Rule-Based Designs},
+  booktitle = {Proceedings. Second ACM and IEEE International Conference on Formal Methods and Models for Co-Design, 2004. MEMOCODE '04.},
+  year = {2004},
+  pages = {189--198},
+  keywords = {History;Scheduling algorithm;Hardware;Algorithm design and analysis;Concurrent computing;Clocks;Process design;Registers;Processor scheduling;Computer science},
+  doi = {10.1109/MEMCOD.2004.1459853}
+}
+
+@inproceedings{lipp2018,
+  author = {Lipp, Moritz and Schwarz, Michael and Gruss, Daniel and Prescher, Thomas and Haas, Werner and Fogh, Anders and Horn, Jann and Mangard, Stefan and Kocher, Paul and Genkin, Daniel and Yarom, Yuval and Hamburg, Mike},
+  title = {Meltdown: Reading Kernel Memory from User Space},
+  booktitle = {Proceedings of the 27th USENIX Conference on Security Symposium},
+  year = {2018},
+  pages = {973--990},
+  numpages = {18},
+  publisher = {USENIX Association},
+  address = {USA},
+  isbn = {9781931971461},
+  location = {Baltimore, MD, USA},
+  series = {SEC'18},
+  abstract = {The security of computer systems fundamentally relies on memory isolation, e.g., kernel address ranges are marked as non-accessible and are protected from user access. In this paper, we present Meltdown. Meltdown exploits side effects of out-of-order execution on modern processors to read arbitrary kernel-memory locations including personal data and passwords. Out-of-order execution is an indispensable performance feature and present in a wide range of modern processors. The attack is independent of the operating system, and it does not rely on any software vulnerabilities. Meltdown breaks all security guarantees provided by address space isolation as well as paravirtualized environments and, thus, every security mechanism building upon this foundation. On affected systems, Meltdown enables an adversary to read memory of other processes or virtual machines in the cloud without any permissions or privileges, affecting millions of customers and virtually every user of a personal computer. We show that the KAISER defense mechanism for KASLR has the important (but inadvertent) side effect of impeding Meltdown. We stress that KAISER must be deployed immediately to prevent large-scale exploitation of this severe information leakage.}
+}
+
+@inproceedings{kocher2019,
+  author = {Kocher, Paul and Horn, Jann and Fogh, Anders and Genkin, Daniel and Gruss, Daniel and Haas, Werner and Hamburg, Mike and Lipp, Moritz and Mangard, Stefan and Prescher, Thomas and Schwarz, Michael and Yarom, Yuval},
+  title = {Spectre Attacks: Exploiting Speculative Execution},
+  booktitle = {2019 IEEE Symposium on Security and Privacy (SP)},
+  year = {2019},
+  pages = {1--19},
+  keywords = {Program processors;Microarchitecture;Registers;Arrays;Transient analysis;Hardware;Side-channel attacks;Spectre;speculative-execution;microarchitecture-security;microarchitectural-attack},
+  doi = {10.1109/SP.2019.00002}
+}
+
+@inproceedings{koika2020,
+  author = {Bourgeat, Thomas and Pit-Claudel, Cl\'{e}ment and Chlipala, Adam and Arvind},
+  title = {The essence of Bluespec: a core language for rule-based hardware design},
+  year = {2020},
+  isbn = {9781450376136},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/3385412.3385965},
+  doi = {10.1145/3385412.3385965},
+  abstract = {The Bluespec hardware-description language presents a significantly higher-level view than hardware engineers are used to, exposing a simpler concurrency model that promotes formal proof, without compromising on performance of compiled circuits. Unfortunately, the cost model of Bluespec has been unclear, with performance details depending on a mix of user hints and opaque static analysis of potential concurrency conflicts within a design. In this paper we present Koika, a derivative of Bluespec that preserves its desirable properties and yet gives direct control over the scheduling decisions that determine performance. Koika has a novel and deterministic operational semantics that uses dynamic analysis to avoid concurrency anomalies. Our implementation includes Coq definitions of syntax, semantics, key metatheorems, and a verified compiler to circuits. We argue that most of the extra circuitry required for dynamic analysis can be eliminated by compile-time BSV-style static analysis.},
+  booktitle = {Proceedings of the 41st ACM SIGPLAN Conference on Programming Language Design and Implementation},
+  pages = {243–257},
+  numpages = {15},
+  keywords = {Compiler Correctness, Hardware Description Language, Semantics},
+  location = {London, UK},
+  series = {PLDI 2020}
+}
+
+@ARTICLE{r10k1996,
+  author={Vasseghi, N. and Yeager, K. and Sarto, E. and Seddighnezhad, M.},
+  journal={IEEE Journal of Solid-State Circuits},
+  title={200-MHz superscalar RISC microprocessor},
+  year={1996},
+  volume={31},
+  number={11},
+  pages={1675-1686},
+  keywords={Reduced instruction set computing;Microprocessors;Delay;CMOS technology;Decoding;CMOS process;Energy consumption;Clocks;Power distribution;Circuit synthesis},
+  doi={10.1109/JSSC.1996.542312}}

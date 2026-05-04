@@ -6,3 +6,6 @@
 *.log
 *.lot
 *.lof
+.cursor/
+*.bbl
+*.blg

@@ -1,6 +1,10 @@
 \documentclass[twoside,fontset=fira-newtxsf]{mitthesis}
 
 \usepackage{setspace}
+\usepackage[capitalise,noabbrev]{cleveref}
+\usepackage{xcolor}
+\newcommand{\comment}[1]{\textcolor{blue}{\textbf{[#1]}}}
+
 \doublespacing   % common for theses; or \doublespacing
 
 \hypersetup{
@@ -22,17 +26,14 @@
 
 \begin{abstract}
 High-performance processors rely on out-of-order execution, a complex instruction-scheduling paradigm that is both difficult to implement correctly and prone to timing side-channel attacks without principled defenses.
-Even when software is provably constant-time at the ISA level, transient execution in out-of-order cores can introduce microarchitectural timing variation that causes leakage. This thesis contributes foundational techniques for formally verifying correctness and security properties of complex out-of-order execution.
-
-This thesis proposes a timing-security model for hardware circuits and applies it to simple designs, including a variable-latency multiplier and a sequential multiple-cycle processor. Using \emph{GoLemma}, a deeply embedded hardware-description language in Rocq, we verify functional correctness of key out-of-order submodules that can later be composed into proofs of larger parent modules.
+Even when software is provably constant-time at the instruction-set architecture (ISA) level, transient execution in out-of-order cores can introduce microarchitectural timing variation that causes leakage. This thesis contributes foundational techniques for formally verifying correctness and security properties of complex out-of-order execution.
+This thesis proposes a timing-security model for hardware circuits and applies it to simple designs, including a variable-latency multiplier and a sequential multiple-cycle processor. Using \emph{GoLemma}, a deeply embedded hardware-description language in Rocq, we verify functional correctness of crucial out-of-order processor submodules that can later be composed into proofs of larger parent modules.
 \end{abstract}
 
 \chapter*{Acknowledgments}
-% TODO(kosinw): Write acknowledgments.
+\comment{TODO(kosinw): Write acknowledgements}
 
 \tableofcontents
-\listoffigures
-\listoftables
 
 \chapter{Introduction}
 This thesis contributes an approach for proving correctness and timing properties for hardware circuits described in the Rocq proof assistant.
@@ -41,11 +42,12 @@ This work serves as the first step towards the mechanization of entire correctne
 \section{Background: out-of-order execution} \label{sec:ooo}
 All modern high-speed processors are based on out-of-order (OoO) execution, which allows the CPU to dynamically reorder instructions based on the availability of functional units (FUs) and input operands, minimizing structural hazards.
 Instruction scheduling algorithms supporting out-of-order execution with precise exceptions started with Tomasulo's algorithm, which first introduced the concept of register renaming to eliminate false dependencies (WAR and RAW hazards) between instructions.
-% TODO(kosinw): Add citations for Tomasulo's and register renaming. Add footnotes for RAW and WAR hazards.
-Out-of-order processors combined with another ubiqutous performance optimization, speculative execution, are vulnerable to transient execution attacks, which in-order processors are not. Principled defenses must be carefully designed to ensure that attackers cannot exploit programs which are safe for in-order processors to execute but unsafe for out-of-order processors.
+\comment{TODO(kosinw): Add citations for Tomasulo's and register renaming. Add footnotes for RAW and WAR hazards.}
+Out-of-order processors combined with another ubiquitous performance optimization, speculative execution, are vulnerable to transient execution attacks, which in-order processors are not.
+Principled defenses must be carefully designed to ensure that attackers cannot exploit programs that are safe for in-order processors to execute but unsafe for out-of-order processors.
 
-Figure \ref{fig:fig1} shows a block diagram for the particular variant of the out-of-order algorithm discussed in this thesis.
-The algorithm is a modified design based on the MIPS R10000 (R10K) processor.
+\Cref{fig:fig1} shows a block diagram for the particular variant of the out-of-order algorithm discussed in this thesis.
+The algorithm is a modified design based on the MIPS R10000 (R10K) processor~\cite{r10k1996}.
 
 \begin{figure}[t!]
   \centering
@@ -54,47 +56,92 @@ The algorithm is a modified design based on the MIPS R10000 (R10K) processor.
   \label{fig:fig1}
 \end{figure}
 
-
-
 Our algorithm is split into seven separate pipeline stages: fetch (F), decode (D), rename (R), issue (I), execute (X), writeback (W), and retire (C).
 The front end fetches (F) instructions from the instruction stream and decodes (D) them into an internal data type the machine can schedule.
 Rename (R) then maps architectural registers to a larger physical register file so false dependencies (e.g., WAR and WAW hazards) can be dissolved.
-Issue (I) selects ready renamed operations and sends them to functional units; which execute the actual computation (e.g., in ALUs or memory units), and writeback (W) posts results to the physical registers so later instructions can consume operands as they become ready.
-Retire (C) retires instructions in program order, commiting their effects to the architectural state.
-% TODO(kosinw): Add citations for R10K.
-
-Our design diverges from the R10K algorithm in a few important aspects, mostly to simplify which invariants are needed to write proofs.
-The most important difference is how the renaming mechanism works
+Issue (I) selects ready renamed operations and sends them to functional units that execute the actual computation.
+Writeback (W) then posts results to the physical registers so that later instructions can consume operands as they become ready.
+Retire (C) retires instructions in program order, committing their effects to the architectural state.
+Our design diverges from the R10K algorithm in a two major aspects to simplify which invariants are needed to write proofs.
+The most important difference is how the renaming mechanism works.
 The original R10K algorithm records, in the reorder buffer (ROB), the previous physical register index for each instruction's destination so that the rename map can be rolled back precisely when a younger path is squashed.
-We instead avoid tracking that per-instruction previous physical destination in the ROB and instead maintain two register alias tables (RATs).
+We instead maintain two register alias tables (RATs), avoiding the need to track a per-instruction previous physical destination in the ROB.
 The \emph{future} table holds the most up-to-date speculative mapping from architectural registers to physical registers, while the \emph{commit} table records the mapping as of the last retired instruction.
 Squashing speculative state can then be performed by reverting the \emph{future} back to the \emph{commit} table.
 
 Rolling back the alias tables alone would be insufficient, because speculative execution can still overwrite physical register contents before those instructions retire; restoring only the \emph{architectural-to-physical} (arch-to-phys) mapping would leave stale or partially updated values visible under the recovered names.
 Our design therefore pairs the dual RAT with explicit snapshots of register \emph{values} (not just of the rename map).
-Enough snapshots are retained to reconstruct the physical register file as it stood at the last retired instruction, so a squash restores both which physical register backs each architectural name and the bit pattern stored in each architectural register at that point.
+Enough snapshots are retained to reconstruct the physical register file as it stood at the last retired instruction, so a squash restores both the mapping from each architectural register to its physical backing and the bit patterns stored in those physical registers at that point.
 The maximum number of snapshots is finite, so it bounds the number of branches the machine can speculate ahead; once that budget is exhausted, the issue stage must stall until retire frees snapshot capacity.
 
 A second major deviation concerns speculative memory accesses.
-To make timing properties easier to state and prove at first, we delay all speculative loads and stores full stop.
-This policy is extremely pessimistic: it sacrifices the performance that comes from speculative execution when interacting with memory, and it is not meant as a proposal for a serious microarchitecture.
-Looking ahead, we expect that a more realistic memory design can be recovered by pairing speculative execution with a dynamic taint-tracking defense, together with a mechanized proof that the resulting design still satisfies the same class of timing-security obligations; that extension is left to future work.
+To make timing properties easier to state and prove at first, we delay all speculative loads and stores.
+This policy is extremely pessimistic: it sacrifices the performance that comes from speculative execution when interacting with memory and is not meant as a proposal for a serious, production-ready design.
+Looking ahead, we expect that a more realistic design can be achieved by pairing speculative memory execution with a dynamic taint-tracking defense, together with a mechanized proof that the resulting design still satisfies the same class of timing-security obligations; that extension is left to future work.
 
 \section{Goal: verifying hardware circuits}
 This thesis develops techniques for proving correctness and timing properties of synthesizable hardware described in Rocq.
 The intended workflow is to state and prove theorems against a source-level circuit semantics, then relate them to synthesizable Verilog through a verified compiler so that the guarantees apply to generated RTL, not only to an informal executable model of a design.
-Prior work on security proofs for hardware tend to reason about simplified ISA-level models instead of RTL.
+Prior work on security proofs for hardware tends to reason about simplified ISA-level models instead of RTL.
 This thesis focuses on synthesizable circuits because they are consumable by downstream synthesis tools for future evaluation on FPGAs or ASICs.
 
 \section{Individual contributions}
-The content presented in this thesis was completed during an active collaboration between myself, Shixin Song, Jiazheng Liu, Stella Lau, and Andres Erbsen under the advisory of professor Adam Chlipala.
-GoLemma, the deeply-embedded hardware description language (HDL) described in Chapter~\ref{chap:golemma}, was developed by Jiazheng Liu. Stella contributed security formalizations and proofs for a five-stage pipelined processor combined with an external I/O and memory system, which doesn't directly appear in this thesis, but core ideas transfer over. Shixin worked on a correctness proof for the out-of-order algorithm described in Section~\ref{sec:ooo}. My personal contributions include the first specifications, implementations, correctness proofs and timing proofs for individual submodules of the larget out-of-order machine as discussed in Chapter~\ref{chap:cases}.
+The content presented in this thesis was completed during an active collaboration between me, Shixin Song, Jiazheng Liu, Stella Lau, and Andres Erbsen, advised by Professor Adam Chlipala.
+GoLemma, the deeply embedded hardware-description language (HDL) described in \Cref{chap:golemma}, was developed by Jiazheng Liu.
+Stella contributed security formalizations and proofs for a five-stage pipelined processor combined with an external I/O and memory system, which does not directly appear in this thesis, but whose core ideas carry over.
+Shixin worked on a correctness proof for the out-of-order algorithm described in \Cref{sec:ooo}.
+My personal contributions include the first specifications, implementations, correctness proofs, and timing proofs for individual submodules of the largest out-of-order machine, as discussed in \Cref{chap:cases}.
 
 \chapter{Related work}
 
-\section{Functional correctness for hardware circuits}
-\section{Timing security for hardware circuits}
-\section{Verified compilation}
+This thesis develops proof techniques for functional correctness and timing security of hardware circuits, targeting synthesizable designs with a path to synthesizable RTL via a verified compiler.
+Prior work bearing on this program falls into three categories.
+\Cref{sec:related-correctness} surveys mechanized proofs of functional correctness for hardware circuits, which inform the specification and proof methodology used throughout.
+\Cref{sec:related-timing} covers formal approaches to timing security for hardware, from the transient execution vulnerabilities that motivate this work to hardware-software contracts and microarchitectural defenses.
+\Cref{sec:related-compilation} discusses verified compilation, which provides the principled mechanism for extending source-level reasoning to the synthesizable RTL that toolchains consume. Many of the formal verification concepts deployed in verified compilation, such as simulation arguments and nondeterministic semantics, carry over into verification of hardware circuits.
+
+\section{Functional correctness for hardware circuits} \label{sec:related-correctness}
+
+A central challenge in hardware verification is describing circuits in a language that admits both efficient synthesis and tractable formal reasoning.
+Several prior projects address this challenge by embedding hardware-description languages directly into a proof assistant.
+
+The Kami framework~\cite{choi2017} is a Rocq library for specifying and verifying hardware circuits in the style of Bluespec SystemVerilog.
+Circuits are organized as labeled transition systems composed of guarded atomic rules, and correctness arguments proceed by refinement between more-abstract and more-concrete specifications.
+The approach is demonstrated on a multicore RISC-V system with cache-coherent shared memory and pipelined cores, verified end-to-end in Rocq.
+The GoLemma framework used in this thesis draws on Kami's approach to circuit specification and modular refinement reasoning, while targeting a different underlying proof methodology and language design.
+
+Prior mechanized work on hardware timing security~\cite{duxovni2018} extends the Kami framework beyond functional correctness to reason about timing-security properties of hardware circuits, providing early evidence that the same embedding used to verify correctness can also support security arguments.
+This thesis continues that direction, applying similar ideas to more sophisticated pipeline structures.
+
+% TODO(kosinw): Add discussion of typed-assembly-language-based hardware security work.
+% (CCS '25 -- Securing Cryptographic Software via Typed Assembly Language)
+
+\section{Timing security for hardware circuits} \label{sec:related-timing}
+
+The Meltdown~\cite{lipp2018} and Spectre~\cite{kocher2019} attacks, disclosed in 2018, demonstrated that speculative execution, while critical for performance, introduces timing-channel vulnerabilities absent in in-order processors.
+Both attacks exploit the fact that transiently executed instructions leave measurable traces in microarchitectural state, such as cache-residency patterns, that an attacker can recover.
+These attacks motivated a large body of work on formalizing what hardware may leak and designing defenses that provably bound that leakage.
+
+Hardware-software contracts for secure speculation~\cite{guarnieri2021} formalize hardware defenses by specifying, for a particular design, both what information is leaked and which speculative paths are explored.
+An analysis of an abstract out-of-order processor protected by speculative taint tracking shows that the defense satisfies a contract in which leakage events are by branch targets, addresses of loads and stores, and operands of variable-latency instructions.
+Our own formalization of security---showing that the reference processor leaks no more than a sequential machine exposing those same three observation channels---is closely aligned with the guarantee characterized by this contract.
+The key limitation of this line of work is that it reasons about abstract processor models rather than concrete designs expressible in a hardware description language; this thesis targets the gap to synthesizable RTL.
+
+Speculative taint tracking (STT)~\cite{yu2019} is a microarchitectural defense that tracks which values derive from speculatively executed instructions and delays forwarding those values to potential covert-channel instructions until the producing instruction becomes non-speculative.
+STT provides comprehensive protection for speculatively accessed data at substantially lower performance cost than fully serializing speculative memory accesses.
+The taint-tracking extension described as future work in \Cref{sec:ooo} will be inspired by STT; a mechanized proof that our processor with an STT-style defense satisfies our timing-security obligations is a natural next step beyond the results presented here.
+
+% TODO(kosinw): Add discussion of hardware-enclave timing isolation work.
+% (CCS '24 -- Specification and Verification of Strong Timing Isolation of Hardware Enclaves)
+
+\section{Verified compilation} \label{sec:related-compilation}
+
+A recurring challenge in hardware verification is connecting proofs written against a convenient high-level semantics to the low-level descriptions that synthesis flows consume.
+Verified compilation provides the principled mechanism for this connection: a compiler whose correctness is mechanically proved carries source-level guarantees to the target language without requiring the target program to be re-verified independently.
+
+Recent work on constant-time verification for nondeterministic programs and compilers~\cite{conoly2025} develops techniques for proving constant-time properties in the Coq proof assistant.
+Using a formulation of constant time as a single-copy property over omnisemantics, the work proves data-leak-free execution of core cryptographic routines compiled from Bedrock2 source to RISC-V machine code, giving an end-to-end theorem that ties a high-level specification directly to the compiled binary.
+The single-copy formulation of hardware constant time used in this thesis is inspired by that work; extending the approach from software compilers to a hardware-compilation path that bottoms out in synthesizable Verilog is a central concern here, and the verified-compiler component of that stack is the subject of ongoing collaboration.
 
 \chapter{Verifying timing properties with state monads}
 \section{Leakage model}
@@ -119,5 +166,8 @@ GoLemma, the deeply-embedded hardware description language (HDL) described in Ch
 \section{Developer effort}
 \section{Discussion}
 \section{Future work}
+
+\bibliographystyle{plain}
+\bibliography{refs}
 
 \end{document}
