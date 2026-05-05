@@ -10,6 +10,11 @@
 \newcommand{\sem}[1]{\llbracket #1 \rrbracket}
 \newcommand{\golemma}[1]{\texttt{#1}}
 \usepackage{minted}
+\let\openbox\relax
+\usepackage{amsthm}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
 \setminted{
   style=perldoc,
   fontsize=\small,
@@ -36,7 +41,7 @@
 \Author{Kosi Nwabueze}{Department of Electrical Engineering and Computer Science} [S.B., Massachusetts Institute of Technology (2025)]
 \Degree{Master of Engineering}{Department of Electrical Engineering and Computer Science}
 \Supervisor{Adam Chlipala}{Professor of Computer Science}[Department of Electrical Engineering and Computer Science]
-\Acceptor{Katrina LaCurts}{Chair, Master of Engineering THesis Committee}{}
+\Acceptor{Katrina LaCurts}{Chair, Master of Engineering Thesis Committee}{}
 \DegreeDate{May}{2026}
 \ThesisDate{May 8, 2026}
 
@@ -47,7 +52,7 @@ High-performance processors rely on out-of-order execution, an instruction-sched
 Even when software is provably constant-time at the instruction-set architecture (ISA) level, transient execution in out-of-order cores can introduce microarchitectural timing variation that causes leakage.
 This thesis contributes a foundation for formally verifying correctness and security properties of complex out-of-order execution.
 This thesis proposes a timing-security model for hardware circuits and applies it to simple designs, including a variable-latency multiplier and a sequential multiple-cycle processor.
-Using \emph{GoLemma}, a deeply embedded hardware-description language in Rocq, we verify functional correctness of crucial out-of-order processor submodules that can later be composed into proofs of larger parent modules.
+Using \emph{GoLemma}, a deeply embedded hardware description language in Rocq, we verify functional correctness of crucial out-of-order processor submodules that can later be composed into proofs of larger parent modules.
 \end{abstract}
 
 \chapter*{Acknowledgments}
@@ -60,7 +65,7 @@ This thesis contributes an approach for proving correctness and timing propertie
 This work serves as the first step towards the mechanization of entire correctness and timing proofs for a realistic, modern computer system including a single out-of-order core complete with a memory hierarchy.
 
 \section{Background: out-of-order execution} \label{sec:ooo}
-All modern high-speed processors are based on out-of-order (OoO) execution, which allows the CPU to dynamically reorder instructions based on the availability of functional units (FUs) and input operands, minimizing structural hazards.
+Most modern high-speed processors are based on out-of-order (OoO) execution, which allows the CPU to dynamically reorder instructions based on the availability of functional units (FUs) and input operands, minimizing structural hazards.
 Instruction scheduling algorithms supporting out-of-order execution with precise exceptions started with Tomasulo's algorithm~\cite{tomasulo1967}, which first introduced the concept of register renaming to eliminate false dependencies between instructions.
 Out-of-order processors combined with another ubiquitous performance optimization, speculative execution, are vulnerable to transient execution attacks, which in-order processors are not.
 Principled defenses must be carefully designed to ensure that attackers cannot exploit programs that are safe for in-order processors to execute but unsafe for out-of-order processors.
@@ -106,7 +111,7 @@ This thesis focuses on synthesizable circuits because they are consumable by dow
 
 \section{Individual contributions}
 The content presented in this thesis was completed during an active collaboration between me, Shixin Song, Jiazheng Liu, Stella Lau, and Andres Erbsen, advised by Professor Adam Chlipala.
-GoLemma, the deeply embedded hardware-description language (HDL) described in \Cref{chap:golemma}, was developed by Jiazheng Liu.
+GoLemma, the deeply embedded hardware description language described in \Cref{chap:golemma}, was developed by Jiazheng Liu.
 Stella contributed security formalizations and proofs for a five-stage pipelined processor combined with an external I/O and memory system, which does not directly appear in this thesis, but whose core ideas carry over.
 Shixin worked on a correctness proof for the out-of-order algorithm described in \Cref{sec:ooo}.
 My personal contributions include the first specifications, implementations, correctness proofs, and timing proofs for individual submodules of the largest out-of-order machine, as discussed in \Cref{chap:cases}.
@@ -156,9 +161,21 @@ This thesis continues in the same tradition, carrying these timing-security proo
 
 \chapter{Verifying timing properties with guarded state monads}
 
-This chapter presents an early approach to verifying timing security of hardware circuits via a \emph{shallow embedding} in Rocq using guarded state monads.
-The framework establishes the core leakage model, security definition, and a simulation-based proof strategy.
-Two case studies demonstrate the technique: a variable-latency shift-and-add multiplier and a four-stage pipelined RISC-V processor.
+This chapter presents an approach to describing the behavior of hardware circuits via a \emph{state machine} (\Cref{sec:timing-state-machine}) and how to encode them \emph{shallow embedding} in Rocq using guarded state monads (\Cref{sec:timing-monads}).
+Then, it defines and states the definition of \emph{hardware constant time}, a timing security property, as a hardware analogue to cryptographic constant time (\Cref{sec:timing-ct}).
+Finally, this chapter will conclude with the proof technique used to prove hardware constant time, namely \emph{simulation} arguments (\Cref{sec:timing-proof}).
+
+\section{State machines} \label{sec:timing-state-machine}
+
+\begin{definition}[State machine]
+
+\end{definition}
+
+\section{Guarded state monads} \label{sec:timing-monads}
+
+\section{Hardware constant time} \label{sec:timing-ct}
+
+\section{Proof technique} \label{sec:timing-proof}
 
 \chapter{Verifying correctness properties with GoLemma} \label{chap:golemma}
 \section{Functional specification}
@@ -168,8 +185,8 @@ Two case studies demonstrate the technique: a variable-latency shift-and-add mul
 
 \chapter{Case studies} \label{chap:cases}
 
-\section{Timing security: Multiplier}
-\section{Timing security: Multiple-cycle processor}
+\section{Timing security: Multiplier} \label{chap:case-multiplier}
+\section{Timing security: Multiple-cycle processor} \label{chap:case-processor}
 \section{Functional correctness: Ring buffer}
 \section{Functional correctness: Reorder buffer}
 
