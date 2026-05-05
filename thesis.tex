@@ -9,6 +9,19 @@
 \usepackage{mathpartir}
 \newcommand{\sem}[1]{\llbracket #1 \rrbracket}
 \newcommand{\golemma}[1]{\texttt{#1}}
+\usepackage{minted}
+\setminted{
+  style=perldoc,
+  fontsize=\small,
+  linenos=true,
+  frame=lines,
+  framerule=0.4pt,
+  framesep=8pt,
+  xleftmargin=14pt,
+  breaklines=true,
+  autogobble=true,
+  escapeinside=@@,
+}
 
 \doublespacing
 
@@ -22,17 +35,19 @@
 \title{Towards Verifying Correctness and Timing Properties for \\ Out-of-Order Machines}
 \Author{Kosi Nwabueze}{Department of Electrical Engineering and Computer Science} [S.B., Massachusetts Institute of Technology (2025)]
 \Degree{Master of Engineering}{Department of Electrical Engineering and Computer Science}
-\Supervisor{Adam Chlipala}{Arthur J. Conner (1888) Professor of Computer Science}[Department of Electrical Engineering and Computer Science]
-\Acceptor{Katrina LaCurts}{Chair, Master of Engineering Thesis Committee}{}
+\Supervisor{Adam Chlipala}{Professor of Computer Science}[Department of Electrical Engineering and Computer Science]
+\Acceptor{Katrina LaCurts}{Chair, Master of Engineering THesis Committee}{}
 \DegreeDate{May}{2026}
 \ThesisDate{May 8, 2026}
 
 \maketitle
 
 \begin{abstract}
-High-performance processors rely on out-of-order execution, a complex instruction-scheduling paradigm that is both difficult to implement correctly and prone to timing side-channel attacks without principled defenses.
-Even when software is provably constant-time at the instruction-set architecture (ISA) level, transient execution in out-of-order cores can introduce microarchitectural timing variation that causes leakage. This thesis contributes foundational techniques for formally verifying correctness and security properties of complex out-of-order execution.
-This thesis proposes a timing-security model for hardware circuits and applies it to simple designs, including a variable-latency multiplier and a sequential multiple-cycle processor. Using \emph{GoLemma}, a deeply embedded hardware-description language in Rocq, we verify functional correctness of crucial out-of-order processor submodules that can later be composed into proofs of larger parent modules.
+High-performance processors rely on out-of-order execution, an instruction-scheduling paradigm that is both difficult to implement correctly and prone to timing side-channel attacks without principled defenses.
+Even when software is provably constant-time at the instruction-set architecture (ISA) level, transient execution in out-of-order cores can introduce microarchitectural timing variation that causes leakage.
+This thesis contributes a foundation for formally verifying correctness and security properties of complex out-of-order execution.
+This thesis proposes a timing-security model for hardware circuits and applies it to simple designs, including a variable-latency multiplier and a sequential multiple-cycle processor.
+Using \emph{GoLemma}, a deeply embedded hardware-description language in Rocq, we verify functional correctness of crucial out-of-order processor submodules that can later be composed into proofs of larger parent modules.
 \end{abstract}
 
 \chapter*{Acknowledgments}
@@ -53,7 +68,7 @@ Principled defenses must be carefully designed to ensure that attackers cannot e
 \Cref{fig:fig1} shows a block diagram for the particular variant of the out-of-order algorithm discussed in this thesis.
 The algorithm is a modified design based on the MIPS R10000 (R10K) processor~\cite{r10k1996}.
 
-\begin{figure}[t!]
+\begin{figure}[ht]
   \centering
   \includegraphics[width=0.75\textwidth]{figures/figure1.png}
   \caption{Diagram for an out-of-order machine based on the R10K processor. Arrows signify communication between submodules.}
@@ -98,134 +113,57 @@ My personal contributions include the first specifications, implementations, cor
 
 \chapter{Related work}
 
-This thesis applies proof techniques for functional correctness and timing security of hardware circuits, targeting synthesizable designs with a path to synthesizable RTL via a verified compiler.
-Prior work relevant to this thesis falls into three categories.
-\Cref{sec:related-correctness} surveys proofs of functional correctness for hardware circuits, which inform the specification and proof methodology used throughout.
-\Cref{sec:related-timing} covers formal approaches to timing side-channel security for hardware, including formalizing threat models through hardware-software contracts.
-\Cref{sec:related-compilation} discusses verified compilation, which provides the principled mechanism for extending source-level reasoning to a proof of correctness for the compiled object language that toolchains consume. Many of the formal verification concepts deployed in verified compilation, such as simulation arguments and nondeterministic semantics, carry over into verification of hardware circuits.
+This thesis contributes mechanized proofs of functional correctness and timing security for hardware circuits.
+\Cref{sec:related-correctness} surveys prior work on formal correctness for hardware, which informs the specification and proof methodology used throughout.
+\Cref{sec:related-timing} covers prior work on timing security, from the microarchitectural attacks that motivate this work to hardware- and software-level defenses and their formal verification.
 
-\section{Functional correctness for hardware circuits} \label{sec:related-correctness}
+\section{Correctness} \label{sec:related-correctness}
 
 Several prior projects have tackled hardware correctness by embedding hardware description languages directly into a proof assistant.
 
 Kami~\cite{choi2017} is a hardware description language, embedded in Rocq, for specifying and verifying hardware circuits in the style of Bluespec SystemVerilog.
-Circuits are organized as labeled transition systems composed of guarded atomic rules, and correctness arguments proceed by refinement between more-abstract and more-concrete specifications.
-The approach is demonstrated on a multicore RISC-V system with cache-coherent shared memory and pipelined cores, verified end-to-end in Rocq.
+Circuits are semantically treated as labeled transition systems composed of guarded atomic rules, and correctness arguments proceed by refinement between more-abstract and more-concrete specifications.
 
 Ko\^{i}ka~\cite{koika2020} is another language for rule-based hardware design that gives Bluespec-style rules a precise sequential semantics characterized by the \emph{one-rule-at-a-time} (ORAAT) property.
 Circuits are described as collections of rules over register state, and the language provides a scheduler that resolves rule conflicts while preserving a one-rule-at-a-time execution model.
 Ko\^{i}ka is accompanied by a verified compiler that lowers circuit descriptions to RTL, providing an end-to-end path from high-level specifications to synthesizable netlists.
-However, Ko\^{i}ka does not support a module system, so circuits must be described monolithically and compositional reasoning is left entirely to the user.
+However, Ko\^{i}ka does not support a module system, so circuits must be described monolithically and lacks compositional reasoning.
 
-The GoLemma framework used in this thesis draws on Ko\^{i}ka's and Kami's approach to circuit specification and modular refinement reasoning, while targeting a different underlying proof methodology and language design.
+The GoLemma language used in this thesis extends upon Ko\^{i}ka and includes modular refinement reasoning, while foregoing ORAAT semantics and instead handling submodule contention through method duplication.
 
-\section{Timing security for hardware circuits} \label{sec:related-timing}
-
-Prior work on hardware timing security~\cite{duxovni2018} builds off the Kami framework beyond functional correctness to reason about timing-security properties of hardware circuits, showing that the same embedding used to verify functional correctness can also support security arguments.
-
-More recent work~\cite{lau2024} formally specifies and verifies strong timing isolation for hardware enclaves, reasoning about cycle-accurate circuit semantics with respect to an air-gapped-machine formulation of isolation and applying the method to a multicore, pipelined RISC-V design.
+\section{Security} \label{sec:related-timing}
 
 The Meltdown~\cite{lipp2018} and Spectre~\cite{kocher2019} attacks, disclosed in 2018, demonstrated that speculative execution, while critical for performance, introduces new side-channel vulnerabilities absent in in-order processors.
 Both attacks exploit the fact that transiently executed instructions leave measurable traces in microarchitectural state, such as cache-residency patterns, that an attacker can recover.
-These attacks motivated a large body of work on formalizing what hardware may leak and designing defenses that provably bound that leakage.
+These attacks motivated a large body of research~\cite{koruyeh2018,maisuradze2018,kiriansky2018,schwarz2019,minkin2019} on transient execution attacks.
 
 Hardware-software contracts for secure speculation~\cite{guarnieri2021} formalize hardware defenses by specifying, for a particular design, both what information is leaked and which speculative paths are explored.
-An analysis of an abstract out-of-order processor protected by speculative taint tracking~\cite{yu2019} shows that the defense satisfies a contract in which leakage events are by branch targets, addresses of loads and stores, and operands of variable-latency instructions.
+An analysis of an abstract out-of-order processor protected by speculative taint tracking~\cite{yu2019} shows that the defense satisfies a contract in which leakage events are branch targets, addresses of loads and stores, and operands of variable-latency instructions.
 The key limitation of this line of work is that it reasons about abstract processor models rather than concrete designs expressible in a hardware description language; this thesis targets the gap to synthesizable RTL.
 
-\section{Verified compilation} \label{sec:related-compilation}
+At the software level, constant-time verification for nondeterministic programs and compilers~\cite{conoly2025} develops techniques for proving constant-time properties in the Rocq proof assistant.
+Using a formulation of constant time as a single-copy property over omnisemantics, the work proves end-to-end preservation of constant-time routines compiled from Bedrock2~\cite{erbsen2021} source to RISC-V machine code.
+The single-copy formulation of constant time used in this thesis is taken from that work, repurposing the approach from software compilers to hardware verification.
 
-A recurring challenge in source-level verification is connecting proofs written against a convenient high-level semantics to the low-level descriptions. Verified compilation provides the principled mechanism for this connection: a compiler whose correctness is mechanically proved carries source-level guarantees to the target language without requiring the target program to be re-verified independently.
+SecSep~\cite{song2025} addresses the gap between source-level constant-time guarantees and speculative execution on real hardware through an assembly-level transformation framework.
+SecSep targets processors similar to ProSpeCT~\cite{daniel2023}, which partitions memory into regions whose speculative loads are delayed until non-speculative and regions whose loads are not, provably enforcing the constant-time policy without relying on fencing.
+SecSep rewrites compiled assembly programs so that secret and public data are partitioned on the stack, using a new typed assembly language called \emph{Octal} to guide the transformation.
+The approach correctly handles secrets on the stack and achieves a low additional runtime overhead on cryptographic programs.
 
-Recent work on constant-time verification for nondeterministic programs and compilers~\cite{conoly2025} develops techniques for proving constant-time properties in the Coq proof assistant.
-Using a formulation of constant time as a single-copy property over omnisemantics, the work proves constant-time preservation of constant-time routines compiled from Bedrock2~\cite{erbsen2021} source to RISC-V machine code, giving an end-to-end theorem that ties a high-level specification directly to the compiled binary.
-The single-copy formulation of constant time used in this thesis is taken directly by that work; repurposing the approach from software compilers to hardware verification.
+Prior work on hardware timing security~\cite{duxovni2018} builds off the Kami framework to reason about timing-security properties of hardware circuits, showing that the same embedding used to verify functional correctness can also support security arguments.
+More recent work~\cite{lau2024} formally specifies and verifies strong timing isolation for hardware enclaves, reasoning about cycle-accurate circuit semantics with respect to an air-gapped-machine formulation of isolation and applying the method to a multicore, pipelined RISC-V design.
+This thesis continues in the same tradition, carrying these timing-security proof techniques into the setting of individual submodules of a large out-of-order machine.
 
-\chapter{Verifying timing properties with state monads}
-\section{Leakage model}
-\section{Implementation}
-\section{Proof}
-\section{Discussion}
+\chapter{Verifying timing properties with guarded state monads}
+
+This chapter presents an early approach to verifying timing security of hardware circuits via a \emph{shallow embedding} in Rocq using guarded state monads.
+The framework establishes the core leakage model, security definition, and a simulation-based proof strategy.
+Two case studies demonstrate the technique: a variable-latency shift-and-add multiplier and a four-stage pipelined RISC-V processor.
 
 \chapter{Verifying correctness properties with GoLemma} \label{chap:golemma}
 \section{Functional specification}
-
-% \begin{figure}[h]
-% \centering
-% \[
-% \begin{array}{r@{\ ::=\ }ll}
-% \tau & \texttt{Bit}(n) & \text{$n$-bit bitvector} \\
-%      & \mid\ \texttt{Enum}(\mathit{sig}) & \text{enumeration type} \\
-%      & \mid\ \texttt{Struct}(\bar{f\!:\!\tau}) & \text{structure type} \\
-%      & \mid\ \texttt{Array}(\tau,\,n) & \text{fixed-length array} \\[6pt]
-% e    & x & \text{variable} \\
-%      & \mid\ c & \text{constant} \\
-%      & \mid\ \mathit{op}(\bar{e}) & \text{primitive operation} \\
-%      & \mid\ f(\bar{e}) & \text{pure function call} \\
-%      & \mid\ i.\mathtt{m}(\bar{p};\,\bar{a}) & \text{value method call (instance $i$, dyn.\ params $\bar{p}$, args $\bar{a}$)} \\
-%      & \mid\ e \mathbin{?} e_1 : e_2 & \text{conditional expression} \\[6pt]
-% a    & \mathtt{let}\ x = e & \text{introduce variable $x$} \\
-%      & \mid\ x = e & \text{assign to $x$} \\
-%      & \mid\ \mathtt{if}(e)\;\{as\}\;\mathtt{else}\;\{as\} & \text{conditional action} \\
-%      & \mid\ \mathtt{for}\ i \in [m]\;\{as\} & \text{bounded loop} \\
-%      & \mid\ v \leftarrow i.\mathtt{m}(\bar{p};\,\bar{a}) & \text{action method call} \\
-%      & \mid\ \mathtt{abort} & \text{abort} \\[6pt]
-% as   & \varepsilon \mid a\,;\,as & \text{action sequences} \\[6pt]
-% \mathit{meth} & \{\,as\,;\;\mathtt{return}\ e\,\} & \text{method body}
-% \end{array}
-% \]
-% \caption{Abstract syntax of the GoLemma core language.
-%   Variables $x$ are typed by a typing context $\Gamma : \mathit{var} \to \tau$.
-%   Action sequences extend $\Gamma$ left-to-right via \texttt{let} bindings.
-%   Value method calls produce a result of type $\tau$; action method calls may
-%   additionally update submodule state.}
-% \label{fig:golemma-syntax}
-% \end{figure}
-
 \section{Implementation}
 \section{Proof}
-
-% \begin{figure}[h]
-% \centering
-% \small
-% \[
-% \begin{array}{r@{\;}c@{\;}ll}
-% \multicolumn{4}{l}{\textit{Expression semantics}\quad \sem{e}_{G,st}\,P \;:\; \mathrm{Prop}, \quad P : \tau \to \mathrm{Prop}} \\[4pt]
-% \sem{x}_{G,st}\,P            & = & P\!\left(G(x)\right) \\[2pt]
-% \sem{c}_{G,st}\,P            & = & P(c) \\[2pt]
-% \sem{\mathit{op}(\bar{e})}_{G,st}\,P  & = & \sem{\bar{e}}_{G,st}\!\left(\lambda\bar{v}.\;\sigma(\mathit{op})\,\bar{v}\,P\right) \\[2pt]
-% \sem{e \mathbin{?} e_t : e_f}_{G,st}\,P & = &
-%   \sem{e}_{G,st}\!\left(\lambda b.\;\mathbf{if}\ b{=}1\ \mathbf{then}\ \sem{e_t}_{G,st}\,P\ \mathbf{else}\ \sem{e_f}_{G,st}\,P\right) \\[2pt]
-% \sem{i.\mathtt{m}(\bar{p};\bar{a})}_{G,st}\,P & = &
-%   \sem{\bar{p}}_{G,st}\!\left(\lambda\bar{ps}.\;\sem{\bar{a}}_{G,st}\!\left(\lambda\bar{vs}.\;\mathcal{M}_i.\mathtt{m}(\bar{ps})(\bar{vs},st)(\lambda v.\,P(v))\right)\right) \\[10pt]
-% \multicolumn{4}{l}{\textit{Action semantics}\quad \sem{a}_{G,st}\,P \;:\; \mathrm{Prop}, \quad P : (G' \times \mathit{SCtx}) \to \mathrm{Prop}} \\[4pt]
-% \sem{\mathtt{let}\ x = e}_{G,st}\,P & = &
-%   \sem{e}_{G,st}\!\left(\lambda v.\;P\!\left(G \cdot (x,v),\;st\right)\right) \\[2pt]
-% \sem{x = e}_{G,st}\,P & = &
-%   \sem{e}_{G,st}\!\left(\lambda v.\;P\!\left(G[x{\mapsto}v],\;st\right)\right) \\[2pt]
-% \sem{\mathtt{if}(c)\{t\}\{f\}}_{G,st}\,P & = &
-%   \sem{c}_{G,st}\!\left(\lambda b.\;\mathbf{if}\ b{=}1\ \mathbf{then}\ \sem{t}_{G,st}\!\left(\lambda(G'\!,st').\,P(G'{\downarrow}t,st')\right)\right. \\
-%   & & \quad\quad\quad\quad \left.\mathbf{else}\ \sem{f}_{G,st}\!\left(\lambda(G'\!,st').\,P(G'{\downarrow}f,st')\right)\right) \\[2pt]
-% \sem{\mathtt{abort}}_{G,st}\,P & = & \bot \\[2pt]
-% \sem{v \leftarrow i.\mathtt{m}(\bar{p};\bar{a})}_{G,st}\,P & = &
-%   \sem{\bar{p}}_{G,st}\!\left(\lambda\bar{ps}.\;\sem{\bar{a}}_{G,st}\!\left(\lambda\bar{vs}.\;\mathcal{M}_i.\mathtt{m}(\bar{ps})(\bar{vs},st)\!\left(\lambda(v'\!,st').\,P(\mathit{vop}(v,G,v'),st')\right)\right)\right) \\[10pt]
-% \multicolumn{4}{l}{\textit{Sequence semantics}\quad \sem{as}_{G,st}\,P \;:\; \mathrm{Prop}} \\[4pt]
-% \sem{\varepsilon}_{G,st}\,P & = & P(G,st) \\[2pt]
-% \sem{a\,;\,as}_{G,st}\,P   & = & \sem{a}_{G,st}\!\left(\lambda(G'\!,st').\;\sem{as}_{G',st'}\,P\right)
-% \end{array}
-% \]
-% \caption{Predicate-transformer (WPC) semantics of GoLemma.
-%   $G$ is a variable environment mapping names to values,
-%   $st$ is the joint submodule state (\emph{SCtx}),
-%   $P$ is a postcondition,
-%   $\mathcal{M}_i$ is the relational specification of the $i$-th submodule,
-%   $G'{\downarrow}t$ denotes exiting the scope of action sequence $t$ by
-%   dropping variables introduced inside it,
-%   and $\mathit{vop}(v,G,v')$ updates $G$ according to the variable operation $v$
-%   (introduction, assignment, or discard).}
-% \label{fig:golemma-wpc}
-% \end{figure}
-
 \section{Discussion}
 
 \chapter{Case studies} \label{chap:cases}

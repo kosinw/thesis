@@ -1,0 +1,16 @@
+\begin{MintedVerbatim}[commandchars=\\\{\},codes={\catcode`\$=3\catcode`\^=7\catcode`\_=8\relax}]
+\PYG{k+kn}{Definition} \PYG{n}{simulates} \PYG{o}{\PYGZob{}}\PYG{n}{s1} \PYG{n}{s2} \PYG{n}{t1} \PYG{n}{t2}\PYG{o}{\PYGZcb{}} \PYG{n}{a1} \PYG{n}{a2} \PYG{o}{(}\PYG{n}{R} \PYG{o}{:} \PYG{n}{s1} \PYG{o}{\PYGZhy{}\PYGZgt{}} \PYG{n}{s2} \PYG{o}{\PYGZhy{}\PYGZgt{}} \PYG{k+kt}{Prop}\PYG{o}{)} \PYG{o}{:=}
+  \PYG{k}{forall} \PYG{n}{st1} \PYG{n}{st2}\PYG{o}{,} \PYG{n}{R} \PYG{n}{st1} \PYG{n}{st2} \PYG{o}{\PYGZhy{}\PYGZgt{}}
+    \PYG{k}{forall} \PYG{n}{st1\PYGZsq{}} \PYG{n}{st2\PYGZsq{}}\PYG{o}{,}
+      \PYG{n}{st1\PYGZsq{}} \PYG{o}{=} \PYG{n}{nextState} \PYG{o}{(}\PYG{n}{a} \PYG{o}{:=} \PYG{n}{t1}\PYG{o}{)} \PYG{n}{a1} \PYG{n}{st1} \PYG{o}{\PYGZhy{}\PYGZgt{}}
+      \PYG{n}{st2\PYGZsq{}} \PYG{o}{=} \PYG{n}{nextState} \PYG{o}{(}\PYG{n}{a} \PYG{o}{:=} \PYG{n}{t2}\PYG{o}{)} \PYG{n}{a2} \PYG{n}{st2} \PYG{o}{\PYGZhy{}\PYGZgt{}}
+      \PYG{n}{R} \PYG{n}{st1\PYGZsq{}} \PYG{n}{st2\PYGZsq{}}\PYG{o}{.}
+
+\PYG{k+kn}{Notation} \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{m1 \PYGZti{} m2 : R}\PYG{l+s+s2}{\PYGZdq{}} \PYG{o}{:=} \PYG{o}{(}\PYG{n}{simulates} \PYG{n}{m1} \PYG{n}{m2} \PYG{n}{R}\PYG{o}{)}\PYG{o}{.}
+
+\PYG{k+kn}{Definition} \PYG{n}{circuitSimulates} \PYG{o}{`}\PYG{o}{(}\PYG{n}{c1} \PYG{o}{:} \PYG{n}{Circuit} \PYG{n}{s1} \PYG{n}{m1} \PYG{n}{tr}\PYG{o}{)} \PYG{o}{`}\PYG{o}{(}\PYG{n}{c2} \PYG{o}{:} \PYG{n}{Circuit} \PYG{n}{s2} \PYG{n}{m2} \PYG{n}{tr}\PYG{o}{)}
+    \PYG{n}{p} \PYG{n}{R} \PYG{o}{:=}
+  \PYG{k}{forall} \PYG{n}{m}\PYG{o}{,} \PYG{n}{c1}\PYG{o}{.}\PYG{o}{(}\PYG{n}{circuitCall}\PYG{o}{)} \PYG{n}{m} \PYG{o}{\PYGZti{}} \PYG{n}{c2}\PYG{o}{.}\PYG{o}{(}\PYG{n}{circuitCall}\PYG{o}{)} \PYG{o}{(}\PYG{n}{p} \PYG{n}{m}\PYG{o}{)} \PYG{o}{:} \PYG{n}{R}\PYG{o}{.}
+
+\PYG{k+kn}{Notation} \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{c1 \PYGZti{} c2 : policy ; R}\PYG{l+s+s2}{\PYGZdq{}} \PYG{o}{:=} \PYG{o}{(}\PYG{n}{circuitSimulates} \PYG{n}{c1} \PYG{n}{c2} \PYG{n}{policy} \PYG{n}{R}\PYG{o}{)}\PYG{o}{.}
+\end{MintedVerbatim}

@@ -1,0 +1,9 @@
+\begin{MintedVerbatim}[commandchars=\\\{\},codes={\catcode`\$=3\catcode`\^=7\catcode`\_=8\relax}]
+\PYG{c}{(*}\PYG{c}{ A circuit [c] is constant\PYGZhy{}time relative to [policy] if there exists}
+\PYG{c}{   a function [f] such that for any method sequence [xs], the leakage}
+\PYG{c}{   trace is exactly [f }\PYG{c}{(}\PYG{c}{policy xs}\PYG{c}{)}\PYG{c}{]. }\PYG{c}{*)}
+\PYG{k+kn}{Definition} \PYG{n}{constantTime} \PYG{o}{\PYGZob{}}\PYG{n}{m2}\PYG{o}{\PYGZcb{}} \PYG{o}{`}\PYG{o}{(}\PYG{n}{c} \PYG{o}{:} \PYG{n}{Circuit} \PYG{n}{s} \PYG{n}{m1} \PYG{n}{tr}\PYG{o}{)}
+    \PYG{o}{(}\PYG{n}{policy} \PYG{o}{:} \PYG{n}{list} \PYG{n}{m1} \PYG{o}{\PYGZhy{}\PYGZgt{}} \PYG{n}{list} \PYG{n}{m2}\PYG{o}{)} \PYG{o}{:=}
+  \PYG{k}{exists} \PYG{n}{f}\PYG{o}{,} \PYG{k}{forall} \PYG{n}{xs}\PYG{o}{,}
+    \PYG{n}{circuitTrace} \PYG{o}{(}\PYG{n}{runCircuit} \PYG{n}{c} \PYG{n}{xs}\PYG{o}{)} \PYG{o}{=} \PYG{n}{f} \PYG{o}{(}\PYG{n}{policy} \PYG{n}{xs}\PYG{o}{)}\PYG{o}{.}
+\end{MintedVerbatim}

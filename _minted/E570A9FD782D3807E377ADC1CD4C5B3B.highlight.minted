@@ -1,0 +1,13 @@
+\begin{MintedVerbatim}[commandchars=\\\{\},codes={\catcode`\$=3\catcode`\^=7\catcode`\_=8\relax}]
+\PYG{k+kn}{Class} \PYG{n}{Circuit} \PYG{o}{(}\PYG{n}{s} \PYG{n}{m} \PYG{n}{tr} \PYG{o}{:} \PYG{k+kt}{Type}\PYG{o}{)} \PYG{o}{:=}
+  \PYG{o}{\PYGZob{}} \PYG{n}{mkCircuit}  \PYG{o}{:} \PYG{n}{s}
+  \PYG{o}{;} \PYG{n}{circuitCall}  \PYG{o}{:} \PYG{n}{m} \PYG{o}{\PYGZhy{}\PYGZgt{}} \PYG{n}{Action} \PYG{o}{(}\PYG{n}{s} \PYG{o}{:=} \PYG{n}{s}\PYG{o}{)} \PYG{n}{unit}
+  \PYG{o}{;} \PYG{n}{circuitTrace} \PYG{o}{:} \PYG{n}{s} \PYG{o}{\PYGZhy{}\PYGZgt{}} \PYG{n}{list} \PYG{n}{tr}
+  \PYG{o}{\PYGZcb{}}\PYG{o}{.}
+
+\PYG{k+kn}{Definition} \PYG{n}{circuitStep} \PYG{o}{`}\PYG{o}{(}\PYG{n}{c} \PYG{o}{:} \PYG{n}{Circuit} \PYG{n}{s} \PYG{n}{m} \PYG{n}{tr}\PYG{o}{)} \PYG{o}{(}\PYG{n}{method} \PYG{o}{:} \PYG{n}{m}\PYG{o}{)} \PYG{o}{(}\PYG{n}{state} \PYG{o}{:} \PYG{n}{s}\PYG{o}{)} \PYG{o}{:} \PYG{n}{s} \PYG{o}{:=}
+  \PYG{n}{nextState} \PYG{o}{(}\PYG{n}{circuitCall} \PYG{n}{method}\PYG{o}{)} \PYG{n}{state}\PYG{o}{.}
+
+\PYG{k+kn}{Definition} \PYG{n}{runCircuit} \PYG{o}{`}\PYG{o}{(}\PYG{n}{c} \PYG{o}{:} \PYG{n}{Circuit} \PYG{n}{s} \PYG{n}{m} \PYG{n}{tr}\PYG{o}{)} \PYG{o}{(}\PYG{n}{ms} \PYG{o}{:} \PYG{n}{list} \PYG{n}{m}\PYG{o}{)} \PYG{o}{:} \PYG{n}{s} \PYG{o}{:=}
+  \PYG{n}{fold\PYGZus{}left} \PYG{o}{(}\PYG{k}{fun} \PYG{n}{st} \PYG{n}{m} \PYG{o}{=\PYGZgt{}} \PYG{n}{circuitStep} \PYG{n}{c} \PYG{n}{m} \PYG{n}{st}\PYG{o}{)} \PYG{n}{ms} \PYG{n}{mkCircuit}\PYG{o}{.}
+\end{MintedVerbatim}
