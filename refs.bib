@@ -139,3 +139,50 @@
   pages={1675-1686},
   keywords={Reduced instruction set computing;Microprocessors;Delay;CMOS technology;Decoding;CMOS process;Energy consumption;Clocks;Power distribution;Circuit synthesis},
   doi={10.1109/JSSC.1996.542312}}
+
+@inproceedings{lau2024,
+author = {Lau, Stella and Bourgeat, Thomas and Pit-Claudel, Cl\'{e}ment and Chlipala, Adam},
+title = {Specification and Verification of Strong Timing Isolation of Hardware Enclaves},
+year = {2024},
+isbn = {9798400706363},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3658644.3690203},
+doi = {10.1145/3658644.3690203},
+abstract = {The process isolation enforceable by commodity hardware and operating systems is too weak to protect secrets from malicious code running on the same machine: attacks exploit timing side channels derived from contention on shared microarchitectural resources to extract secrets. With appropriate hardware support, however, we can construct isolated enclaves and safeguard independent processes from interference through timing side channels, a step towards confidentiality and integrity guarantees.In this paper, we describe our work on formally specifying and verifying that a synthesizable hardware architecture implements strong timing isolation for enclaves. We reason about the cycle-accurate semantics of circuits with respect to a trustworthy formulation of strong isolation based on "air-gapped machines" and develop a modular proof strategy that sidesteps the need to prove functional correctness of processors. We apply our method on a synthesizable, multicore, pipelined RISC-V design formalized in Coq.},
+booktitle = {Proceedings of the 2024 on ACM SIGSAC Conference on Computer and Communications Security},
+pages = {1121–1135},
+numpages = {15},
+keywords = {hardware verification, isolation, side channels},
+location = {Salt Lake City, UT, USA},
+series = {CCS '24}
+}
+
+@inproceedings{erbsen2021,
+author = {Erbsen, Andres and Gruetter, Samuel and Choi, Joonwon and Wood, Clark and Chlipala, Adam},
+title = {Integration verification across software and hardware for a simple embedded system},
+year = {2021},
+isbn = {9781450383912},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3453483.3454065},
+doi = {10.1145/3453483.3454065},
+abstract = {The interfaces between layers of a system are susceptible to bugs if developers of adjacent layers proceed under subtly different assumptions. Formal verification of two layers against the same formal model of the interface between them can be used to shake out these bugs. Doing so for every interface in the system can, in principle, yield unparalleled assurance of the correctness and security of the system as a whole. However, there have been remarkably few efforts that carry out this exercise, and all of them have simplified the task by restricting interactivity of the application, inventing new simplified instruction sets, and using unrealistic input and output mechanisms. We report on the first verification of a realistic embedded system, with its application software, device drivers, compiler, and RISC-V processor represented inside the Coq proof assistant as one mathematical object, with a machine-checked proof of functional correctness. A key challenge is structuring the proof modularly, so that further refinement of the components or expansion of the system can proceed without revisiting the rest of the system.},
+booktitle = {Proceedings of the 42nd ACM SIGPLAN International Conference on Programming Language Design and Implementation},
+pages = {604–619},
+numpages = {16},
+keywords = {Embedded Systems, Formal Verification, Hardware-Software Interface, Proof Assistants, RISC-V Instruction-Set Family},
+location = {Virtual, Canada},
+series = {PLDI 2021}
+}
+
+@ARTICLE{tomasulo1967,
+  author={Tomasulo, R. M.},
+  journal={IBM Journal of Research and Development},
+  title={An Efficient Algorithm for Exploiting Multiple Arithmetic Units},
+  year={1967},
+  volume={11},
+  number={1},
+  pages={25-33},
+  keywords={},
+  doi={10.1147/rd.111.0025}}
