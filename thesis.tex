@@ -25,6 +25,7 @@
   xleftmargin=14pt,
   breaklines=true,
   autogobble=true,
+  mathescape=true,
   escapeinside=@@,
 }
 
@@ -39,7 +40,7 @@
 
 \title{Towards Verifying Correctness and Timing Properties for \\ Out-of-Order Machines}
 \Author{Kosi Nwabueze}{Department of Electrical Engineering and Computer Science} [S.B., Massachusetts Institute of Technology (2025)]
-\Degree{Master of Engineering}{Department of Electrical Engineering and Computer Science}
+\Degree{Master of Engineering in Elecrical Engineering and Computer Science}{Department of Electrical Engineering and Computer Science}
 \Supervisor{Adam Chlipala}{Professor of Computer Science}[Department of Electrical Engineering and Computer Science]
 \Acceptor{Katrina LaCurts}{Chair, Master of Engineering Thesis Committee}{}
 \DegreeDate{May}{2026}
@@ -50,7 +51,7 @@
 \begin{abstract}
 High-performance processors rely on out-of-order execution, an instruction-scheduling paradigm that is both difficult to implement correctly and prone to timing side-channel attacks without principled defenses.
 Even when software is provably constant-time at the instruction-set architecture (ISA) level, transient execution in out-of-order cores can introduce microarchitectural timing variation that causes leakage.
-This thesis contributes a foundation for formally verifying correctness and security properties of complex out-of-order execution.
+This thesis contributes a foundation for formally verifying correctness and security properties of hardware circuits, with the end goal of verifying an out-of-order processor.
 This thesis proposes a timing-security model for hardware circuits and applies it to simple designs, including a variable-latency multiplier and a sequential multiple-cycle processor.
 Using \emph{GoLemma}, a deeply embedded hardware description language in Rocq, we verify functional correctness of crucial out-of-order processor submodules that can later be composed into proofs of larger parent modules.
 \end{abstract}
@@ -59,6 +60,8 @@ Using \emph{GoLemma}, a deeply embedded hardware description language in Rocq, w
 \comment{TODO(kosinw): Write acknowledgements}
 
 \tableofcontents
+\listoffigures
+\listoftables
 
 \chapter{Introduction}
 This thesis contributes an approach for proving correctness and timing properties for hardware circuits described in the Rocq proof assistant.
@@ -114,7 +117,7 @@ The content presented in this thesis was completed during an active collaboratio
 GoLemma, the deeply embedded hardware description language described in \Cref{chap:golemma}, was developed by Jiazheng Liu.
 Stella contributed security formalizations and proofs for a five-stage pipelined processor combined with an external I/O and memory system, which does not directly appear in this thesis, but whose core ideas carry over.
 Shixin worked on a correctness proof for the out-of-order algorithm described in \Cref{sec:ooo}.
-My personal contributions include the first specifications, implementations, correctness proofs, and timing proofs for individual submodules of the largest out-of-order machine, as discussed in \Cref{chap:cases}.
+My personal contributions include the first specifications, implementations, correctness proofs, and timing proofs for individual submodules of the out-of-order machine, as discussed in \Cref{chap:cases}.
 
 \chapter{Related work}
 
@@ -159,29 +162,299 @@ Prior work on hardware timing security~\cite{duxovni2018} builds off the Kami fr
 More recent work~\cite{lau2024} formally specifies and verifies strong timing isolation for hardware enclaves, reasoning about cycle-accurate circuit semantics with respect to an air-gapped-machine formulation of isolation and applying the method to a multicore, pipelined RISC-V design.
 This thesis continues in the same tradition, carrying these timing-security proof techniques into the setting of individual submodules of a large out-of-order machine.
 
-\chapter{Verifying timing properties with guarded state monads}
+\chapter{Verifying timing security for circuits}
 
-This chapter presents an approach to describing the behavior of hardware circuits via a \emph{state machine} (\Cref{sec:timing-state-machine}) and how to encode them \emph{shallow embedding} in Rocq using guarded state monads (\Cref{sec:timing-monads}).
-Then, it defines and states the definition of \emph{hardware constant time}, a timing security property, as a hardware analogue to cryptographic constant time (\Cref{sec:timing-ct}).
-Finally, this chapter will conclude with the proof technique used to prove hardware constant time, namely \emph{simulation} arguments (\Cref{sec:timing-proof}).
+This chapter presents an approach to describing the behavior of hardware circuits via a \emph{state machine} (\Cref{sec:timing-state-machine}) and how to encode them in Rocq using a shallow embedding (\Cref{sec:timing-monads}).
+It then develops the simulation-based proof structure used to prove security in this thesis (\Cref{sec:timing-proof}).
+Case studies utilizing the framework outlined in this chapter include a constant-time multiplier (\Cref{chap:case-multiplier}) and a constant-time, multiple-cycle processor (\Cref{chap:case-processor}).
 
 \section{State machines} \label{sec:timing-state-machine}
 
-\begin{definition}[State machine]
+A \emph{state machine} is an abstraction used to describe the behavior of a computation by defining its possible states and the rules for transitioning between them.
+Hardware circuits function as physical state machines: registers serve as the memory that holds the current state, while combinational logic defines the functions that determine both the system's outputs and its next state based on the current configuration.
+In the context of this thesis, we view hardware modules as interacting through well-defined interfaces composed of methods rather than raw, unstructured signals.
+Each discrete state transition in the system corresponds to the execution of an method, supplied with arguments that represent the transaction's data.
+This approach is consistent with prior work \cite{choi2017,koika2020} where hardware modules are viewed as high-level transition systems where the transitions lie on method boundaries.
+We adopt the following formal definition of a state machine.
 
+\begin{definition}[State machine]
+  A state machine $\mathcal{M}$ is a 5-tuple $(S, s_0, I, O, \delta)$ where $S$ is a set of states, $s_0 \in S$ is the initial state, $I$ is a set of inputs, $O$ is a set of outputs, and
+  \[
+    \delta : S \times I \rightharpoonup S \times O
+  \]
+  is a partial transition function.
+  Here $\xrightharpoonup{}$ denotes that certain methods can abort and produce no state change or output.
 \end{definition}
 
-\section{Guarded state monads} \label{sec:timing-monads}
+We model hardware circuits as such machines.
+A state $s \in S$ captures the current values of the sequential logic relevant to the module.
+Each input in $I$ represents a \emph{method invocation}: a variant type carrying a method tag together with the argument values for that call.
+The transition function $\delta$ is parital on $S \times I$ to reflect that the model may not produce a well-defined successor state and output when the call is \emph{aborted} by a guard (for example, dequeuing from an empty buffer).
+An aborted call leaves the circuit in the same configuration.
+This convention simplifies trace definitions and simulation proofs: each input sequence determines one run, and the optional output indicates whether the call produced a visible event in the output trace.
+
+For the purpose of reasoning about security with this framework, we additionally restrict attention to circuits whose behavior is \emph{deterministic} in the sense above: for each $s \in S$ and $i \in I$, there is at most one pair $(s', o) = \delta(s,i)$ with $o \in O$.
+This restriction is convenient for reasoning about the proof obligations in \Cref{sec:timing-ct} and \Cref{sec:timing-proof}, where we compare runs under related inputs and want equality of traces without existentially quantifying over implementation-defined resolution of nondeterminism in proofs.
+Determinism is a design choice of convenience, not necessity; as discussed in \Cref{chap:golemma}, the framework for deeply embedded circuits can use nondeterministic semantics (in particular, omnisemantics~\cite{chargueraud2023}) to describe specifications.
+
+Given an input sequence $i_1, i_2, \ldots, i_n \in I$, repeatedly applying $\delta$ from the initial state $s_0$ defines a \emph{run} of the machine.
+The corresponding sequence of per-step observations is called the machine's \emph{trace}.
+Concretely, the machine $\mathcal{M}$ produces a sequence of optional outputs by unfolding $\delta$ from $s_0$:
+\[
+  s_0 \xrightarrow{i_1 / o_1} s_1 \xrightarrow{i_2 / o_2} s_2 \;\cdots\; \xrightarrow{i_n / o_n} s_n, \qquad \hat{o}_i \in O,\ s_i \in S.
+\]
+The \emph{observable trace} of the run is the list $[o_1,\ldots,o_n]$.
+For timing security, one interprets elements of $O$ (modulo erasure, described in \Cref{sec:timing-ct}) as the information that is leaked to an adversary,
+Aborted transitions do not produce events in the trace.
+
+\paragraph{Rocq encoding.}
+The state machine model is mechanized in Rocq as a plain record (\Cref{fig:circuit-typeclass}), parameterized by a state type~\texttt{s}, an input type~\texttt{i}, and an output type~\texttt{o}.
+These parameters correspond directly to $S$, $I$, and $O$.
+
+\begin{figure}[ht]
+\begin{minted}{coq}
+Definition Action s t := s -> option (s * t).
+
+Record StateMachine (s i o : Type) := {
+  state_machine_rst  : s;
+  state_machine_call : i -> Action s o;
+}.
+\end{minted}
+\caption{The \texttt{StateMachine} record. The fields \texttt{state\_machine\_rst}
+  and \texttt{state\_machine\_call} correspond to $s_0$ and to the family of
+  method bodies that realize $\delta$ when combined with the operational
+  semantics of \texttt{Action} (\Cref{sec:timing-monads}).}
+\label{fig:circuit-typeclass}
+\end{figure}
+
+Method bodies are written in the monad \mintinline{coq}{Action s o}, which can be richly composed together to simulate imperative programs.
+
+The function \mintinline{coq}{step_action} evaluates a body in a given state and normalizes the result to a deterministic Rocq value of type \mintinline{coq}{s * option o}: either the action succeeds and returns an updated state together with \mintinline{coq}{Some out}, or it aborts and returns the original state with \mintinline{coq}{None}.
+Composing this with \mintinline{coq}{state_machine_call} yields \mintinline{coq}{machine_step}, the direct analogue of one application of $\delta$.
+
+\begin{figure}[ht]
+\begin{minted}{coq}
+Definition step_action {st o : Type} (a : Action st o) (s : st)
+  : st * option o :=
+  match run_action a s with
+  | Some (s', out) => (s', Some out)
+  | None => (s, None)
+  end.
+
+Definition machine_step {st i o : Type}
+  (sm : StateMachine st i o) (inp : i) (s : st) : st * option o :=
+  step_action (state_machine_call sm inp) s.
+\end{minted}
+\caption{The \mintinline{coq}{step_action} and \mintinline{coq}{machine_step} functions
+        describe single-step semantics.}
+\label{fig:machine-step}
+\end{figure}
+
+Longer runs are defined by structural recursion over input lists (\Cref{fig:machine-runs}).
+The helper \mintinline{coq}{run_machine} applies \mintinline{coq}{machine_runs} from the reset state \mintinline{coq}{state_machine_rst sm}, and \mintinline{coq}{run_outputs} projects the trace of optional outputs.
+
+\begin{figure}[ht]
+\begin{minted}{coq}
+Fixpoint machine_runs {st i o : Type}
+  (sm : StateMachine st i o) (s : st) (inputs : list i) : st * list (option o) :=
+  match inputs with
+  | [] => (s, [])
+  | inp :: inputs' =>
+      let '(s', out) := machine_step sm inp s in
+      let '(s'', outs) := machine_runs sm s' inputs' in
+      (s'', out :: outs)
+  end.
+
+Definition run_machine {st i o : Type}
+  (sm : StateMachine st i o) (inputs : list i) : st * list (option o) :=
+  machine_runs sm (state_machine_rst sm) inputs.
+\end{minted}
+\caption{The function \texttt{machine\_runs} executes a \texttt{StateMachine}
+  on a list of inputs, threading state forward and producing one optional output
+  per input.}
+\label{fig:machine-runs}
+\end{figure}
+
+\section{Encoding circuits with guarded state monads} \label{sec:timing-monads}
+
+A \emph{shallow embedding} encodes an object language directly as terms of the host language.
+In this style, the host's type system, reduction rules, and terms \emph{are} the semantics of the embedded language.
+In Rocq, that means method bodies are ordinary Gallina functions rather than abstract syntax trees requiring a separate interpreter.
+By contrast, a \emph{deep embedding} defines an explicit syntax (usually an inductive datatype of commands or expressions) together with a separate interpreter or operational semantics.
+
+Each style has distinct advantages and costs.
+Shallow embeddings are typically easier to verify against semantic properties, because evaluation and equational reasoning reuse the host logic directly; many proof steps reduce by unfolding and simplification rather than by proving separate meta-theory about an interpreter.
+They are also concise and close to executable definitions, which helps when writing and maintaining machine models.
+Their main drawback is that source-level program transformations, compiler passes, and syntax-directed analyses are less direct, since syntax is not explicit; these tasks often require reification and tactic support to recover a manipulable syntax tree.
+
+Deep embeddings make syntax explicit from the beginning, so compiler construction, optimization passes, static analyses, and syntax-level metatheory are often cleaner to express.
+However, they impose additional verification overhead: one must define and reason about an interpreter (or step relation), and prove that this semantics aligns with the intended meaning.
+As a result, many proofs involve an extra semantic layer before reaching the target theorem.
+For the goals of this chapter---simulation and constant-time reasoning over state-machine models---the reduced semantic overhead of a shallow embedding is the more practical choice.
+
+We first introduce the underlying \emph{state monad}, before adding guards.
+Ignoring failure for a moment, a stateful computation can be understood as a function that consumes a state and returns a pair of the updated state and a result value:
+\[
+  \texttt{State}\;s\;t \;\triangleq\; s \to (s * t).
+\]
+This representation is powerful because it makes imperative effects explicit and compositional.
+Reading and writing state are no longer primitive side effects of the meta-language; instead, they are ordinary functions that transform an explicit state argument.
+As a consequence, one can describe sequential hardware behavior in a pure functional setting and still recover the usual imperative intuition of ``read state, update registers, continue''.
+
+\begin{figure}[ht]
+\begin{minted}{coq}
+Definition State (s t : Type) := s -> (s * t).
+
+Definition ret {s t} (x : t) : State s t :=
+  fun st => (st, x).
+
+Definition bind {s t1 t2}
+  (m : State s t1) (f : t1 -> State s t2) :=
+  fun st =>
+    let '(st', x) := m st in
+    f x st'.
+\end{minted}
+\caption{Plain state-monad core (conceptual).}
+\label{fig:state-monad-core}
+\end{figure}
+
+The development in \texttt{action.v} then enriches this with failure to model guarded method calls.
+The resulting type, called \mintinline{coq}{Action}, is a \emph{guarded state monad}:
+\[
+  \texttt{Action}\;s\;t \;\triangleq\; s \to \texttt{option}\;(s * t).
+\]
+The \mintinline{coq}{Some} case represents a successful step that returns an updated state and a value.
+The \mintinline{coq}{None} case represents an aborted step (for example, when a guard is false).
+This extra layer is exactly what is needed for hardware method interfaces where not all calls are enabled in all states.
+
+\begin{figure}[ht]
+\begin{minted}{coq}
+Definition Action (s : Type) (t : Type) := s -> option (s * t).
+
+Definition ret {t} (x : t) : Action s t := fun st => Some (st, x).
+
+Definition bind {t1 t2} (m : Action s t1) (f : t1 -> Action s t2) :=
+  fun r =>
+    match m r with
+    | Some (s, x) => f x s
+    | None => None
+    end.
+
+Definition get : Action s s := fun st => Some (st, st).
+Definition put (x : s) : Action s unit := fun _ => Some (x, tt).
+Definition modify (f : s -> s) : Action s unit := fun st => Some (f st, tt).
+Definition fail {t} : Action s t := fun _ => None.
+\end{minted}
+\caption{Guarded state-monad definitions from \texttt{action.v}.}
+\label{fig:guarded-state-monad-core}
+\end{figure}
+
+\paragraph{Return (\texttt{ret}).}
+\mintinline{coq}{ret} injects a pure value into the monad.
+It leaves the state unchanged and returns \mintinline{coq}{Some (st, x)}.
+Semantically, this corresponds to a method fragment that computes a value without performing any state transition or guard check.
+Because \mintinline{coq}{ret} is a direct function definition, proof goals involving it typically simplify immediately by unfolding.
+
+\paragraph{Sequencing (\texttt{bind}).}
+\mintinline{coq}{bind} composes two monadic computations.
+In a plain state monad, sequencing means: run the first computation, take its returned value, and continue from its post-state.
+In the guarded variant used here, the same structure is preserved, with one additional rule: if the first computation returns \mintinline{coq}{None}, then the whole sequence returns \mintinline{coq}{None}.
+So \mintinline{coq}{bind} captures imperative sequencing plus guard propagation.
+In proofs, \mintinline{coq}{bind} is the key operation that exposes control-flow structure after unfolding.
+
+\paragraph{Read (\texttt{get}).}
+\mintinline{coq}{get} is the primitive state observation operation.
+Given state \mintinline{coq}{st}, it returns \mintinline{coq}{Some (st, st)}: the first occurrence is the threaded state, and the second is the value made available to the program.
+Thus, \mintinline{coq}{get} reads without modifying.
+It is used explicitly in low-level definitions and implicitly via higher-level notation such as register reads.
+
+\paragraph{Write (\texttt{put}).}
+\mintinline{coq}{put x} replaces the current state with \mintinline{coq}{x} and returns \mintinline{coq}{tt}.
+This is the direct monadic analogue of destructive assignment.
+Unlike an imperative language with hidden store, the new state is explicit in the return value of the semantic function.
+This explicitness is important for mechanized proofs, since post-states are available by reduction rather than by separate operational-judgment inversion.
+
+\paragraph{Modify (\texttt{modify}).}
+\mintinline{coq}{modify f} updates the state by applying a function \mintinline{coq}{f}.
+It can be read as a derived write primitive: read the current state, transform it, then commit the result.
+In hardware models, this operation is a natural fit for register updates where the next state is expressed as a pure function of the current state.
+Proof obligations involving \mintinline{coq}{modify} usually reduce to equalities between functions applied to the same input state.
+
+\paragraph{Guard failure (\texttt{fail}).}
+\mintinline{coq}{fail} returns \mintinline{coq}{None} for any input state.
+At the modeling level, this represents an aborted method call (for example, violating a ready condition).
+At the machine-semantics level, this is later normalized into a stuttering step with no observable output.
+Introducing failure in the monad itself keeps guard reasoning local to method definitions.
+
+\paragraph{Submodule calls (\texttt{call}).}
+The combinator \mintinline{coq}{call} realizes modular composition over nested state.
+It uses \mintinline{coq}{getter} to project a substate, runs an \mintinline{coq}{Action} on that substate, and then re-integrates the updated substate using \mintinline{coq}{setter}.
+If the callee action fails, the caller fails.
+This is the key bridge between local component semantics and global machine state, and it enables hierarchical modeling without changing the core monad.
+
+\begin{figure}[ht]
+\begin{minted}{coq}
+Definition call {s a b}
+  (getter : s -> a)
+  (setter : a -> s -> s)
+  (action : Action a b) : Action s b :=
+  get >>= (fun st =>
+    fun _ =>
+      match run_action action (getter st) with
+      | Some (st', x) => Some (setter st' st, x)
+      | None => None
+      end).
+\end{minted}
+\caption{The \texttt{call} combinator lifts a substate action to a larger state.}
+\label{fig:action-call}
+\end{figure}
+
+The concrete syntax used in method bodies is provided by custom-entry notation in \texttt{action.v}.
+Crucially, this notation elaborates into the same Gallina terms defined above; it does not introduce a new semantic layer.
+This is exactly the shallow-embedding discipline: a lightweight surface language whose meaning is inherited from host-language definitions.
+An abstract view of the notation-level grammar is given in \Cref{fig:action-grammar}.
+
+\begin{figure}[ht]
+\begin{minted}{text}
+expr   ::= e | `reg`read()
+
+stmt   ::= pass
+         | abort
+         | return expr
+         | `reg`write(expr)
+         | if (expr) stmt else stmt
+         | when (expr) stmt
+         | {{ gallina_term }}
+
+block  ::= stmt
+         | stmt ; block
+         | let x = expr ; block
+         | let x = `reg`read() ; block
+
+action ::= begin block end
+\end{minted}
+\caption{Abstract grammar of the embedded action language induced by custom notation in \texttt{action.v}.}
+\label{fig:action-grammar}
+\end{figure}
+
+This approach contrasts with a \emph{deep embedding}, where one first defines an inductive syntax of commands and then separately defines an interpreter or operational relation.
+Deep embeddings are useful when one needs syntax-directed metatheory, certified compilation passes, or transformations that explicitly inspect program syntax.
+For the present verification goals, shallow embedding offers significant advantages:
+Rocq's definitional equality performs much of the operational reduction, semantic lemmas can be stated directly over executable terms, and implementation/specification pairs can be related without introducing a second semantic infrastructure.
+In short, shallow embedding reduces semantic overhead while preserving enough structure for simulation and refinement proofs.
+
+Proof scripts over monadic terms nevertheless require disciplined reduction control.
+Goals are often blocked until helper definitions are unfolded (for example, \mintinline{coq}{run_action}, \mintinline{coq}{read}, \mintinline{coq}{machine_step}, and \mintinline{coq}{step_action}).
+Accordingly, the development style combines two mechanisms.
+First, specialized ``small-step'' simplification tactics (commonly named in the \texttt{step*} family) perform deterministic local reductions across repeated proof patterns.
+Second, hint databases (for example, \mintinline{coq}{Hint Unfold} on selected helper definitions) provide controlled automation so the same normalization skeleton does not need to be rewritten in each lemma.
+This combination is especially effective for families of refinement obligations where proof structure is shared but branch conditions differ.
 
 \section{Hardware constant time} \label{sec:timing-ct}
 
 \section{Proof technique} \label{sec:timing-proof}
 
-\chapter{Verifying correctness properties with GoLemma} \label{chap:golemma}
-\section{Functional specification}
-\section{Implementation}
-\section{Proof}
-\section{Discussion}
+\chapter{Verifying correctness for circuits} \label{chap:golemma}
 
 \chapter{Case studies} \label{chap:cases}
 
