@@ -569,11 +569,9 @@ This definition is useful for certain proof techniques that can existentially co
 The hardware development in this thesis uses the same one-copy perspective, but instantiated to state-machine traces with explicit input/output erasure functions that capture the notion of the secret/public partitions.
 We now give the hardware constant-time definition in the style used by the formalization.
 
-\newpage
-
 \begin{definition}[Hardware constant time]
 A state machine $\mathcal{M}=(S,s_0,I,O,\delta)$ is \emph{hardware constant time} (HCT) with respect to
-\emph{erasure specification}
+an \emph{erasure specification}
 $\mathcal{E} = (\mathsf{erase_{in}}, \mathsf{erase_{out}})$
 where
 $\mathsf{erase_{in}} : I \to I$ replaces secret input components with default values and
