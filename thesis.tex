@@ -12,6 +12,7 @@
 \usepackage{minted}
 \let\openbox\relax
 \usepackage{amsthm}
+\usepackage[titletoc,page]{appendix}
 
 \theoremstyle{definition}
 \newtheorem{definition}{Definition}[section]
@@ -29,6 +30,8 @@
   escapeinside=@@,
 }
 
+\AtBeginEnvironment{appendices}{\crefalias{chapter}{appendix}}
+
 \doublespacing
 
 \hypersetup{
@@ -38,26 +41,26 @@
 
 \setcounter{topnumber}{1}
 
-\Crefname{appendix}{Appendix}{Appendices}
-
 \begin{document}
 
 \title{Towards Verifying Correctness and Timing Properties for \\ Out-of-Order Machines}
 \Author{Kosi Nwabueze}{Department of Electrical Engineering and Computer Science} [S.B., Massachusetts Institute of Technology (2025)]
-\Degree{Master of Engineering in Elecrical Engineering and Computer Science}{Department of Electrical Engineering and Computer Science}
+\Degree{Master of Engineering in Electrical Engineering and Computer Science}{Department of Electrical Engineering and Computer Science}
 \Supervisor{Adam Chlipala}{Professor of Computer Science}[Department of Electrical Engineering and Computer Science]
 \Acceptor{Katrina LaCurts}{Chair, Master of Engineering Thesis Committee}{}
 \DegreeDate{May}{2026}
-\ThesisDate{May 8, 2026}
+\ThesisDate{May 15, 2026}
 
 \maketitle
 
 \begin{abstract}
-High-performance processors rely on out-of-order execution, an instruction-scheduling paradigm that is both difficult to implement correctly and prone to timing side-channel attacks without principled defenses.
-Even when software is provably constant-time at the instruction-set architecture (ISA) level, transient execution in out-of-order cores can introduce microarchitectural timing variation that causes leakage.
-This thesis contributes a foundation for formally verifying correctness and security properties of hardware circuits, with the end goal of verifying an out-of-order processor.
-This thesis proposes a timing-security model for hardware circuits and applies it to simple designs, including a variable-latency multiplier and a sequential multiple-cycle processor.
-Using \emph{GoLemma}, a deeply embedded hardware description language in Rocq, we verify functional correctness of crucial out-of-order processor submodules that can later be composed into proofs of larger parent modules.
+High-performance processors rely on out-of-order execution, an instruction-scheduling algorithm that is both difficult to implement correctly and prone to timing side-channel attacks without principled defenses.
+This thesis develops an approach using the Rocq proof assistant for specifying and proving timing-security properties of hardware circuits.
+To express hardware circuits in a proof-friendly style, the thesis introduces \emph{Slate}, a shallowly embedded surface language built on guarded state monads.
+Slate provides imperative-style notation while preserving direct reduction and equational reasoning in Gallina, enabling compact circuit descriptions and reusable proof structure.
+The timing-security framework is developed in a general form and then exercised on two case studies: a variable-latency multiplier and a sequential multi-cycle processor.
+In parallel, the thesis uses \emph{GoLemma}, a deeply embedded hardware language in Rocq, to establish functional-correctness results for key out-of-order processor submodules.
+Together, these contributions provide a foundation for scaling toward integrated proofs of correctness and timing security for full out-of-order cores.
 \end{abstract}
 
 \chapter*{Acknowledgments}
@@ -125,9 +128,8 @@ My personal contributions include specifications, implementations, correctness p
 
 \chapter{Related work}
 
-This thesis contributes mechanized proofs of functional correctness and timing security for hardware circuits.
-\Cref{sec:related-correctness} surveys prior work on formal correctness for hardware, which informs the specification and proof methodology used throughout.
-\Cref{sec:related-timing} covers prior work on timing security, from the microarchitectural attacks that motivate this work to hardware- and software-level defenses and their formal verification.
+This chapter first surveys prior work on formal correctness for hardware (\Cref{sec:related-correctness}), which informs the specification and proof methodology used throughout the remainder of this thesis.
+Then it covers prior work on timing security, from the microarchitectural attacks that motivate this work to hardware- and software-level defenses and their formal verification (\Cref{sec:related-timing}).
 
 \section{Correctness} \label{sec:related-correctness}
 
@@ -166,20 +168,20 @@ Prior work on hardware timing security~\cite{duxovni2018} builds off the Kami fr
 More recent work~\cite{lau2024} formally specifies and verifies strong timing isolation for hardware enclaves, reasoning about cycle-accurate circuit semantics with respect to an air-gapped-machine formulation of isolation and applying the method to a multicore, pipelined RISC-V design.
 This thesis continues in the same tradition, carrying these timing-security proof techniques into the setting of individual submodules of a large out-of-order machine.
 
-\chapter{Verifying timing security using \emph{Slate}} \label{chap:timing}
+\chapter{Verifying timing security for circuits} \label{chap:timing}
 
-This chapter presents an approach to describing the behavior of hardware circuits via a \emph{state machine} (\Cref{sec:timing-state-machine}) and how to encode them in Rocq using a shallow embedding (\Cref{sec:timing-monads}).
-Then, it covers the definition of \emph{hardware constant time} (\Cref{sec:timing-ct}), a security property encapsulating timing side-channel security for hardware circuits with respect to some model of attacker observations.
-It then develops the simulation-based proof structure used to prove security (\Cref{sec:timing-proof}).
-Case studies utilizing the framework outlined in this chapter include a constant-time multiplier (\Cref{chap:case-multiplier}) and a constant-time, multiple-cycle processor (\Cref{chap:case-processor}).
+This chapter presents a framework for timing-security verification of hardware circuits.
+It begins by giving a formalism of state machines (\Cref{sec:timing-state-machine}) to model hardware circuits and then introduces \emph{Slate}, a shallowly embedded language in Rocq for specifying hardware circuits (\Cref{sec:timing-monads}).
+Next, it defines hardware timing security in terms of erased attacker observations (\Cref{sec:timing-ct}) and develops the simulation-based proof structure used to establish it (\Cref{sec:timing-proof}).
+The chapter's framework is exercised in two case studies: a constant-time multiplier (\Cref{chap:case-multiplier}) and a constant-time multi-cycle processor (\Cref{chap:case-processor}).
 
 \section{State machines} \label{sec:timing-state-machine}
 
 A \emph{state machine} is an abstraction used to describe the behavior of a computation by defining its possible states and the rules for transitioning between them.
 Hardware circuits function as physical state machines: registers serve as the memory that holds the current state, while combinational logic defines the functions that determine both the system's outputs and its next state based on the current configuration.
 In the context of this thesis, we view hardware modules as interacting through well-defined interfaces composed of methods rather than raw, unstructured signals.
-Each discrete state transition in the system corresponds to the execution of an method, supplied with arguments that represent the transaction's data.
-This approach is consistent with prior work \cite{choi2017,koika2020} where hardware modules are viewed as high-level transition systems where the transitions lie on method boundaries.
+Each discrete state transition in the system corresponds to the execution of a method, supplied with arguments that represent the transaction's data.
+This approach is consistent with prior work~\cite{choi2017,koika2020}, which views hardware modules as high-level transition systems whose transitions lie on method boundaries.
 We adopt the following formal definition of a state machine.
 
 \begin{definition}[State machine]
@@ -194,7 +196,7 @@ We adopt the following formal definition of a state machine.
 We model hardware circuits as such machines.
 A state $s \in S$ captures the current values of the sequential logic relevant to the module.
 Each input in $I$ represents a \emph{method invocation}: a variant type carrying a method tag together with the argument values for that call.
-The transition function $\delta$ is parital on $S \times I$ to reflect that the model may not produce a well-defined successor state and output when the call is \emph{aborted} by a guard (for example, dequeuing from an empty buffer).
+The transition function $\delta$ is partial on $S \times I$ to reflect that the model may not produce a well-defined successor state and output when the call is \emph{aborted} by a guard (for example, dequeuing from an empty buffer).
 An aborted call leaves the circuit in the same configuration.
 This convention simplifies trace definitions and simulation proofs: each input sequence determines one run, and the optional output indicates whether the call produced a visible event in the output trace.
 
@@ -209,7 +211,7 @@ Concretely, the machine $\mathcal{M}$ produces a sequence of optional outputs by
   s_0 \xrightarrow{i_1 / o_1} s_1 \xrightarrow{i_2 / o_2} s_2 \;\cdots\; \xrightarrow{i_n / o_n} s_n, \qquad o_i \in O,\ s_i \in S.
 \]
 The \emph{observable trace} of the run is the list $[o_1,\ldots,o_n]$.
-For timing security, an adversary interprets elements of $O$ (modulo erasure, described in \Cref{sec:timing-ct}) as the information that is leaked,
+For timing security, an adversary interprets elements of $O$ (modulo erasure, described in \Cref{sec:timing-ct}) as leaked information.
 Aborted transitions do not produce events in the trace.
 
 The state machine model is mechanized in Rocq as a plain record (\Cref{fig:circuit-typeclass}), parameterized by a state type~\texttt{s}, an input type~\texttt{i}, and an output type~\texttt{o}.
@@ -258,7 +260,7 @@ The helper \mintinline{coq}{run_machine} applies \mintinline{coq}{machine_runs} 
 
 \begin{figure}[t]
 \begin{minted}{coq}
-Fixpoint machine_runs {st i o : Type}
+Fixpoint machine_runs sm s inputs :=
   (sm : StateMachine st i o) (s : st) (inputs : list i) : st * list (option o) :=
   match inputs with
   | [] => (s, [])
@@ -268,9 +270,11 @@ Fixpoint machine_runs {st i o : Type}
       (s'', out :: outs)
   end.
 
-Definition run_machine {st i o : Type}
-  (sm : StateMachine st i o) (inputs : list i) : st * list (option o) :=
+Definition run_machine :=
   machine_runs sm (state_machine_rst sm) inputs.
+
+Definition run_outputs sm inputs :=
+  snd (run_machine sm inputs).
 \end{minted}
 \caption{The function \texttt{machine\_runs} executes a \texttt{StateMachine}
   on a list of inputs, threading state forward and producing one optional output
@@ -278,20 +282,23 @@ Definition run_machine {st i o : Type}
 \label{fig:machine-runs}
 \end{figure}
 
-\section{Slate: encoding circuits with guarded state monads} \label{sec:timing-monads}
+\section{Encoding circuits with Slate} \label{sec:timing-monads}
 
 A \emph{shallow embedding} encodes an object language directly as terms of the host language.
 In this style, the host's type system, reduction rules, and terms \emph{are} the semantics of the embedded language.
 In Rocq, that means method bodies are ordinary Gallina functions rather than abstract syntax trees requiring a separate interpreter.
-By contrast, a \emph{deep embedding} defines an explicit syntax by a series of inductive datatypes representing commands and expressions of the language. A deep embedding must come with a separate interpreter or relationally-defined operational semantics.
+By contrast, a \emph{deep embedding} defines explicit syntax via inductive datatypes for commands and expressions.
+A deep embedding must also include a separate interpreter or a relationally defined operational semantics.
 
 Each style has distinct advantages and costs.
-Shallow embeddings are typically easier to do verification work with, because you can easily leverage the facilities Rocq has for Gallina already; many proof steps reduce by unfolding and simplification rather than having to reason about an interpreter or operational semantics.
+Shallow embeddings are typically easier for verification work, because they directly leverage Rocq's facilities for Gallina; many proof steps reduce by unfolding and simplification rather than by reasoning about an interpreter or operational semantics.
 The main drawback is that source-level program transformations, such as compiler passes, are less direct, since syntax is not explicit; these tasks often require reification and tactic support to recover a manipulable syntax tree.
 
 Deep embeddings make syntax explicit from the beginning, so compiler construction and optimization passes are easier to express.
 However, they impose additional verification overhead: one must define and reason about an interpreter (or step relation), and prove that this semantics aligns with the intended meaning.
 As a result, many proofs are more involved for similar theorems.
+Slate, the surface language used for timing-security verification in this thesis, is a shallow embedding.
+Its core semantics is an imperative computation model, so we next introduce the state monad structure that underlies Slate method definitions.
 
 \paragraph{State monads}
 A \emph{state monad} over state type $s$ and result type $t$ is defined as
@@ -300,7 +307,7 @@ A \emph{state monad} over state type $s$ and result type $t$ is defined as
 ,\]
 that is, a function that takes an input state and returns a new state together with a result.
 A stateful computation can be understood as a function that consumes a state and returns a pair of the updated state and a result value.
-This representation is powerful because it allows you to express side effects sequentially by chaining together monads using \mintinline{coq}{bind}.
+This representation is powerful because it expresses side effects sequentially by chaining computations with \mintinline{coq}{bind}.
 Mutable references do not need to be primitively supported by the meta-language (i.e. Gallina); instead, they are ordinary functions that transform an explicit state argument.
 As a consequence, one can describe sequential hardware behavior in a pure functional setting and still recover the usual intuition of sequential logic, by reading registers at the start of the cycle, performing some combinational function on those values, and updating the registers at the end of the cycle.
 
@@ -311,8 +318,7 @@ State monads also provide state-specific primitives, notably \mintinline{coq}{ge
 
 \begin{figure}[t]
 \begin{minted}{coq}
-Definition State (s t : Type) :=
-  s -> (s * t).
+Definition State s t := s -> (s * t).
 
 Definition ret {s t} (x : t) : State s t :=
   fun st => (st, x).
@@ -325,7 +331,7 @@ Definition bind {s t1 t2} (m : State s t1) (f : t1 -> State s t2) :=
 Definition get {s} : State s s :=
   fun st => (st, st).
 
-Definition put {s} (x : s) : Action s unit :=
+Definition put {s} (x : s) : State s unit :=
   fun _ => (x, tt).
 \end{minted}
 \caption{State monad definitions in Rocq.}
@@ -343,12 +349,12 @@ The \mintinline{coq}{Some} case represents a successful step that returns an upd
 The \mintinline{coq}{None} case represents an aborted step (for example, when a guard is false).
 This extra layer is exactly what is needed for hardware method interfaces where not all calls are enabled in all states.
 
-\Cref{fig:guarded-state-monad-core} shows the guarded state monad encoded in Rocq together with its basic operations. \texttt{ret}, \texttt{bind}, \texttt{get}, and \texttt{put} work similarly to their state monad analogues; however, they are lifted into option types by using the \texttt{Some} constructor.
+\Cref{fig:guarded-state-monad-core} shows the guarded state monad encoded in Rocq together with its basic operations.
+\mintinline{coq}{ret}, \mintinline{coq}{bind}, \mintinline{coq}{get}, and \mintinline{coq}{put} work similarly to their state monad analogues; however, they are lifted into option types using the \mintinline{coq}{Some} constructor.
 
 \begin{figure}[t]
 \begin{minted}{coq}
-Definition Action (s : Type) (t : Type) :=
-  s -> option (s * t).
+Definition Action s t := s -> option (s * t).
 
 Definition ret {s t} (x : t) : Action s t :=
   fun st => Some (st, x).
@@ -392,7 +398,7 @@ Introducing failure in the monad itself keeps reasoning about guards local to me
 The operator \mintinline{coq}{call} implements modular method calls over nested state.
 It uses \mintinline{coq}{getter} to project a substate, runs an \mintinline{coq}{Action} on that substate, and then re-integrates the updated substate using \mintinline{coq}{setter} as shown in \Cref{fig:action-call}.
 If the callee action fails, the caller fails.
-This mirrors calling semantics in Bluespec SystemVerilog, where a method call failing to fire causes the caller to not fire.
+This mirrors calling semantics in Bluespec SystemVerilog, where a method call that fails to fire causes the caller to fail to fire.
 
 \begin{figure}[t]
 \begin{minted}{coq}
@@ -411,13 +417,11 @@ Definition call {s a b}
 \label{fig:action-call}
 \end{figure}
 
-\paragraph{Syntax}
-The syntax for the surface language, \emph{Slate} (surface language for actions), used in method bodies is implemented using the notation facilities in Rocq.
-Crucially, this notation elaborates into the same Gallina terms defined above; it does not introduce a syntax tree.
-Slate represents a shallow embedding.
+The syntax for the surface language, Slate, is implemented using the notation facilities in Rocq.
+Crucially, this notation elaborates into the guarded state monad described above; it does not introduce a syntax tree.
 An abstract syntax of the grammar is given in \Cref{fig:action-grammar}; the concrete Rocq notation declarations are listed in \Cref{appendix:action-notation}.
 The terminal \texttt{term} in the grammar refers to arbitrary Gallina terms.
-To properly embed a Gallina term as a statement, it must typecheck to an \mintinline{coq}|Action s t| where \mintinline{coq}{s} matches the state type of the surrounding context.
+To properly embed a Gallina term as a statement in Slate, it must typecheck to an \mintinline{coq}|Action s t| where \mintinline{coq}{s} matches the state type of the surrounding context.
 
 \begin{figure}[t]
 \[
@@ -436,10 +440,9 @@ To properly embed a Gallina term as a statement, it must typecheck to an \mintin
 \label{fig:action-grammar}
 \end{figure}
 
-\paragraph{Example}
-Consider \Cref{fig:empty-surface} which implements the body of a method called \mintinline{coq}{mark_busy} which operates over the state type \mintinline{coq}{State}.
-In the surface language, the method reads the phase register into the let binding \mintinline{coq}{ph}, checks the condition \mintinline{coq}{ph == Empty}, writes to the phase register, and returns \mintinline{coq}{OutEnq}.
-This style is close to imperative pseudocode while still denoting a pure Gallina term.
+Consider \Cref{fig:empty-surface}, which implements the body of a method called \mintinline{coq}{mark_busy} over the state type \mintinline{coq}{State}.
+In Slate, the method reads the phase register into the let binding \mintinline{coq}{ph}, checks the condition \mintinline{coq}{ph == Empty}, writes to the phase register, and returns a Boolean result.
+This style is close to imperative code while still denoting a pure Gallina term.
 The same method can be written directly with monadic operators (\Cref{fig:empty-bind}).
 This version makes sequencing explicit through \mintinline{coq}{>>=}, but is less readable for longer method bodies.
 In practice, both forms are definitionally equivalent after notation expansion.
@@ -488,8 +491,8 @@ Second, hint databases (i.e. \mintinline{coq}{Hint Unfold}) provide controlled a
 
 \section{Security definitions} \label{sec:timing-ct}
 
-Cryptographic implementations are often validated against the \emph{cryptographic constant time} (CCT) property: attackers should not observe leakage events such as branch direction, memory-access patterns, or variable-latency instructions influenced by secret inputs.
-This principle has been formalized and mechanically verified for software programs in mulitple prior works~\cite{almeida2016,conoly2025,guarnieri2021}.
+Cryptographic implementations often care about the \emph{cryptographic constant-time} (CCT) property: attackers should not observe leakage events such as branch direction, memory-access patterns, or variable-latency instructions influenced by secret inputs.
+This principle has been formalized and mechanically verified for software programs in multiple prior works~\cite{almeida2016,conoly2025,guarnieri2021}.
 \Cref{fig:cct-intuition} illustrates the key intuition with two small routines: one has a secret-dependent branch and is not constant-time, while the other computes through bit-masking and avoids control-flow dependent on secret data.
 
 More formally, constant-time security is stated as an observational equality under varying secrets: if two executions agree on public inputs, then they must be indistinguishable with respect to the attacker-observable trace.
@@ -550,61 +553,112 @@ if given partitions of states, inputs, and outputs
   s = (s^{\mathrm{pub}}, s^{\mathrm{sec}}), \quad
   i = (i^{\mathrm{pub}}, i^{\mathrm{sec}}), \quad
   o = (o^{\mathrm{pub}}, o^{\mathrm{sec}})
-\]
-there exists a predictor function $f_\textsf{predict} : S^{\mathrm{pub}} \times (I^{\mathrm{pub}})^* \to (O^{\mathrm{pub}})^*$
+,\]
+there exists a predictor function
+\[
+  f_\textsf{predict}
+  :
+  S^{\mathrm{pub}} \times (I^{\mathrm{pub}})^* \to (O^{\mathrm{pub}})^*
+,\]
 where $\mathsf{pub\_inputs}(\vec{i})$ is the elementwise projection of an input sequence
-to public components and $\mathsf{pub\_output}(\vec{o})$ is the elementwise projection of the output trace to its public components.
+to public components and $\mathsf{pub\_outputs}(\mathcal{M}, s_0, \vec{i})$ is the corresponding projected output trace.
 Then, for every initial state $s_0 \in S$ and input sequence $\vec{i} \in I^*$,
 \[
-  \mathsf{pub\_outputs}(M,s_0,\vec{i})
+  \mathsf{pub\_outputs}(\mathcal{M},s_0,\vec{i})
   =
   f_\textsf{predict}\bigl(s_0^{\mathrm{pub}},\mathsf{pub\_inputs}(\vec{i})\bigr).
 \]
 \end{definition}
 
 This definition originally comes from work on retrofitting the Bedrock2 compiler to prove preservation of cryptographic constant time across compiler passes~\cite{conoly2025}.
-Intuitively, the observable behavior is fully determined by the public projection of the input.
+Intuitively, the observable behavior is fully determined by the public projection of the input and the initial state.
 This is a one-copy specification style: each run is characterized independently without needing to relate two separate sequences.
 This definition is useful for certain proof techniques that can existentially construct a nice predictor function ($f_\textsf{predict}$).
-The hardware development in this thesis uses the same one-copy perspective, but instantiated to state-machine traces with explicit input/output erasure functions that capture the notion of the secret/public partitions.
-We now give the hardware constant-time definition in the style used by the formalization.
+The hardware development in this thesis uses the same one-copy perspective, but restricted to state machine traces with explicit input/output erasure functions that capture the notion of the partitioning state into secret and public components.
+Before defining hardware constant time, we introduce erasure specifications, which specify the attacker's observation model.
 
-\begin{definition}[Hardware constant time]
-A state machine $\mathcal{M}=(S,s_0,I,O,\delta)$ is \emph{hardware constant time} (HCT) with respect to
-an \emph{erasure specification}
-$\mathcal{E} = (\mathsf{erase_{in}}, \mathsf{erase_{out}})$
-where
-$\mathsf{erase_{in}} : I \to I$ replaces secret input components with default values and
-$\mathsf{erase_{out}} : O \xrightharpoonup{} O$ projects outputs to their public components.
-
-Given an input sequence $\vec{i} \in I^*$, the \emph{erased trace} of $\mathcal{M}$ is defined as
+\begin{definition}[Erasure specification] \label{def:erasure-spec}
+For a state machine $\mathcal{M}=(S,s_0,I,O,\delta)$, an \emph{erasure specification} is a pair $\mathcal{E} = (\mathsf{erase_{in}}, \mathsf{erase_{out}})$ where
 \[
-  \mathsf{erase\_trace}(\mathcal{M}, \mathcal{E}, \vec{i})
-  \;\triangleq\;
-  \mathsf{map}\;\mathsf{erase_{out}}\;\bigl(\mathsf{trace}(M, s_0, \vec{i})\bigr).
-\]
-Then $M$ is \emph{hardware constant-time} (HCT) with respect to $\mathsf{spec}$ iff
-\[
-  \forall \vec{i} \in I^*.\;\;
-  \mathsf{erase\_trace}(M, \mathsf{spec}, \vec{i})
-  \;=\;
-  \mathsf{erase\_trace}\!\bigl(M, \mathsf{spec}, \mathsf{map}\;\mathsf{erase_{in}}\;\vec{i}\bigr).
-\]
-That is, erasing secrets from the inputs before running the machine does not change the erased output trace.
+  \mathsf{erase_{in}} : I \to I,
+  \qquad\qquad
+  \mathsf{erase_{out}} : O \rightharpoonup O
+.\]
+$\mathsf{erase_{out}}$ is a partial function to allow the deletion of output events from the trace.
 \end{definition}
 
-Note that the definition compares two runs of the \emph{same} machine $M$: one on the original inputs $\vec{i}$ and one on the erased inputs $\mathsf{map}\;\mathsf{erase_{in}}\;\vec{i}$.
-This is a self-refinement property and corresponds directly to the Rocq definition:
+\begin{definition}[Erased run outputs] \label{def:erased-run-outputs}
+Given $\mathcal{M}$, $\mathcal{E}$, and an input sequence $\vec{i} \in I^*$, we define
+\[
+  \mathsf{erase\_run\_outputs}(\mathcal{M}, \mathcal{E}, \vec{i})
+  \;\triangleq\;
+  \mathsf{map}\;\mathsf{erase_{out}}\;\bigl(\mathsf{run\_outputs}(\mathcal{M}, \vec{i})\bigr).
+\]
+\end{definition}
 
+\begin{definition}[Hardware constant time] \label{def:hct-single}
+A state machine $\mathcal{M}$ is \emph{hardware constant time} (HCT) with respect to an erasure specification $\mathcal{E}$ when
+\[
+  \forall \vec{i} \in I^*.\;\;
+  \mathsf{erase\_run\_outputs}(\mathcal{M}, \mathcal{E}, \vec{i})
+  =
+  \mathsf{erase\_run\_outputs}\bigl(\mathcal{M}, \mathcal{E}, \mathsf{map}\;\mathsf{erase_{in}}\;\vec{i}\bigr).
+\]
+\end{definition}
+
+An erasure specification can be read as an explicit threat model.
+It states which parts of a module's interface are observable to an attacker and which parts are treated as secret.
+Concretely, $\mathsf{erase_{in}}$ controls observability on input wires: it preserves attacker-visible components and erases the rest.
+Similarly, $\mathsf{erase_{out}}$ controls observability on output wires: it keeps attacker-visible outputs and removes or abstracts outputs that are outside the attacker's view.
+Under this interpretation, HCT says that varying secret (erased) inputs cannot change the attacker-visible output trace.
+
+\Cref{fig:rocq-erasure-spec} packages erasure specifications as the a record; its fields  correspond to $\mathsf{erase_{in}}$ and $\mathsf{erase_{out}}$.
+\Cref{fig:rocq-erase-run-outputs} lifts \mintinline{coq}{run_outputs} to erased traces; \Cref{fig:rocq-outputs-erased-equivalent} states that for every input list~\mintinline{coq}{xs}, the erased trace of~\mintinline{coq}{sm1} agrees with that of~\mintinline{coq}{sm2} when~\mintinline{coq}{sm2} receives~\mintinline{coq}{List.map (spec_erase_input spec) xs}.
+\Cref{fig:rocq-hardware-constant-time} instantiates equivalence by identifying both machines, matching~\Cref{def:hct-single}.
+
+\begin{figure}[t]
 \begin{minted}{coq}
-Definition hardware_constant_time {st i o : Type}
-  (sm : StateMachine st i o) (spec : ErasureSpec i o) : Prop :=
+Record ErasureSpec (i o : Type) := {
+  spec_erase_input : i -> i;
+  spec_erase_output : option o -> option o;
+}.
+\end{minted}
+\caption{Record for an erasure specification, matching~\Cref{def:erasure-spec}.}
+\label{fig:rocq-erasure-spec}
+\end{figure}
+
+\begin{figure}[t]
+\begin{minted}{coq}
+Definition erase_run_outputs sm spec xs :=
+  List.map spec.(spec_erase_output) (run_outputs sm xs).
+\end{minted}
+\caption{Definition mapping a run trace through output erasure, matching~\Cref{def:erased-run-outputs}.}
+\label{fig:rocq-erase-run-outputs}
+\end{figure}
+
+\begin{figure}[t]
+\begin{minted}{coq}
+Definition outputs_erased_equivalent sm1 sm2 spec : Prop :=
+  forall xs,
+    erase_run_outputs sm1 spec xs =
+    erase_run_outputs sm2 spec (List.map (spec_erase_input spec) xs).
+\end{minted}
+\caption{Predicate comparing two state machines on raw versus erased-input runs at the level of erased output traces.}
+\label{fig:rocq-outputs-erased-equivalent}
+\end{figure}
+
+\begin{figure}[t]
+\begin{minted}{coq}
+Definition hardware_constant_time sm spec : Prop :=
   outputs_erased_equivalent sm sm spec.
 \end{minted}
+\caption{Definition of hardware constant time.}
+\label{fig:rocq-hardware-constant-time}
+\end{figure}
 
 \section{Proof techniques} \label{sec:timing-proof}
 
-\chapter{Verifying correctness using \emph{GoLemma}} \label{chap:golemma}
+\chapter{Verifying correctness for circuits} \label{chap:golemma}
 
 \chapter{Case studies} \label{chap:cases}
 
@@ -617,6 +671,8 @@ Definition hardware_constant_time {st i o : Type}
 \section{Developer effort}
 \section{Discussion}
 \section{Future work}
+
+\begin{appendices}
 
 \appendix
 \chapter{Slate notation} \label{appendix:action-notation}
@@ -678,6 +734,7 @@ Notation "'begin' b 'end'" := (b)
 Notation "'begin' b 'end'" := (b)
   (in custom action_stmt at level 0, b custom action_block at level 100, only parsing) : action_scope.
 \end{minted}
+\end{appendices}
 
 \bibliographystyle{plain}
 \bibliography{refs}
