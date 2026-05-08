@@ -602,28 +602,29 @@ This section develops the simulation-based proof strategy used to establish hard
 The hardware constant time property (\Cref{def:hct-single}) reasons about entire runs of state machines rather than isolated steps.
 This affords flexibility in potential proof techniques that may not reason about each step in isolation, but in the future could allow simulation-based proofs which rely on skipping steps or taking multiple steps.
 We will restrict ourselves to only reason about \emph{lockstep} simulations, which disallow skipping or multiple steps.
-Two commutative diagrams below depict self-duality of one~\(\mathcal M\) and the asymmetric arrangement of implementation versus specification~\(\mathcal M_{\mathsf I},\mathcal M_{\mathsf S}\).
+The commutative diagrams in~\Cref{fig:sim-machine-self,fig:sim-machine-cross} depict self-duality of one~\(\mathcal M\) and the asymmetric arrangement of implementation versus specification~\(\mathcal M_{\mathsf I},\mathcal M_{\mathsf S}\).
 
-Fix state types $S_1$ and $S_2$, a simulation relation $R \subseteq S_1 \times S_2$, and let \(\kappa\) implement output erasure on guarded observations in the sense paired with~\(\mathcal E\) by~\Cref{def:erasure-spec,def:erased-run-outputs}.
-Assume two guarded actions \(a_j\) occupy states \(s_j\): under the deterministic guarded semantics surveyed in~\Cref{sec:timing-state-machine}, each pair~\((a_j,s_j)\) determines updated states~\((s'_j,\omega_j)\) as summarized there.
+Fix state types $S_1$ and $S_2$, a simulation relation $R \subseteq S_1 \times S_2$, and use the erasure contract maps from~\Cref{def:erasure-spec}.
+Assume two guarded actions \(a_j\) occupy states \(s_j\): under the deterministic guarded semantics surveyed in~\Cref{sec:timing-state-machine}, each pair~\((a_j,s_j)\) determines updated states~\((s'_j,o_j)\) as summarized there.
 
 \begin{definition}[Action refinement] \label{def:action-refinement}
-In this setting \(a_1\) \emph{refines} \(a_2\) \emph{under} \((R,\kappa)\) \emph{at} \((s_1,s_2)\) precisely when \(R(s_1,s_2)\) implies
+In this setting \(a_1\) \emph{refines} \(a_2\) \emph{under} \((R,\mathsf{erase_{out}})\) \emph{at} \((s_1,s_2)\) precisely when \(R(s_1,s_2)\) implies
 \[
-  \kappa(\omega_1)=\kappa(\omega_2),
+  \mathsf{erase_{out}}(o_1)=\mathsf{erase_{out}}(o_2),
   \qquad\text{and}\qquad
   R(s_1',s_2').
 \]
 \end{definition}
+This single-step condition is depicted in~\Cref{fig:sim-action-square}.
 
 \begin{figure}[H]
 \centering
 \begin{tikzcd}[column sep=6em,row sep=huge]
-  s_1 \arrow[r,"a_1"] \arrow[d,"R"'] & (s_1',\omega_1) \arrow[d,"{(R_{\mathcal{E}})}"']
+  s_1 \arrow[r,"a_1"] \arrow[d,"R"'] & (s_1',o_1) \arrow[d,"{(R_{\mathcal{E}})}"']
     \\
-  s_2 \arrow[r,"a_2"'] & (s_2',\omega_2)
+  s_2 \arrow[r,"a_2"'] & (s_2',o_2)
 \end{tikzcd}
-\caption[Action refinement]{Single-step refinement with~\((R_{\mathcal E})\) abbreviating erased-output agreement~\(\kappa(\omega_1)=\kappa(\omega_2)\) and successor relatedness~\(R(s_1',s_2')\).}
+\caption[Action refinement]{Single-step refinement with~\((R_{\mathcal E})\) abbreviating erased-output agreement~\(\mathsf{erase_{out}}(o_1)=\mathsf{erase_{out}}(o_2)\) and successor relatedness~\(R(s_1',s_2')\).}
 \label{fig:sim-action-square}
 \end{figure}
 
@@ -634,6 +635,7 @@ Let $\mathcal{M}_1 = (S_1,s_{0,1},I,O,\delta_1)$ and $\mathcal{M}_2 = (S_2,s_{0,
 Extend $\mathsf{erase_{out}}$ to guarded observations in the unique way dictated by~\Cref{def:erasure-spec,def:erased-run-outputs}.
 Then $\mathcal{M}_1$ \emph{refines} $\mathcal{M}_2$ \emph{under} $(\mathcal{E},R)$ when, for every input $\iota \in I$ and all $(s_1,s_2)\in R$, the action realizing $\delta_1(\cdot,\iota)$ refines that realizing $\delta_2(\cdot,\mathsf{erase_{in}}(\iota))$ under $(R,\mathsf{erase_{out}})$ at $(s_1,s_2)$ in the sense of~\Cref{def:action-refinement}.
 \end{definition}
+The self-simulation and cross-simulation instances of this definition are shown in~\Cref{fig:sim-machine-self,fig:sim-machine-cross}.
 
 \begin{figure}[H]
 \centering
@@ -667,9 +669,9 @@ Together,~\Cref{fig:sim-action-square,fig:sim-machine-self,fig:sim-machine-cross
 \begin{definition}[Outputs-erased bridge] \label{def:outputs-erased-bridge}
 Call~\(\mathcal M_2\)~\emph{bridged} to~\(\mathcal M_1\) under~\(\mathcal E\) when—for every~\(\vec\iota\in I^*\)—the histories~\(\vec\iota_{\mathcal E}\) force agreement of the guarded observation transcripts once output projections from~\(\mathcal E\) are applied:
 \[
-  \mathrm{T}^{\mathcal E}(\mathcal M_2,\vec\iota_{\mathcal E})
+  \mathcal{T}^{\mathcal E}(\mathcal M_2,\vec\iota_{\mathcal E})
   =
-  \mathrm{T}^{\mathcal E}(\mathcal M_1,\vec\iota_{\mathcal E}).
+  \mathcal{T}^{\mathcal E}(\mathcal M_1,\vec\iota_{\mathcal E}).
 \]
 \end{definition}
 
@@ -677,9 +679,9 @@ Call~\(\mathcal M_2\)~\emph{bridged} to~\(\mathcal M_1\) under~\(\mathcal E\) wh
 \label{lem:sim-lift-erased-traces}
 If \(\mathcal{M}_1\) refines \(\mathcal{M}_2\) under~\((\mathcal E,R)\) in the sense of~\Cref{def:machine-refinement} and \(R(s_{0,1},s_{0,2})\), then for every input history~\(\vec\iota\in I^*\),
 \[
-  \mathrm{T}^{\mathcal E}(\mathcal M_1,\vec\iota)
+  \mathcal{T}_{\mathcal E}(\mathcal M_1,\vec\iota)
   =
-  \mathrm{T}^{\mathcal E}(\mathcal M_2,\vec\iota_{\mathcal E}).
+  \mathcal{T}_{\mathcal E}(\mathcal M_2,\vec\iota_{\mathcal E}).
 \]
 \end{lemma}
 
