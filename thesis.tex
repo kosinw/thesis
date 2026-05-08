@@ -17,6 +17,7 @@
 \usepackage{hyperref}
 \usepackage[nottoc]{tocbibind}
 \usepackage[framemethod=default]{mdframed}
+\usepackage{float}
 
 \renewcommand{\bibname}{References}
 
@@ -57,7 +58,7 @@
   pdfkeywords={MIT, thesis},
 }
 
-\setcounter{topnumber}{1}
+% \setcounter{topnumber}{1}
 
 \begin{document}
 
@@ -102,7 +103,7 @@ Principled defenses must be carefully designed to ensure that attackers cannot e
 \Cref{fig:fig1} shows a block diagram for the particular variant of the out-of-order algorithm discussed in this thesis.
 The algorithm is a modified design based on the MIPS R10000 (R10K) processor~\cite{r10k1996}.
 
-\begin{figure}[t]
+\begin{figure}[H]
   \centering
   \includegraphics[width=0.75\textwidth]{figures/figure1.png}
   \caption{Diagram for an out-of-order machine based on the R10K processor. Arrows signify communication between submodules.}
@@ -118,7 +119,7 @@ The writeback stage then posts results to the physical registers so that later i
 The retire stage retires instructions in program order, committing their effects to the architectural state.
 
 \subsection{Renaming, snapshots, and recovery}
-Our design diverges from the R10K algorithm in a two major aspects to simplify which invariants are needed to write proofs.
+Our design diverges from the R10K algorithm in two major aspects to simplify which invariants are needed to write proofs.
 The most important difference is how the renaming mechanism works.
 The original R10K algorithm records, in the reorder buffer (ROB), the previous physical register index for each instruction's destination so that the rename map can be rolled back precisely when a younger path is squashed.
 We instead maintain two register alias tables (RATs), avoiding the need to track a per-instruction previous physical destination in the ROB.
@@ -145,7 +146,7 @@ This thesis focuses on synthesizable circuits because they are consumable by dow
 \section{Individual contributions}
 The content presented in this thesis was completed during an active collaboration between me, Shixin Song, Jiazheng Liu, Stella Lau, and Andres Erbsen, advised by Professor Adam Chlipala.
 GoLemma, the deeply embedded hardware description language described in \Cref{chap:golemma}, was developed by Jiazheng Liu.
-Stella contributed security formalizations and proofs for a five-stage pipelined processor combined with an external I/O and memory system, which does not directly appear in this thesis, but whose core ideas carry over.
+Stella contributed security formalizations and proofs for a five-stage pipelined processor combined with an external I/O and memory system, which does not directly appear in this thesis, but whose theoretical ideas carry over.
 Shixin worked on a correctness proof for the out-of-order algorithm described in \Cref{sec:ooo}, which a full mechanized proof is the end goal for a larger project.
 My personal contributions include specifications, implementations, correctness proofs, and timing proofs for individual submodules of the out-of-order machine, as discussed in \Cref{chap:cases}.
 
@@ -221,24 +222,27 @@ The transition function $\delta$ is partial on $S \times I$ to reflect that the 
 An aborted call leaves the circuit in the same configuration.
 This convention simplifies trace definitions and simulation proofs: each input sequence determines one run, and the optional output indicates whether the call produced a visible event in the output trace.
 
-For the purpose of reasoning about security with this framework, we additionally restrict attention to circuits whose behavior is \emph{deterministic} in the sense above: for each $s \in S$ and $i \in I$, there is at most one pair $(s', o) = \delta(s,i)$ with $o \in O$.
+For the purpose of reasoning about security with this framework, we additionally restrict attention to circuits whose behavior is \emph{deterministic} in the sense above: for each $s \in S$ and $\iota \in I$, there is at most one pair $(s', o) = \delta(s,\iota)$ with $o \in O$.
 This restriction is convenient for reasoning about the proof obligations in \Cref{sec:timing-ct} and \Cref{sec:timing-proof}, where we compare runs under related inputs and want equality of traces without existentially quantifying over implementation-defined resolution of nondeterminism in proofs.
 Determinism is a design choice of convenience, not necessity; as discussed in \Cref{chap:golemma}, the framework for deeply embedded circuits can use nondeterministic semantics (in particular, omnisemantics~\cite{chargueraud2023}) to describe specifications.
 
-Given an input sequence $i_1, i_2, \ldots, i_n \in I$, repeatedly applying $\delta$ from the initial state $s_0$ defines a \emph{run} of the machine.
+Given an input sequence $\iota_1, \iota_2, \ldots, \iota_n \in I$, repeatedly applying $\delta$ from the initial state $s_0$ defines a \emph{run} of the machine.
 The corresponding sequence of per-step observations is called the machine's \emph{trace}.
 Concretely, the machine $\mathcal{M}$ produces a sequence of optional outputs by unfolding $\delta$ from $s_0$:
 \[
-  s_0 \xrightarrow{i_1 / o_1} s_1 \xrightarrow{i_2 / o_2} s_2 \;\cdots\; \xrightarrow{i_n / o_n} s_n, \qquad o_i \in O,\ s_i \in S.
+  s_0 \xrightarrow{\iota_1 / o_1} s_1 \xrightarrow{\iota_2 / o_2} s_2 \;\cdots\; \xrightarrow{\iota_n / o_n} s_n, \qquad o_i \in O,\ s_i \in S.
 \]
-The \emph{observable trace} of the run is the list $[o_1,\ldots,o_n]$.
+The \emph{observation trace} of the run is the list
+\[
+  \mathcal{T}\bigl( \mathcal{M}, \vec\iota \bigr) \;\triangleq\; o_1,\ldots,o_n
+.\]
 For timing security, an adversary interprets elements of $O$ (modulo erasure, described in \Cref{sec:timing-ct}) as leaked information.
-Aborted transitions do not produce events in the trace.
+Aborted transitions do not produce outputs in the observation trace.
 
 The state machine model is mechanized in Rocq as a plain record (\Cref{fig:circuit-typeclass}), parameterized by a state type~\texttt{s}, an input type~\texttt{i}, and an output type~\texttt{o}.
 These parameters correspond directly to $S$, $I$, and $O$.
 
-\begin{figure}[t]
+\begin{figure}[H]
 \begin{minted}{coq}
 Definition Action s t := s -> option (s * t).
 
@@ -295,7 +299,7 @@ The constructor \mintinline{coq}{ret} lifts a pure value into the monad without 
 The infix operator \mintinline{coq}{>>=} is another way to express \mintinline{coq}{bind}.
 State monads also provide state-specific primitives, notably \mintinline{coq}{get} and \mintinline{coq}{put}: \mintinline{coq}{get} returns the current state as a value, and \mintinline{coq}{put} replaces the current state with a new one.
 
-\begin{figure}[t]
+\begin{figure}[H]
 \begin{minted}{coq}
 Definition State s t := s -> (s * t).
 
@@ -329,7 +333,7 @@ The \mintinline{coq}{None} case represents an aborted step (for example, when a 
 \Cref{fig:guarded-state-monad-core} shows the guarded state monad encoded in Rocq together with its basic operations.
 \mintinline{coq}{ret}, \mintinline{coq}{bind}, \mintinline{coq}{get}, and \mintinline{coq}{put} work similarly to their state monad analogues.
 
-\begin{figure}[t]
+\begin{figure}[H]
 \begin{minted}{coq}
 Definition Action s t := s -> option (s * t).
 
@@ -377,7 +381,7 @@ It uses \mintinline{coq}{getter} to project a substate, runs an \mintinline{coq}
 If the callee action fails, the caller fails.
 This mirrors calling semantics in Bluespec SystemVerilog, where a method call that fails to fire causes the caller to fail to fire.
 
-\begin{figure}[t]
+\begin{figure}[H]
 \begin{minted}{coq}
 Definition call {s a b}
   (getter : s -> a)
@@ -398,17 +402,16 @@ Definition call {s a b}
 The syntax for Slate is implemented using the notation facilities in Rocq.
 Crucially, this notation elaborates into the guarded state monad described above; it does not introduce a syntax tree.
 An abstract syntax of the grammar is given in \Cref{fig:action-grammar}.
-The terminal \texttt{term} in the grammar refers to arbitrary Gallina terms.
-To properly embed a Gallina term as a statement in Slate, it must typecheck to an \mintinline{coq}|Action s t| where \mintinline{coq}{s} matches the state type of the surrounding context.
+The terminal \texttt{term} in the grammar refers to arbitrary Gallina terms, which you can embed directly into Slate.
 
-\begin{figure}[t]
+\begin{figure}[H]
 \begin{mdframed}
 \[
 \begin{array}{rcl}
-\text{Expressions} \quad e & ::= & e\ \mathit{==}\ e \mid \mathit{term} \mid \texttt{`}\mathit{reg}\texttt{`read()} \\
+\text{Expressions} \quad e & ::= & \mathit{term} \mid \texttt{`}\mathit{reg}\texttt{`read()} \\
 \\
 \text{Statements} \quad s & ::= & \texttt{pass} \mid \texttt{abort} \mid \texttt{return}\ e \mid \texttt{`}\mathit{reg}\texttt{`write}(e) \\
-& & \mid \texttt{if}\ (e)\ s\ \texttt{else}\ s \mid \texttt{when}\ (e)\ s \mid \texttt{\{\{}~\mathit{term}~\texttt{\}\}} \\ & & \mid \texttt{let}\ \mathit{pat}\ \texttt{=}\ e \mid \texttt{begin}\ b\ \texttt{end} \mid \texttt{call}\ \texttt{`}\mathit{submodule}\texttt{`}(e) \\
+& & \mid \texttt{if}\ (e)\ s\ \texttt{else}\ s \mid \texttt{when}\ (e)\ s \\ & & \mid \texttt{let}\ \mathit{pat}\ \texttt{=}\ e \mid \texttt{begin}\ b\ \texttt{end} \mid \texttt{call}\ \texttt{`}\mathit{submodule}\texttt{`}(e) \\
 \\
 \text{Blocks} \quad b & ::= & s \mid s\ \texttt{;}\ b \\
 \\
@@ -428,7 +431,7 @@ This version makes sequencing explicit through \mintinline{coq}{>>=}, but is les
 In practice, both forms are definitionally equivalent after notation expansion.
 
 
-\begin{figure}[t]
+\begin{figure}[H]
 \begin{minted}{coq}
 Variant Phase := Busy | Empty | Ready.
 
@@ -449,7 +452,7 @@ Definition mark_busy : Action State bool :=
 \label{fig:empty-surface}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[H]
 \begin{minted}{coq}
 Variant Phase := Busy | Empty | Ready.
 
@@ -480,11 +483,11 @@ This principle has been formalized and mechanically verified for software progra
 More formally, constant-time security is stated as an observational equality under varying secrets: if two executions agree on public inputs, then they must be indistinguishable with respect to the attacker-observable trace.
 The next definition makes this precise in the traditional two-copy (hyperproperty) style, before introducing an equivalent one-copy formulation.
 
-\begin{figure}[t]
+\begin{figure}[H]
 \begin{minipage}[t]{0.48\linewidth}
 \begin{minted}{c}
 // Not constant-time
-uint32_t sel_bad(x, y, secret) {
+uint32_t f_bad(x, y, secret) {
   uint32_t x;
   uint32_t y;
   uint8_t secret;
@@ -497,7 +500,7 @@ uint32_t sel_bad(x, y, secret) {
 \begin{minipage}[t]{0.48\linewidth}
 \begin{minted}{c}
 // Constant-time
-uint32_t sel_ct(x, y, secret) {
+uint32_t f_ct(x, y, secret) {
   uint32_t x;
   uint32_t y;
   uint8_t secret;
@@ -543,7 +546,7 @@ there exists a predictor function
   S^{\mathrm{pub}} \times (I^{\mathrm{pub}})^* \to (O^{\mathrm{pub}})^*
 ,\]
 where $\mathsf{pub\_inputs}(\vec{i})$ is the elementwise projection of an input sequence
-to public components and $\mathsf{pub\_outputs}(\mathcal{M}, s_0, \vec{i})$ is the corresponding projected output trace.
+to public components and $\mathsf{pub\_outputs}(\mathcal{M}, s_0, \vec{i})$ is the corresponding projected observation trace.
 Then, for every initial state $s_0 \in S$ and input sequence $\vec{i} \in I^*$,
 \[
   \mathsf{pub\_outputs}(\mathcal{M},s_0,\vec{i})
@@ -559,28 +562,29 @@ This definition is useful for certain proof techniques that can existentially co
 The hardware development in this thesis uses the same one-copy perspective, but restricted to state machine traces with explicit input/output erasure functions that capture the notion of the partitioning state into secret and public components.
 
 \subsection{Hardware constant time} \label{sec:hct}
-Hardware constant time is motivated by the hardware-software contract approach~\cite{guarnieri2021}: the security guarantee is stated relative to an explicit attacker observation model. In that line of work, the contract ties together what information the attacker can observe (leakage events) and what information the system must hide as a function of secret inputs. In this thesis, we adopt the same pattern for circuits: we first make the attacker's observational capabilities explicit via erasure contracts, and then define hardware constant time as an invariance of the erased observation when secret (erased) inputs vary.
+Hardware constant time is motivated by hardware-software contracts~\cite{guarnieri2021}: the security guarantee is stated relative to an explicit attacker observation model. In that line of work, the contract ties together what information the attacker can observe (leakage events) and what information the system must hide as a function of secret inputs. In this thesis, we adopt the same pattern: we first make the attacker's observational capabilities explicit via erasure contracts (\Cref{def:erasure-spec}), and then define hardware constant time as an invariance of the erased observation when secret (erased) inputs vary.
 
 \begin{definition}[Erasure contract] \label{def:erasure-spec}
-For a state machine $\mathcal{M}=(S,s_0,I,O,\delta)$, an \emph{erasure contract} is a pair $\mathcal{E} = (\mathsf{erase_{in}}, \mathsf{erase_{out}})$ where $\mathsf{erase_{in}} : I \to I$ erases secret inputs of $\delta$ and $\mathsf{erase_{out}}$ is a partial function which erases output events are components of output events from the trace.
+For a state machine $\mathcal{M}=(S,s_0,I,O,\delta)$, an \emph{erasure contract} is a pair $\mathcal{E} = (\mathsf{erase_{in}}, \mathsf{erase_{out}})$ where $\mathsf{erase_{in}}$ is a function which erases secret components of inputs $\iota \in I$ and $\mathsf{erase_{out}}$ is a function which erases secret components of outputs $o \in O$ from the observational trace.
 \end{definition}
 
-\begin{definition}[Erased run outputs] \label{def:erased-run-outputs}
+\begin{definition}[Erased observation trace] \label{def:erased-run-outputs}
 Given $\mathcal{M}$, $\mathcal{E}$, and an input sequence $\vec\iota \in I^*$, we define
-\[
-  \mathsf{erase\_run\_outputs}(\mathcal{M}, \mathcal{E}, \vec\iota)
-  \;\triangleq\;
-  \mathsf{map}\;\mathsf{erase_{out}}\;\bigl(\mathsf{run\_outputs}(\mathcal{M}, \vec\iota)\bigr).
-\]
+$\mathcal{T}_{\mathcal{E}}\bigl( \mathcal{M}, \vec\iota \bigr)$ as the \emph{erased observation trace} which is the observation trace $\mathcal{T}\bigl( \mathcal{M}, \vec\iota \bigr)$ with private output components deleted.
+\end{definition}
+
+\begin{definition}[Erased input sequence] \label{def:erased-run-outputs}
+Given $\mathcal{M}$, $\mathcal{E}$, and an input sequence $\vec\iota \in I^*$, we define
+$\vec\iota_\mathcal{E}$ as the \emph{erased input sequence} which is the input sequence with private input components deleted.
 \end{definition}
 
 \begin{definition}[Hardware constant time] \label{def:hct-single}
 A state machine $\mathcal{M}$ is \emph{hardware constant time} (HCT) with respect to an erasure contract $\mathcal{E}$ when
 \[
   \forall \vec\iota \in I^*.\;\;
-  \mathsf{erase\_run\_outputs}(\mathcal{M}, \mathcal{E}, \vec\iota)
+  \mathcal{T}_\mathcal{E}(\mathcal{M}, \vec\iota)
   =
-  \mathsf{erase\_run\_outputs}\bigl(\mathcal{M}, \mathcal{E}, \mathsf{map}\;\mathsf{erase_{in}}\;\vec\iota\bigr).
+  \mathcal{T}_\mathcal{E}(\mathcal{M}, \vec\iota_\mathcal{E}).
 \]
 \end{definition}
 
@@ -590,17 +594,17 @@ Concretely, $\mathsf{erase_{in}}$ controls observability on input wires: it pres
 Similarly, $\mathsf{erase_{out}}$ controls observability on output wires: it keeps attacker-visible outputs and removes or abstracts outputs that are outside the attacker's view.
 Under this interpretation, HCT says that varying secret (erased) inputs cannot change the attacker-visible output trace.
 
-\section{Proof techniques} \label{sec:timing-proof}
+\section{Proof strategy} \label{sec:timing-proof}
 
-\subsection{Lockstep refinement}
+This section develops the simulation-based proof strategy used to establish hardware constant time from \Cref{sec:hct}. It first introduces lockstep refinement and its two key variants: self-simulation of a single machine and cross-simulation between an implementation machine and an abstract machine (\Cref{sec:timing-proof-lockstep}). It then derives the trace-level consequences needed to imply hardware constant time from both refinement strategies (\Cref{sec:timing-proof-trace}).
+
+\subsection{Lockstep refinement} \label{sec:timing-proof-lockstep}
 The hardware constant time property (\Cref{def:hct-single}) reasons about entire runs of state machines rather than isolated steps.
 This affords flexibility in potential proof techniques that may not reason about each step in isolation, but in the future could allow simulation-based proofs which rely on skipping steps or taking multiple steps.
 We will restrict ourselves to only reason about \emph{lockstep} simulations, which disallow skipping or multiple steps.
 Two commutative diagrams below depict self-duality of one~\(\mathcal M\) and the asymmetric arrangement of implementation versus specification~\(\mathcal M_{\mathsf I},\mathcal M_{\mathsf S}\).
 
-Write \(\mathrm{T}^{\mathcal E}(\mathcal M,\vec\iota)\) for the guarded observation list obtained while~\(\mathcal M\) consumes~\(\vec\iota\) after output erasure is applied along the trajectory, exactly~\Cref{def:erased-run-outputs}.
-Let \(\vec\iota_{\mathcal E}\) be~\(\vec\iota\) after input erasure from~\(\mathcal E\) has been applied to every coordinate.
-Fix state types $S_1$ and $S_2$, a relation $R \subseteq S_1 \times S_2$, and let \(\kappa\) implement output erasure on guarded observations in the sense paired with~\(\mathcal E\) by~\Cref{def:erasure-spec,def:erased-run-outputs}.
+Fix state types $S_1$ and $S_2$, a simulation relation $R \subseteq S_1 \times S_2$, and let \(\kappa\) implement output erasure on guarded observations in the sense paired with~\(\mathcal E\) by~\Cref{def:erasure-spec,def:erased-run-outputs}.
 Assume two guarded actions \(a_j\) occupy states \(s_j\): under the deterministic guarded semantics surveyed in~\Cref{sec:timing-state-machine}, each pair~\((a_j,s_j)\) determines updated states~\((s'_j,\omega_j)\) as summarized there.
 
 \begin{definition}[Action refinement] \label{def:action-refinement}
@@ -612,7 +616,7 @@ In this setting \(a_1\) \emph{refines} \(a_2\) \emph{under} \((R,\kappa)\) \emph
 \]
 \end{definition}
 
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \begin{tikzcd}[column sep=6em,row sep=huge]
   s_1 \arrow[r,"a_1"] \arrow[d,"R"'] & (s_1',\omega_1) \arrow[d,"{(R_{\mathcal{E}})}"']
@@ -631,7 +635,7 @@ Extend $\mathsf{erase_{out}}$ to guarded observations in the unique way dictated
 Then $\mathcal{M}_1$ \emph{refines} $\mathcal{M}_2$ \emph{under} $(\mathcal{E},R)$ when, for every input $\iota \in I$ and all $(s_1,s_2)\in R$, the action realizing $\delta_1(\cdot,\iota)$ refines that realizing $\delta_2(\cdot,\mathsf{erase_{in}}(\iota))$ under $(R,\mathsf{erase_{out}})$ at $(s_1,s_2)$ in the sense of~\Cref{def:action-refinement}.
 \end{definition}
 
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \textbf{(a) Self-simulation} (one machine, two correlated tracks).
 \[
@@ -644,7 +648,7 @@ Then $\mathcal{M}_1$ \emph{refines} $\mathcal{M}_2$ \emph{under} $(\mathcal{E},R
 \label{fig:sim-machine-self}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \textbf{(b) Cross-simulation} (implementation $\mathcal{M}_{\mathsf{I}}$ vs.\ abstract specification $\mathcal{M}_{\mathsf{S}}$).
 \[
@@ -657,7 +661,7 @@ Then $\mathcal{M}_1$ \emph{refines} $\mathcal{M}_2$ \emph{under} $(\mathcal{E},R
 \label{fig:sim-machine-cross}
 \end{figure}
 
-\subsection{Trace consequences and lemmas}
+\subsection{Trace consequences and lemmas} \label{sec:timing-proof-trace}
 Together,~\Cref{fig:sim-action-square,fig:sim-machine-self,fig:sim-machine-cross} align with~\Cref{sec:timing-ct}: observations are judged only modulo erasure.
 
 \begin{definition}[Outputs-erased bridge] \label{def:outputs-erased-bridge}
