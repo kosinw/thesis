@@ -99,6 +99,23 @@ Together, these contributions provide a foundation for scaling toward integrated
 \listoffigures
 \listoftables
 
+\chapter*{List of abbreviations}
+\addcontentsline{toc}{chapter}{List of abbreviations}
+\begin{description}
+  \item[CCT] Cryptographic constant time.
+  \item[CPU] Central processing unit.
+  \item[FU] Functional unit.
+  \item[HCT] Hardware constant time.
+  \item[ISA] Instruction-set architecture.
+  \item[OoO] Out-of-order (execution).
+  \item[ORAAT] One-rule-at-a-time.
+  \item[R10K] MIPS R10000 processor.
+  \item[RAT] Register alias table.
+  \item[ROB] Reorder buffer.
+  \item[RTL] Register-transfer level.
+\end{description}
+
+
 \chapter{Introduction}
 This thesis contributes an approach for proving correctness and timing properties for hardware circuits described in the Rocq proof assistant.
 This work serves as the first step towards the mechanization of entire correctness and timing proofs for a realistic, modern computer system including a single out-of-order core complete with a memory hierarchy.
@@ -132,11 +149,11 @@ Our design diverges from the R10K algorithm in two major aspects to simplify whi
 The most important difference is how the renaming mechanism works.
 The original R10K algorithm records, in the reorder buffer (ROB), the previous physical register index for each instruction's destination so that the rename map can be rolled back precisely when a younger path is squashed.
 We instead maintain two register alias tables (RATs), avoiding the need to track a per-instruction previous physical destination in the ROB.
-The \emph{future} table holds the most up-to-date speculative mapping from architectural registers to physical registers, while the \emph{commit} table records the mapping as of the last retired instruction.
-Squashing speculative state can then be performed by reverting the \emph{future} back to the \emph{commit} table.
+The future table holds the most up-to-date speculative mapping from architectural registers to physical registers, while the commit table records the mapping as of the last retired instruction.
+Squashing speculative state can then be performed by reverting the future back to the commit table.
 
-Rolling back the alias tables alone would be insufficient, because speculative execution can still overwrite physical register contents before those instructions retire; restoring only the \emph{architectural-to-physical} (arch-to-phys) mapping would leave stale or partially updated values visible under the recovered names.
-Our design therefore pairs the dual RAT with explicit snapshots of register \emph{values} (not just of the rename map).
+Rolling back the alias tables alone would be insufficient, because speculative execution can still overwrite physical register contents before those instructions retire; restoring only the architectural-to-physical mapping would leave stale or partially updated values visible under the recovered names.
+Our design therefore pairs the dual RAT with explicit snapshots of register values (not just of the rename map).
 Enough snapshots are retained to reconstruct the physical register file as it stood at the last retired instruction, so a squash restores both the mapping from each architectural register to its physical backing and the bit patterns stored in those physical registers at that point.
 The maximum number of snapshots is finite, so it bounds the number of branches the machine can speculate ahead; once that budget is exhausted, the issue stage must stall until retire frees snapshot capacity.
 
@@ -697,7 +714,7 @@ Call~\(\mathcal M_2\) \emph{erased-trace equivalent} to~\(\mathcal M_1\) under~\
 
 \begin{lemma}[Simulation lifts to erased traces]
 \label{lem:sim-lift-erased-traces}
-If \(\mathcal{M}_1\) refines \(\mathcal{M}_2\) under~\((\mathcal E,R)\) in the sense of~\Cref{def:machine-refinement} and \(R(s_{0,1},s_{0,2})\), then for every input history~\(\vec\iota\in I^*\),
+If \(\mathcal{M}_1\) simulates \(\mathcal{M}_2\) under~\((\mathcal E,R)\) in the sense of~\Cref{def:machine-refinement} and \(R(s_{0,1},s_{0,2})\), then for every input history~\(\vec\iota\in I^*\),
 \[
   \mathcal{T}_{\mathcal E}(\mathcal M_1,\vec\iota)
   =
@@ -766,7 +783,7 @@ Therefore \(M_{\mathsf{toggle}}\) self-simulates under \((R,\mathcal E_{\mathsf{
 
 \chapter{Verifying correctness for circuits} \label{chap:golemma}
 
-This chapter presents a framework for verifying functional correctness on synthesizable hardware circuits. It first introduces the GoLemma hardware description language: a modular, synthesizable, rules-based language similar to Bluespec SystemVerilog, but replaces the execution model guarded atomic actions with a sequential execution model (\Cref{sec:golemma-intro}). Then, it describes the formal semantics of GoLemma and gives a high-level description of its compilation to netlist Verilog (\Cref{sec:golemma-formal}). Finally, it discusses how functional specifications are written (\Cref{sec:golemma-spec}) and develops the simulation-based proof structure used to show modular refinement \Cref{sec:golemma-proof}. This chapter's framework is exercied in two case studies: a ring buffer (\Cref{sec:ring-buffer}) and a reorder buffer (\Cref{sec:reorder-buffer}).
+This chapter presents a framework for verifying functional correctness on synthesizable hardware circuits. It first introduces the GoLemma hardware description language: a modular, synthesizable, rules-based language similar to Bluespec SystemVerilog, but replaces the execution model of guarded atomic actions with a sequential execution model (\Cref{sec:golemma-intro}). Then, it describes the formal semantics of GoLemma (\Cref{sec:golemma-formal}). Finally, it discusses how functional specifications are written (\Cref{sec:golemma-spec}) and develops the simulation-based proof structure used to show modular refinement \Cref{sec:golemma-proof}. This chapter's framework is exercised in two case studies: a ring buffer (\Cref{sec:ring-buffer}) and a reorder buffer (\Cref{sec:reorder-buffer}).
 
 \section{Introduction} \label{sec:golemma-intro}
 
@@ -777,7 +794,6 @@ This chapter presents a framework for verifying functional correctness on synthe
 
 \subsection{Syntax}
 \subsection{Semantics}
-\subsection{Compilation}
 
 \section{Functional specification} \label{sec:golemma-spec}
 
@@ -794,22 +810,6 @@ This chapter presents a framework for verifying functional correctness on synthe
 \section{Developer effort}
 \section{Discussion}
 \section{Future work}
-
-\chapter*{List of abbreviations}
-\addcontentsline{toc}{chapter}{Glossary}
-\begin{description}
-  \item[CCT] Cryptographic constant time.
-  \item[CPU] Central processing unit.
-  \item[FU] Functional unit.
-  \item[HCT] Hardware constant time.
-  \item[ISA] Instruction-set architecture.
-  \item[OoO] Out-of-order (execution).
-  \item[ORAAT] One-rule-at-a-time.
-  \item[R10K] MIPS R10000 processor.
-  \item[RAT] Register alias table.
-  \item[ROB] Reorder buffer.
-  \item[RTL] Register-transfer level.
-\end{description}
 
 \bibliographystyle{plain}
 \bibliography{refs}
