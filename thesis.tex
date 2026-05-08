@@ -18,9 +18,9 @@
 \usepackage[nottoc]{tocbibind}
 \usepackage[framemethod=default]{mdframed}
 \usepackage{float}
+\usepackage{needspace}
 
 \renewcommand{\bibname}{References}
-
 
 \hypersetup{
     colorlinks=true,
@@ -50,6 +50,9 @@
 }
 
 \AtBeginEnvironment{appendices}{\crefalias{chapter}{appendix}}
+\AtBeginEnvironment{theorem}{\Needspace{4\baselineskip}}
+\AtBeginEnvironment{definition}{\Needspace{4\baselineskip}}
+\AtBeginEnvironment{lemma}{\Needspace{4\baselineskip}}
 
 \onehalfspacing
 
@@ -61,7 +64,6 @@
 % \setcounter{topnumber}{1}
 
 \begin{document}
-
 \addcontentsline{toc}{chapter}{Title page}
 \title{Towards Verifying Correctness and Timing Properties for \\ Out-of-Order Machines}
 \Author{Kosi Nwabueze}{Department of Electrical Engineering and Computer Science} [S.B., Massachusetts Institute of Technology (2025)]
@@ -74,6 +76,7 @@
 \maketitle
 
 \begin{abstract}
+\addcontentsline{toc}{chapter}{Abstract}
 High-performance processors rely on out-of-order execution, an instruction-scheduling algorithm that is both difficult to implement correctly and prone to timing side-channel attacks without principled defenses.
 This thesis develops an approach using the Rocq proof assistant for specifying and proving timing-security properties of hardware circuits.
 To express hardware circuits in a proof-friendly style, the thesis introduces \emph{Slate}, a shallowly embedded surface language built on guarded state monads.
@@ -84,6 +87,7 @@ Together, these contributions provide a foundation for scaling toward integrated
 \end{abstract}
 
 \chapter*{Acknowledgments}
+\addcontentsline{toc}{chapter}{Acknowledgments}
 \comment{TODO(kosinw): Write acknowledgements}
 
 \tableofcontents
@@ -106,7 +110,7 @@ The algorithm is a modified design based on the MIPS R10000 (R10K) processor~\ci
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.75\textwidth]{figures/figure1.png}
-  \caption{Diagram for an out-of-order machine based on the R10K processor. Arrows signify communication between submodules.}
+  \caption[Diagram of an out-of-order machine]{Diagram for an out-of-order machine based on the R10K processor. Arrows signify communication between submodules.}
   \label{fig:fig1}
 \end{figure}
 
@@ -195,15 +199,15 @@ This thesis continues in the same tradition, carrying these timing-security proo
 This chapter presents a framework for timing-security verification of hardware circuits.
 It begins by giving a formalism of state machines (\Cref{sec:timing-state-machine}) to model hardware circuits and then introduces \emph{Slate}, a shallowly embedded language in Rocq for specifying hardware circuits (\Cref{sec:timing-monads}).
 Next, it defines hardware timing security in terms of erased attacker observations (\Cref{sec:timing-ct}) and develops the simulation-based proof structure used to establish it (\Cref{sec:timing-proof}).
-The chapter's framework is exercised in two case studies: a constant-time multiplier (\Cref{chap:case-multiplier}) and a constant-time multi-cycle processor (\Cref{chap:case-processor}).
+The chapter's framework is exercised in two case studies: a constant-time multiplier (\Cref{chap:case-multiplier}) and a constant-time, multi-cycle processor (\Cref{chap:case-processor}).
 
 \section{State machines} \label{sec:timing-state-machine}
 
 A \emph{state machine} is an abstraction used to describe the behavior of a computation by defining its possible states and the rules for transitioning between them.
-Hardware circuits function as physical state machines: registers serve as the memory that holds the current state, while combinational logic defines the functions that determine both the system's outputs and its next state based on the current configuration.
-In the context of this thesis, we view hardware modules as interacting through well-defined interfaces composed of methods rather than raw, unstructured signals.
-Each discrete state transition in the system corresponds to the execution of a method, supplied with arguments that represent the transaction's data.
-This approach is consistent with prior work~\cite{choi2017,koika2020}, which views hardware modules as high-level transition systems whose transitions lie on method boundaries.
+Hardware modules function as physical state machines: registers serve as the memory that holds the current state, while combinational logic describes the transition function that determine both the module's outputs and its next state as a function of the current configuration.
+We view hardware modules as interacting through well-defined interfaces composed of methods rather than raw, unstructured signals.
+Each discrete state transition in the system corresponds to the execution of a method, supplied with arguments that represent the transition's data.
+This approach is consistent with prior work~\cite{koika2020,choi2017}, which views hardware modules as high-level transition systems whose transitions lie on external method boundaries.
 We adopt the following formal definition of a state machine.
 
 \begin{definition}[State machine]
@@ -258,7 +262,7 @@ Record StateMachine (s i o : Type) := {
 
 \section{Encoding circuits} \label{sec:timing-monads}
 
-This section describes a language for describing hardware as executable descriptions in Rocq.
+This section introduces Slate, a language for describing hardware as executable descriptions in Rocq.
 It first compares shallow and deep embeddings and explains why Slate is implemented as a shallow embedding (\Cref{sec:timing-monads-shallow}).
 It then describes state monads and guarded state monad (actions) and motivates them as a way to model imperative programs shallowly in Rocq (\Cref{sec:timing-monads-state}).
 Finally, it presents the grammar of Slate and a small illustrative example (\Cref{sec:timing-monads-slate}).
@@ -286,7 +290,7 @@ We introduce the state monad structure that underlies Slate method definitions.
 \paragraph{State monads}
 A \emph{state monad} over state type $s$ and result type $t$ is defined as
 \[
-  \texttt{State}\;s\;t \;\triangleq\; s \to (s * t)
+  \mathsf{State}\;(s, t) \;\triangleq\; s \to (s * t)
 ,\]
 that is, a function that takes an input state and returns a new state together with a result.
 A stateful computation can be understood as a function that consumes a state and returns a pair of the updated state and a result value.
@@ -324,9 +328,9 @@ Definition put {s} (x : s) : State s unit :=
 \paragraph{Guarded state monads}
 A \emph{guarded state monad}, also referred to as an \emph{action}, over state type $s$ and result type $t$ is the type of computations
 \[
-  \texttt{Action}\;s\;t \;\triangleq\; s \to \texttt{option}\;(s * t)
+  \mathsf{Action}\;(s,t) \;\triangleq\; s \to \texttt{option}\;(s * t)
 ,\]
-that is, a function that takes an input state and either returns a new state together with a result (\mintinline{coq}{Some}) or aborts (\mintinline{coq}{None}).
+that is, a function that takes an input state and either returns a new state together with a result or aborts.
 The framework uses this to model method calls that are enabled only when their guards hold.
 The \mintinline{coq}{Some} case represents a successful step that returns an updated state and a value.
 The \mintinline{coq}{None} case represents an aborted step (for example, when a guard is false).
@@ -394,13 +398,13 @@ Definition call {s a b}
       | None => None
       end).
 \end{minted}
-\caption{The \texttt{call} operator lifts the effects of submodule action to a larger state.}
+\caption[Call operator for Actions]{\texttt{call} operator lifts the effects of submodule action to a larger state.}
 \label{fig:action-call}
 \end{figure}
 
 \subsection{Syntax} \label{sec:timing-monads-slate}
 The syntax for Slate is implemented using the notation facilities in Rocq.
-Crucially, this notation elaborates into the guarded state monad described above; it does not introduce a syntax tree.
+Crucially, this notation elaborates directly into actions as described above; it does not introduce a syntax tree.
 An abstract syntax of the grammar is given in \Cref{fig:action-grammar}.
 The terminal \texttt{term} in the grammar refers to arbitrary Gallina terms, which you can embed directly into Slate.
 
@@ -596,78 +600,99 @@ Under this interpretation, HCT says that varying secret (erased) inputs cannot c
 
 \section{Proof strategy} \label{sec:timing-proof}
 
-This section develops the simulation-based proof strategy used to establish hardware constant time from \Cref{sec:hct}. It first introduces lockstep refinement and its two key variants: self-simulation of a single machine and cross-simulation between an implementation machine and an abstract machine (\Cref{sec:timing-proof-lockstep}). It then derives the trace-level consequences needed to imply hardware constant time from both refinement strategies (\Cref{sec:timing-proof-trace}).
+This section develops the simulation-based proof strategy used to establish hardware constant time from \Cref{sec:hct}. It first introduces lockstep simulation and its two key variants: self-simulation of a single machine and cross-simulation between an implementation machine and an abstract machine (\Cref{sec:timing-proof-lockstep}). It then derives the trace-inclusion lemmas needed to imply hardware constant time from both simulation strategies (\Cref{sec:timing-proof-trace}).
 
-\subsection{Lockstep refinement} \label{sec:timing-proof-lockstep}
+\subsection{Lockstep simulation} \label{sec:timing-proof-lockstep}
 The hardware constant time property (\Cref{def:hct-single}) reasons about entire runs of state machines rather than isolated steps.
 This affords flexibility in potential proof techniques that may not reason about each step in isolation, but in the future could allow simulation-based proofs which rely on skipping steps or taking multiple steps.
 We will restrict ourselves to only reason about \emph{lockstep} simulations, which disallow skipping or multiple steps.
-The commutative diagrams in~\Cref{fig:sim-machine-self,fig:sim-machine-cross} depict self-duality of one~\(\mathcal M\) and the asymmetric arrangement of implementation versus specification~\(\mathcal M_{\mathsf I},\mathcal M_{\mathsf S}\).
+\Cref{fig:sim-machines} demonstrate the two different proof techniques introduced in this section: first, a machine compared against itself under erased inputs (self-simulation), and second, an implementation machine compared against an abstract specification (cross-simulation).
 
-Fix state types $S_1$ and $S_2$, a simulation relation $R \subseteq S_1 \times S_2$, and use the erasure contract maps from~\Cref{def:erasure-spec}.
-Assume two guarded actions \(a_j\) occupy states \(s_j\): under the deterministic guarded semantics surveyed in~\Cref{sec:timing-state-machine}, each pair~\((a_j,s_j)\) determines updated states~\((s'_j,o_j)\) as summarized there.
-
-\begin{definition}[Action refinement] \label{def:action-refinement}
-In this setting \(a_1\) \emph{refines} \(a_2\) \emph{under} \((R,\mathsf{erase_{out}})\) \emph{at} \((s_1,s_2)\) precisely when \(R(s_1,s_2)\) implies
+\paragraph{Setup}
+Fix state machines $\mathcal{M}_1$ and $\mathcal{M}_2$ and erasure contract $\mathcal{E}$ as the following
+\begin{gather*}
+  \mathcal{M}_1 = (S_1, s_{0,1}, I, O, \delta_1), \qquad
+  \mathcal{M}_2 = (S_2, s_{0,2}, I, O, \delta_2),\\
+  \mathcal{E} = (\mathsf{erase_{in}},\mathsf{erase_{out}}).
+\end{gather*}
+Fix relation $R \subseteq S_1 \times S_2$. Let $a_1$ and $a_2$ be actions over $S_1$ and $S_2$, respectively, sharing output type $O$.
+For related starting states $(s_1,s_2)\in R$, suppose each action steps to a successor state and output:
 \[
-  \mathsf{erase_{out}}(o_1)=\mathsf{erase_{out}}(o_2),
-  \qquad\text{and}\qquad
-  R(s_1',s_2').
+  a_1(s_1)=(s_1',o_1),\qquad a_2(s_2)=(s_2',o_2).
+\]
+
+\begin{definition}[Erased-result relation] \label{def:erased-relation}
+Given a relation $R \subseteq S_1 \times S_2$ and erasure contract $\mathcal{E}$, we say $R_\mathcal{E} \subseteq S_1 \times O \times S_2 \times O$ is the \emph{erased-result relation} when
+\[
+  R_\mathcal{E}\bigl(s_1,o_1,s_2,o_2\bigr)
+  \;\triangleq\;
+  \mathsf{erase_{out}}(o_1)=\mathsf{erase_{out}}(o_2) \; \land \; R(s_1,s_2).
 \]
 \end{definition}
-This single-step condition is depicted in~\Cref{fig:sim-action-square}.
+
+\begin{definition}[Action simulation] \label{def:action-refinement}
+We say \(a_1\) \emph{simulates} \(a_2\) under \((R,\mathcal{E})\) at \((s_1,s_2)\) when
+\[
+  R(s_1,s_2) \Rightarrow R_\mathcal{E}\bigl(s_1',o_1,s_2',o_2\bigr).
+\]
+This condition is depicted as a commutative diagram in~\Cref{fig:sim-action-square}.
+\end{definition}
 
 \begin{figure}[H]
 \centering
-\begin{tikzcd}[column sep=6em,row sep=huge]
-  s_1 \arrow[r,"a_1"] \arrow[d,"R"'] & (s_1',o_1) \arrow[d,"{(R_{\mathcal{E}})}"']
+\begin{tikzcd}[column sep=8em,row sep=huge]
+  s_1 \arrow[r,"a_1"] \arrow[d,dashrightarrow,"R"'] & (s_1',o_1) \arrow[d,dashrightarrow,"R_\mathcal{E}"']
     \\
   s_2 \arrow[r,"a_2"'] & (s_2',o_2)
 \end{tikzcd}
-\caption[Action refinement]{Single-step refinement with~\((R_{\mathcal E})\) abbreviating erased-output agreement~\(\mathsf{erase_{out}}(o_1)=\mathsf{erase_{out}}(o_2)\) and successor relatedness~\(R(s_1',s_2')\).}
+\caption[Action refinement]{Action refinement for \(a_1\) and \(a_2\) as a commutative diagram.}
 \label{fig:sim-action-square}
 \end{figure}
 
-Machine refinement instantiates~\Cref{def:action-refinement} on every invocation while the specification observes~\(\mathsf{erase_{in}}(\iota)\) wherever the implementation observes~\(\iota\).
+Next, machine simulation instantiates~\Cref{def:action-refinement} on every method invocation $\iota \in I$ where the abstraction machine observes~\(\mathsf{erase_{in}}(\iota)\) wherever the implementation machine observes~\(\iota\).
 
-\begin{definition}[Machine refinement] \label{def:machine-refinement}
-Let $\mathcal{M}_1 = (S_1,s_{0,1},I,O,\delta_1)$ and $\mathcal{M}_2 = (S_2,s_{0,2},I,O,\delta_2)$ be state machines in the sense of~\Cref{sec:timing-state-machine}, and let $\mathcal{E}=(\mathsf{erase_{in}},\mathsf{erase_{out}})$ be an erasure contract on~$I$ and~$O$.
-Extend $\mathsf{erase_{out}}$ to guarded observations in the unique way dictated by~\Cref{def:erasure-spec,def:erased-run-outputs}.
-Then $\mathcal{M}_1$ \emph{refines} $\mathcal{M}_2$ \emph{under} $(\mathcal{E},R)$ when, for every input $\iota \in I$ and all $(s_1,s_2)\in R$, the action realizing $\delta_1(\cdot,\iota)$ refines that realizing $\delta_2(\cdot,\mathsf{erase_{in}}(\iota))$ under $(R,\mathsf{erase_{out}})$ at $(s_1,s_2)$ in the sense of~\Cref{def:action-refinement}.
+\begin{definition}[Machine simulation] \label{def:machine-refinement}
+$\mathcal{M}_1$ \emph{simulates} $\mathcal{M}_2$ \emph{under} $(R, \mathcal{E})$ when, for every input $\iota \in I$, all $(s_1,s_2)\in R$, and actions $a_1$ and $a_2$:
+\[
+a_1 = \lambda s.\; \delta_1(s,\iota)
+,\quad
+a_2 = \lambda s.\; \delta_2(s,\mathsf{erase_{in}}(\iota))
+,\]
+$a_1$ simulates $a_2$ under $(R,\mathcal{E})$ at $(s_1,s_2)$ in the sense of~\Cref{def:action-refinement}.
 \end{definition}
-The self-simulation and cross-simulation instances of this definition are shown in~\Cref{fig:sim-machine-self,fig:sim-machine-cross}.
+
+\paragraph{Self-simulation and cross-simulation}
+The self-simulation and cross-simulation instances of this definition are shown in~\Cref{fig:sim-machines}. In self-simulation, the same machine appears on both sides: one side consumes the original input \(\iota\), while the other consumes the erased input \(\mathsf{erase_{in}}(\iota)\). This directly matches the shape of hardware constant time, where we compare a machine against itself under secret variation. In cross-simulation, the left side is a concrete implementation and the right side is a simpler abstract specification that already enforces the intended security behavior; the proof then factors through simulation to transfer that behavior back to the implementation.
 
 \begin{figure}[H]
 \centering
-\textbf{(a) Self-simulation} (one machine, two correlated tracks).
-\[
-\begin{tikzcd}[column sep=6em,row sep=huge]
-  s \arrow[r,"{\delta_{\mathcal{M}}(\iota)}"] \arrow[d,"R"'] & s' \arrow[d,"R"] \\
-  \tilde{s} \arrow[r,"{\delta_{\mathcal{M}}(\mathsf{erase_{in}}(\iota))}"'] & \tilde{s}'
-\end{tikzcd}
-\]
-\caption[Self-simulation]{Panel~\textbf{(a)} reuses~\(\delta_{\mathcal{M}}\); it omits~\(\mathsf{erase_{out}}\) constraints along the arrows.}
-\label{fig:sim-machine-self}
-\end{figure}
-
-\begin{figure}[H]
+\begin{minipage}[t]{0.49\textwidth}
 \centering
-\textbf{(b) Cross-simulation} (implementation $\mathcal{M}_{\mathsf{I}}$ vs.\ abstract specification $\mathcal{M}_{\mathsf{S}}$).
-\[
-\begin{tikzcd}[column sep=6em,row sep=huge]
-  s \arrow[r,"{\delta_{\mathcal{M}_{\mathsf{I}}}(\iota)}"] \arrow[d,"R"'] & s' \arrow[d,"R"] \\
-  \tilde{s} \arrow[r,"{\delta_{\mathcal{M}_{\mathsf{S}}}(\mathsf{erase_{in}}(\iota))}"'] & \tilde{s}'
+\textbf{(a) Self-simulation}\\
+\smallskip
+\begin{tikzcd}[column sep=8em,row sep=huge]
+  s \arrow[r,"{\delta_{\mathcal{M}}(\iota)}"] \arrow[d,dashrightarrow,"R"'] & (s', o) \arrow[d,dashrightarrow,"R_\mathcal{E}"] \\
+  \tilde{s} \arrow[r,"{\delta_{\mathcal{M}}(\mathsf{erase_{in}}(\iota))}"'] & (\tilde{s}', \tilde{o})
 \end{tikzcd}
-\]
-\caption[Cross-simulation]{Panel~\textbf{(b)} contrasts~\(\mathcal{M}_{\mathsf I}\) with~\(\mathcal{M}_{\mathsf S}\); it omits~\(\mathsf{erase_{out}}\) constraints along the arrows.}
-\label{fig:sim-machine-cross}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\textwidth}
+\centering
+\textbf{(b) Cross-simulation}\\
+\smallskip
+\begin{tikzcd}[column sep=8em,row sep=huge]
+  s_1 \arrow[r,"{\delta_{\mathcal{M}_{1}}(\iota)}"] \arrow[d,dashrightarrow,"R"'] & (s_1', o_1) \arrow[d,dashrightarrow,"R_\mathcal{E}"] \\
+  s_2 \arrow[r,"{\delta_{\mathcal{M}_{2}}(\mathsf{erase_{in}}(\iota))}"'] & (s_2', o_2)
+\end{tikzcd}
+\end{minipage}
+\caption[Self- and cross-simulation]{Lockstep simulation diagrams. Panel~\textbf{(a)} reuses~\(\delta_{\mathcal{M}}\) whereas panel~\textbf{(b)} contrasts~\(\mathcal{M}_{1}\) with~\(\mathcal{M}_{2}\).}
+\label{fig:sim-machines}
 \end{figure}
 
-\subsection{Trace consequences and lemmas} \label{sec:timing-proof-trace}
-Together,~\Cref{fig:sim-action-square,fig:sim-machine-self,fig:sim-machine-cross} align with~\Cref{sec:timing-ct}: observations are judged only modulo erasure.
+\subsection{Trace-equivalence lemmas} \label{sec:timing-proof-trace}
+This subsection turns the stepwise lockstep obligations from~\Cref{fig:sim-action-square,fig:sim-machines} into trace consequences. We first define output-erased trace equivalence and show that machine simulation lifts to equality of erased traces. We then use these lemmas to derive the two proof patterns for hardware constant time: direct self-simulation and cross-simulation via a trace-equivalent specification.
 
-\begin{definition}[Outputs-erased bridge] \label{def:outputs-erased-bridge}
-Call~\(\mathcal M_2\)~\emph{bridged} to~\(\mathcal M_1\) under~\(\mathcal E\) when—for every~\(\vec\iota\in I^*\)—the histories~\(\vec\iota_{\mathcal E}\) force agreement of the guarded observation transcripts once output projections from~\(\mathcal E\) are applied:
+\begin{definition}[Output-erased trace equivalence] \label{def:outputs-erased-bridge}
+Call~\(\mathcal M_2\) \emph{output-erased trace equivalent} to~\(\mathcal M_1\) under~\(\mathcal E\) when, for every~\(\vec\iota\in I^*\), the erased-input histories~\(\vec\iota_{\mathcal E}\) induce the same erased observation trace:
 \[
   \mathcal{T}^{\mathcal E}(\mathcal M_2,\vec\iota_{\mathcal E})
   =
@@ -675,7 +700,7 @@ Call~\(\mathcal M_2\)~\emph{bridged} to~\(\mathcal M_1\) under~\(\mathcal E\) wh
 \]
 \end{definition}
 
-\begin{lemma}[Refinement lifts to erased-output traces]
+\begin{lemma}[Simulation lifts to erased-output traces]
 \label{lem:sim-lift-erased-traces}
 If \(\mathcal{M}_1\) refines \(\mathcal{M}_2\) under~\((\mathcal E,R)\) in the sense of~\Cref{def:machine-refinement} and \(R(s_{0,1},s_{0,2})\), then for every input history~\(\vec\iota\in I^*\),
 \[
@@ -686,7 +711,7 @@ If \(\mathcal{M}_1\) refines \(\mathcal{M}_2\) under~\((\mathcal E,R)\) in the s
 \end{lemma}
 
 \begin{proof}[Proof sketch]
-Induct on~\(\vec\iota\); the empty list is immediate and a cons applies~\Cref{def:machine-refinement} before appealing to the induction hypothesis on the tails.
+Induct on~\(\vec\iota\); the base case on the empty list is immediate. The inductive case on cons first applies~\Cref{def:machine-refinement} to the head of the trace before appealing to the induction hypothesis on the tails.
 \end{proof}
 
 \begin{theorem}[Self-simulation implies hardware constant time]
@@ -698,15 +723,27 @@ If~\(\mathcal M\) refines itself under~\((\mathcal E,R)\) and \(R(s_0,s_0)\), th
 Instantiate~\Cref{lem:sim-lift-erased-traces} with the specification and implementation both taken to be~\(\mathcal M\); the resulting equation is~\Cref{def:hct-single}.
 \end{proof}
 
-\begin{theorem}[Cross-simulation with a bridge implies hardware constant time]
+\begin{theorem}[Cross-simulation with trace equivalence implies hardware constant time]
 \label{lem:cross-sim-hct}
-Suppose \(\mathcal{M}_{\mathsf I}\) refines \(\mathcal{M}_{\mathsf S}\) under~\((\mathcal E,R)\), that \(R(s_{0,\mathsf I},s_{0,\mathsf S})\), and that~\(\mathcal{M}_{\mathsf S}\) is bridged to~\(\mathcal{M}_{\mathsf I}\), as stipulated in~\Cref{def:outputs-erased-bridge}.
+Suppose \(\mathcal{M}_{\mathsf I}\) refines \(\mathcal{M}_{\mathsf S}\) under~\((\mathcal E,R)\), that \(R(s_{0,\mathsf I},s_{0,\mathsf S})\), and that~\(\mathcal{M}_{\mathsf S}\) is trace-equivalent to~\(\mathcal{M}_{\mathsf I}\), as stipulated in~\Cref{def:outputs-erased-bridge}.
 Then \(\mathcal{M}_{\mathsf I}\) satisfies~\Cref{def:hct-single} with respect to~\(\mathcal E\).
 \end{theorem}
 
 \begin{proof}[Proof sketch]
-Compose~\Cref{lem:sim-lift-erased-traces}, which aligns the~\(\mathcal{M}_{\mathsf I}\) trace against the~\(\mathcal{M}_{\mathsf S}\) trace once inputs are~\(\mathcal E\)-obscured, with the bridging clause that rewrites obscured~\(\mathcal{M}_{\mathsf S}\)-behaviour onto obscured~\(\mathcal{M}_{\mathsf I}\)-behaviour, yielding the self-comparison required by~\Cref{def:hct-single}.
+Compose~\Cref{lem:sim-lift-erased-traces}, which aligns the~\(\mathcal{M}_{\mathsf I}\) trace against the~\(\mathcal{M}_{\mathsf S}\) trace once inputs are~\(\mathcal E\)-obscured, with trace equivalence, which rewrites obscured~\(\mathcal{M}_{\mathsf S}\)-behavior onto obscured~\(\mathcal{M}_{\mathsf I}\)-behavior, yielding the self-comparison required by~\Cref{def:hct-single}.
 \end{proof}
+
+\subsection{Example proof}
+Consider a state machine with one method \mintinline{coq}{tick} and one bit of state \mintinline{coq}{phase}. The method returns \mintinline{coq}{true} exactly when \mintinline{coq}{phase = false}, then flips \mintinline{coq}{phase}. In Slate-style pseudocode:
+\begin{minted}{coq}
+Definition tick : Action State bool :=
+  begin
+    let p = `phase`read();
+    `phase`write(negb p);
+    return (negb p)
+  end.
+\end{minted}
+The observable trace of repeated \mintinline{coq}{tick} calls alternates \mintinline{coq}{true}, \mintinline{coq}{false}, \mintinline{coq}{true}, \ldots\ and depends only on the public bit \mintinline{coq}{phase}. To prove HCT, choose \(\mathcal E\) so \(\mathsf{erase_{in}}\) erases all secret input fields (there are none here beyond the method token) and \(\mathsf{erase_{out}}\) keeps the Boolean output unchanged. Use self-simulation with relation \(R\) defined as equality on \mintinline{coq}{phase}. The one-step refinement obligation is immediate because both sides read equal \mintinline{coq}{phase}, return the same Boolean, and transition to equal successor states after toggling. Then apply~\Cref{lem:self-sim-hct} to conclude hardware constant time.
 
 \chapter{Verifying correctness for circuits} \label{chap:golemma}
 
