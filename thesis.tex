@@ -151,8 +151,8 @@ My personal contributions include specifications, implementations, correctness p
 
 \chapter{Related work}
 
-This chapter first surveys prior work on formal correctness for hardware (\Cref{sec:related-correctness}), which informs the specification and proof methodology used throughout the remainder of this thesis.
-Then it covers prior work on timing security, from the microarchitectural attacks that motivate this work to hardware- and software-level defenses and their formal verification (\Cref{sec:related-timing}).
+This chapter first surveys prior work on formal correctness for hardware (\Cref{sec:related-correctness}), which informs the implementation, specification and proof methodologies used throughout the remainder of this thesis.
+Then it covers prior work on timing security, both the attacks that motivate this work and the hardware and software defenses which mitigate them (\Cref{sec:related-timing}).
 
 \section{Correctness} \label{sec:related-correctness}
 
@@ -166,15 +166,13 @@ Circuits are described as collections of rules over register state, and the lang
 Ko\^{i}ka is accompanied by a verified compiler that lowers circuit descriptions to RTL, providing an end-to-end path from high-level specifications to synthesizable netlists.
 However, Ko\^{i}ka does not support a module system, so circuits must be described monolithically and lacks compositional reasoning.
 
-The GoLemma language used in this thesis extends upon Ko\^{i}ka and includes modular refinement reasoning, while foregoing ORAAT semantics and instead handling submodule contention through method duplication.
-
 \section{Security} \label{sec:related-timing}
 
 The Meltdown~\cite{lipp2018} and Spectre~\cite{kocher2019} attacks, disclosed in 2018, demonstrated that speculative execution, while critical for performance, introduces new side-channel vulnerabilities absent in in-order processors.
 Both attacks exploit the fact that transiently executed instructions leave measurable traces in microarchitectural state, such as cache-residency patterns, that an attacker can recover.
 These attacks motivated a large body of research~\cite{koruyeh2018,maisuradze2018,kiriansky2018,schwarz2019,minkin2019} on transient execution attacks.
 
-Hardware-software contracts for secure speculation~\cite{guarnieri2021} formalize hardware defenses by specifying, for a particular design, both what information is leaked and which speculative paths are explored.
+Hardware-software contracts~\cite{guarnieri2021} formalize hardware defenses by specifying, for a particular design, both what information is leaked and which speculative paths are explored.
 An analysis of an abstract out-of-order processor protected by speculative taint tracking~\cite{yu2019} shows that the defense satisfies a contract in which leakage events are branch targets, addresses of loads and stores, and operands of variable-latency instructions.
 The key limitation of this line of work is that it reasons about abstract processor models rather than concrete designs expressible in a hardware description language; this thesis targets the gap to synthesizable RTL.
 
@@ -418,7 +416,7 @@ To properly embed a Gallina term as a statement in Slate, it must typecheck to a
 \end{array}
 \]
 \end{mdframed}
-\caption{Abstract syntax of the surface language for actions.}
+\caption{Abstract syntax of the Slate surface language.}
 \label{fig:action-grammar}
 \end{figure}
 
@@ -557,16 +555,10 @@ This definition is useful for certain proof techniques that can existentially co
 The hardware development in this thesis uses the same one-copy perspective, but restricted to state machine traces with explicit input/output erasure functions that capture the notion of the partitioning state into secret and public components.
 
 \subsection{Hardware constant time} \label{sec:hct}
-Before defining hardware constant time, we introduce erasure specifications, which specify the attacker's observation model.
+Hardware constant time is motivated by the hardware-software contract approach to secure speculation~\cite{guarnieri2021}: the security guarantee is stated relative to an explicit attacker observation model. In that line of work, the contract ties together what information the attacker can observe (leakage events) and what information the system must hide as a function of secret inputs. In this thesis, we adopt the same pattern for circuits: we first make the attacker's observational capabilities explicit via erasure contracts, and then define hardware constant time as an invariance of the erased observation when secret (erased) inputs vary.
 
-\begin{definition}[Erasure specification] \label{def:erasure-spec}
-For a state machine $\mathcal{M}=(S,s_0,I,O,\delta)$, an \emph{erasure specification} is a pair $\mathcal{E} = (\mathsf{erase_{in}}, \mathsf{erase_{out}})$ where
-\[
-  \mathsf{erase_{in}} : I \to I,
-  \qquad\qquad
-  \mathsf{erase_{out}} : O \rightharpoonup O
-.\]
-$\mathsf{erase_{out}}$ is a partial function to allow the deletion of output events from the trace.
+\begin{definition}[Erasure contract] \label{def:erasure-spec}
+For a state machine $\mathcal{M}=(S,s_0,I,O,\delta)$, an \emph{erasure contract} is a pair $\mathcal{E} = (\mathsf{erase_{in}}, \mathsf{erase_{out}})$ where $\mathsf{erase_{in}} : I \to I$ erases secret inputs of $\delta$ and $\mathsf{erase_{out}}$ is a partial function which erases output events are components of output events from the trace.
 \end{definition}
 
 \begin{definition}[Erased run outputs] \label{def:erased-run-outputs}
@@ -579,7 +571,7 @@ Given $\mathcal{M}$, $\mathcal{E}$, and an input sequence $\vec{i} \in I^*$, we 
 \end{definition}
 
 \begin{definition}[Hardware constant time] \label{def:hct-single}
-A state machine $\mathcal{M}$ is \emph{hardware constant time} (HCT) with respect to an erasure specification $\mathcal{E}$ when
+A state machine $\mathcal{M}$ is \emph{hardware constant time} (HCT) with respect to an erasure contract $\mathcal{E}$ when
 \[
   \forall \vec{i} \in I^*.\;\;
   \mathsf{erase\_run\_outputs}(\mathcal{M}, \mathcal{E}, \vec{i})
@@ -588,8 +580,8 @@ A state machine $\mathcal{M}$ is \emph{hardware constant time} (HCT) with respec
 \]
 \end{definition}
 
-An erasure specification can be read as an explicit threat model.
-It states which parts of a module's interface are observable to an attacker and which parts are treated as secret.
+An erasure contract can be interpreted as a threat model, a description of the observational capabilities of an attacker.
+It states which wires of a module's interface are observable to an attacker and which parts are treated as secret.
 Concretely, $\mathsf{erase_{in}}$ controls observability on input wires: it preserves attacker-visible components and erases the rest.
 Similarly, $\mathsf{erase_{out}}$ controls observability on output wires: it keeps attacker-visible outputs and removes or abstracts outputs that are outside the attacker's view.
 Under this interpretation, HCT says that varying secret (erased) inputs cannot change the attacker-visible output trace.
@@ -630,7 +622,7 @@ In this setting \(a_1\) \emph{refines} \(a_2\) \emph{under} \((R,\kappa)\) \emph
 Machine refinement instantiates~\Cref{def:action-refinement} on every invocation while the specification observes~\(\mathsf{erase_{in}}(\iota)\) wherever the implementation observes~\(\iota\).
 
 \begin{definition}[Machine refinement] \label{def:machine-refinement}
-Let $\mathcal{M}_1 = (S_1,s_{0,1},I,O,\delta_1)$ and $\mathcal{M}_2 = (S_2,s_{0,2},I,O,\delta_2)$ be state machines in the sense of~\Cref{sec:timing-state-machine}, and let $\mathcal{E}=(\mathsf{erase_{in}},\mathsf{erase_{out}})$ be an erasure specification on~$I$ and~$O$.
+Let $\mathcal{M}_1 = (S_1,s_{0,1},I,O,\delta_1)$ and $\mathcal{M}_2 = (S_2,s_{0,2},I,O,\delta_2)$ be state machines in the sense of~\Cref{sec:timing-state-machine}, and let $\mathcal{E}=(\mathsf{erase_{in}},\mathsf{erase_{out}})$ be an erasure contract on~$I$ and~$O$.
 Extend $\mathsf{erase_{out}}$ to guarded observations in the unique way dictated by~\Cref{def:erasure-spec,def:erased-run-outputs}.
 Then $\mathcal{M}_1$ \emph{refines} $\mathcal{M}_2$ \emph{under} $(\mathcal{E},R)$ when, for every input $\iota \in I$ and all $(s_1,s_2)\in R$, the action realizing $\delta_1(\cdot,\iota)$ refines that realizing $\delta_2(\cdot,\mathsf{erase_{in}}(\iota))$ under $(R,\mathsf{erase_{out}})$ at $(s_1,s_2)$ in the sense of~\Cref{def:action-refinement}.
 \end{definition}
@@ -639,7 +631,7 @@ Then $\mathcal{M}_1$ \emph{refines} $\mathcal{M}_2$ \emph{under} $(\mathcal{E},R
 \centering
 \textbf{(a) Self-simulation} (one machine, two correlated tracks).
 \[
-\begin{tikzcd}[column sep=large,row sep=large]
+\begin{tikzcd}[column sep=12em,row sep=huge]
   s \arrow[r,"{\delta_{\mathcal{M}}(\iota)}"] \arrow[d,"R"'] & s' \arrow[d,"R"] \\
   \tilde{s} \arrow[r,"{\delta_{\mathcal{M}}(\mathsf{erase_{in}}(\iota))}"'] & \tilde{s}'
 \end{tikzcd}
@@ -647,7 +639,7 @@ Then $\mathcal{M}_1$ \emph{refines} $\mathcal{M}_2$ \emph{under} $(\mathcal{E},R
 \vspace{0.75em}
 \textbf{(b) Cross-simulation} (implementation $\mathcal{M}_{\mathsf{I}}$ vs.\ abstract specification $\mathcal{M}_{\mathsf{S}}$).
 \[
-\begin{tikzcd}[column sep=large,row sep=large]
+\begin{tikzcd}[column sep=12em,row sep=huge]
   s \arrow[r,"{\delta_{\mathcal{M}_{\mathsf{I}}}(\iota)}"] \arrow[d,"R"'] & s' \arrow[d,"R"] \\
   \tilde{s} \arrow[r,"{\delta_{\mathcal{M}_{\mathsf{S}}}(\mathsf{erase_{in}}(\iota))}"'] & \tilde{s}'
 \end{tikzcd}
