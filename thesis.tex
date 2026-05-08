@@ -394,8 +394,8 @@ Definition call {s a b}
 \label{fig:action-call}
 \end{figure}
 
-\subsection{Slate} \label{sec:timing-monads-slate}
-The syntax for the surface language, Slate, is implemented using the notation facilities in Rocq.
+\subsection{Syntax} \label{sec:timing-monads-slate}
+The syntax for Slate is implemented using the notation facilities in Rocq.
 Crucially, this notation elaborates into the guarded state monad described above; it does not introduce a syntax tree.
 An abstract syntax of the grammar is given in \Cref{fig:action-grammar}.
 The terminal \texttt{term} in the grammar refers to arbitrary Gallina terms.
@@ -445,16 +445,20 @@ Definition mark_busy : Action State bool :=
     end
   end.
 \end{minted}
-\caption{Method \mintinline{coq}{mark_busy} using the surface language for actions.}
+\caption{Method \mintinline{coq}{mark_busy} using Slate.}
 \label{fig:empty-surface}
 \end{figure}
 
 \begin{figure}[t]
 \begin{minted}{coq}
+Variant Phase := Busy | Empty | Ready.
+
+Definition State := { phase: Phase }.
+
 Definition mark_busy : Action State bool :=
   read phase >>= fun ph =>
   if (ph == Empty) then
-    modify (fun s => s <| phase := Busy |>) >>= fun _ =>
+    put {| phase := Busy |} >>= fun _ =>
     ret true
   else
     ret false.
@@ -555,28 +559,28 @@ This definition is useful for certain proof techniques that can existentially co
 The hardware development in this thesis uses the same one-copy perspective, but restricted to state machine traces with explicit input/output erasure functions that capture the notion of the partitioning state into secret and public components.
 
 \subsection{Hardware constant time} \label{sec:hct}
-Hardware constant time is motivated by the hardware-software contract approach to secure speculation~\cite{guarnieri2021}: the security guarantee is stated relative to an explicit attacker observation model. In that line of work, the contract ties together what information the attacker can observe (leakage events) and what information the system must hide as a function of secret inputs. In this thesis, we adopt the same pattern for circuits: we first make the attacker's observational capabilities explicit via erasure contracts, and then define hardware constant time as an invariance of the erased observation when secret (erased) inputs vary.
+Hardware constant time is motivated by the hardware-software contract approach~\cite{guarnieri2021}: the security guarantee is stated relative to an explicit attacker observation model. In that line of work, the contract ties together what information the attacker can observe (leakage events) and what information the system must hide as a function of secret inputs. In this thesis, we adopt the same pattern for circuits: we first make the attacker's observational capabilities explicit via erasure contracts, and then define hardware constant time as an invariance of the erased observation when secret (erased) inputs vary.
 
 \begin{definition}[Erasure contract] \label{def:erasure-spec}
 For a state machine $\mathcal{M}=(S,s_0,I,O,\delta)$, an \emph{erasure contract} is a pair $\mathcal{E} = (\mathsf{erase_{in}}, \mathsf{erase_{out}})$ where $\mathsf{erase_{in}} : I \to I$ erases secret inputs of $\delta$ and $\mathsf{erase_{out}}$ is a partial function which erases output events are components of output events from the trace.
 \end{definition}
 
 \begin{definition}[Erased run outputs] \label{def:erased-run-outputs}
-Given $\mathcal{M}$, $\mathcal{E}$, and an input sequence $\vec{i} \in I^*$, we define
+Given $\mathcal{M}$, $\mathcal{E}$, and an input sequence $\vec\iota \in I^*$, we define
 \[
-  \mathsf{erase\_run\_outputs}(\mathcal{M}, \mathcal{E}, \vec{i})
+  \mathsf{erase\_run\_outputs}(\mathcal{M}, \mathcal{E}, \vec\iota)
   \;\triangleq\;
-  \mathsf{map}\;\mathsf{erase_{out}}\;\bigl(\mathsf{run\_outputs}(\mathcal{M}, \vec{i})\bigr).
+  \mathsf{map}\;\mathsf{erase_{out}}\;\bigl(\mathsf{run\_outputs}(\mathcal{M}, \vec\iota)\bigr).
 \]
 \end{definition}
 
 \begin{definition}[Hardware constant time] \label{def:hct-single}
 A state machine $\mathcal{M}$ is \emph{hardware constant time} (HCT) with respect to an erasure contract $\mathcal{E}$ when
 \[
-  \forall \vec{i} \in I^*.\;\;
-  \mathsf{erase\_run\_outputs}(\mathcal{M}, \mathcal{E}, \vec{i})
+  \forall \vec\iota \in I^*.\;\;
+  \mathsf{erase\_run\_outputs}(\mathcal{M}, \mathcal{E}, \vec\iota)
   =
-  \mathsf{erase\_run\_outputs}\bigl(\mathcal{M}, \mathcal{E}, \mathsf{map}\;\mathsf{erase_{in}}\;\vec{i}\bigr).
+  \mathsf{erase\_run\_outputs}\bigl(\mathcal{M}, \mathcal{E}, \mathsf{map}\;\mathsf{erase_{in}}\;\vec\iota\bigr).
 \]
 \end{definition}
 
@@ -610,7 +614,7 @@ In this setting \(a_1\) \emph{refines} \(a_2\) \emph{under} \((R,\kappa)\) \emph
 
 \begin{figure}[t]
 \centering
-\begin{tikzcd}[column sep=large,row sep=large]
+\begin{tikzcd}[column sep=6em,row sep=huge]
   s_1 \arrow[r,"a_1"] \arrow[d,"R"'] & (s_1',\omega_1) \arrow[d,"{(R_{\mathcal{E}})}"']
     \\
   s_2 \arrow[r,"a_2"'] & (s_2',\omega_2)
@@ -631,25 +635,30 @@ Then $\mathcal{M}_1$ \emph{refines} $\mathcal{M}_2$ \emph{under} $(\mathcal{E},R
 \centering
 \textbf{(a) Self-simulation} (one machine, two correlated tracks).
 \[
-\begin{tikzcd}[column sep=12em,row sep=huge]
+\begin{tikzcd}[column sep=6em,row sep=huge]
   s \arrow[r,"{\delta_{\mathcal{M}}(\iota)}"] \arrow[d,"R"'] & s' \arrow[d,"R"] \\
   \tilde{s} \arrow[r,"{\delta_{\mathcal{M}}(\mathsf{erase_{in}}(\iota))}"'] & \tilde{s}'
 \end{tikzcd}
 \]
-\vspace{0.75em}
+\caption[Self-simulation]{Panel~\textbf{(a)} reuses~\(\delta_{\mathcal{M}}\); it omits~\(\mathsf{erase_{out}}\) constraints along the arrows.}
+\label{fig:sim-machine-self}
+\end{figure}
+
+\begin{figure}[t]
+\centering
 \textbf{(b) Cross-simulation} (implementation $\mathcal{M}_{\mathsf{I}}$ vs.\ abstract specification $\mathcal{M}_{\mathsf{S}}$).
 \[
-\begin{tikzcd}[column sep=12em,row sep=huge]
+\begin{tikzcd}[column sep=6em,row sep=huge]
   s \arrow[r,"{\delta_{\mathcal{M}_{\mathsf{I}}}(\iota)}"] \arrow[d,"R"'] & s' \arrow[d,"R"] \\
   \tilde{s} \arrow[r,"{\delta_{\mathcal{M}_{\mathsf{S}}}(\mathsf{erase_{in}}(\iota))}"'] & \tilde{s}'
 \end{tikzcd}
 \]
-\caption[Machine refinement]{Panel~\textbf{(a)} reuses~\(\delta_{\mathcal{M}}\); panel~\textbf{(b)} contrasts~\(\mathcal{M}_{\mathsf I}\) with~\(\mathcal{M}_{\mathsf S}\); both omit~\(\mathsf{erase_{out}}\) constraints along the arrows.}
-\label{fig:sim-machine-self-cross}
+\caption[Cross-simulation]{Panel~\textbf{(b)} contrasts~\(\mathcal{M}_{\mathsf I}\) with~\(\mathcal{M}_{\mathsf S}\); it omits~\(\mathsf{erase_{out}}\) constraints along the arrows.}
+\label{fig:sim-machine-cross}
 \end{figure}
 
 \subsection{Trace consequences and lemmas}
-Together,~\Cref{fig:sim-action-square,fig:sim-machine-self-cross} align with~\Cref{sec:timing-ct}: observations are judged only modulo erasure.
+Together,~\Cref{fig:sim-action-square,fig:sim-machine-self,fig:sim-machine-cross} align with~\Cref{sec:timing-ct}: observations are judged only modulo erasure.
 
 \begin{definition}[Outputs-erased bridge] \label{def:outputs-erased-bridge}
 Call~\(\mathcal M_2\)~\emph{bridged} to~\(\mathcal M_1\) under~\(\mathcal E\) when—for every~\(\vec\iota\in I^*\)—the histories~\(\vec\iota_{\mathcal E}\) force agreement of the guarded observation transcripts once output projections from~\(\mathcal E\) are applied:
