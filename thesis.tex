@@ -691,8 +691,8 @@ The self-simulation and cross-simulation instances of this definition are shown 
 \subsection{Trace-equivalence lemmas} \label{sec:timing-proof-trace}
 This subsection turns the stepwise lockstep obligations from~\Cref{fig:sim-action-square,fig:sim-machines} into trace consequences. We first define output-erased trace equivalence and show that machine simulation lifts to equality of erased traces. We then use these lemmas to derive the two proof patterns for hardware constant time: direct self-simulation and cross-simulation via a trace-equivalent specification.
 
-\begin{definition}[Output-erased trace equivalence] \label{def:outputs-erased-bridge}
-Call~\(\mathcal M_2\) \emph{output-erased trace equivalent} to~\(\mathcal M_1\) under~\(\mathcal E\) when, for every~\(\vec\iota\in I^*\), the erased-input histories~\(\vec\iota_{\mathcal E}\) induce the same erased observation trace:
+\begin{definition}[Erased-trace equivalence] \label{def:outputs-erased-bridge}
+Call~\(\mathcal M_2\) \emph{erased-trace equivalent} to~\(\mathcal M_1\) under~\(\mathcal E\) when, for every~\(\vec\iota\in I^*\), the erased-input histories~\(\vec\iota_{\mathcal E}\) induce the same erased observation trace:
 \[
   \mathcal{T}^{\mathcal E}(\mathcal M_2,\vec\iota_{\mathcal E})
   =
@@ -700,7 +700,7 @@ Call~\(\mathcal M_2\) \emph{output-erased trace equivalent} to~\(\mathcal M_1\) 
 \]
 \end{definition}
 
-\begin{lemma}[Simulation lifts to erased-output traces]
+\begin{lemma}[Simulation lifts to erased traces]
 \label{lem:sim-lift-erased-traces}
 If \(\mathcal{M}_1\) refines \(\mathcal{M}_2\) under~\((\mathcal E,R)\) in the sense of~\Cref{def:machine-refinement} and \(R(s_{0,1},s_{0,2})\), then for every input history~\(\vec\iota\in I^*\),
 \[
@@ -711,39 +711,62 @@ If \(\mathcal{M}_1\) refines \(\mathcal{M}_2\) under~\((\mathcal E,R)\) in the s
 \end{lemma}
 
 \begin{proof}[Proof sketch]
-Induct on~\(\vec\iota\); the base case on the empty list is immediate. The inductive case on cons first applies~\Cref{def:machine-refinement} to the head of the trace before appealing to the induction hypothesis on the tails.
+Induct on~\(\vec\iota\); the base case on the empty list is immediate. The inductive case first applies~\Cref{def:machine-refinement} to the head of the trace before appealing to the induction hypothesis on the tails.
 \end{proof}
 
-\begin{theorem}[Self-simulation implies hardware constant time]
+\begin{lemma}[Self-simulation implies hardware constant time]
 \label{lem:self-sim-hct}
-If~\(\mathcal M\) refines itself under~\((\mathcal E,R)\) and \(R(s_0,s_0)\), then~\(\mathcal M\) satisfies hardware constant time~\Cref{def:hct-single} with respect to~\(\mathcal E\).
-\end{theorem}
+If~\(\mathcal M\) simulates itself under~\((R,\mathcal E)\) and \(R(s_0,s_0)\), then~\(\mathcal M\) satisfies hardware constant time (\Cref{def:hct-single}) with respect to~\(\mathcal E\).
+\end{lemma}
 
 \begin{proof}[Proof sketch]
 Instantiate~\Cref{lem:sim-lift-erased-traces} with the specification and implementation both taken to be~\(\mathcal M\); the resulting equation is~\Cref{def:hct-single}.
 \end{proof}
 
-\begin{theorem}[Cross-simulation with trace equivalence implies hardware constant time]
+\begin{lemma}[Cross-simulation with trace equivalence implies hardware constant time]
 \label{lem:cross-sim-hct}
-Suppose \(\mathcal{M}_{\mathsf I}\) refines \(\mathcal{M}_{\mathsf S}\) under~\((\mathcal E,R)\), that \(R(s_{0,\mathsf I},s_{0,\mathsf S})\), and that~\(\mathcal{M}_{\mathsf S}\) is trace-equivalent to~\(\mathcal{M}_{\mathsf I}\), as stipulated in~\Cref{def:outputs-erased-bridge}.
-Then \(\mathcal{M}_{\mathsf I}\) satisfies~\Cref{def:hct-single} with respect to~\(\mathcal E\).
-\end{theorem}
+Suppose \(\mathcal{M}_{\mathsf I}\) simulates \(\mathcal{M}_{\mathsf S}\) under~\((R,\mathcal E)\), that \(R(s_{0,\mathsf I},s_{0,\mathsf S})\), and that~\(\mathcal{M}_{\mathsf S}\) is erased-trace equivalent to~\(\mathcal{M}_{\mathsf I}\), as stipulated in~\Cref{def:outputs-erased-bridge}.
+Then \(\mathcal{M}_{\mathsf I}\) satisfies hardware constant time (\Cref{def:hct-single}) with respect to~\(\mathcal E\).
+\end{lemma}
 
 \begin{proof}[Proof sketch]
-Compose~\Cref{lem:sim-lift-erased-traces}, which aligns the~\(\mathcal{M}_{\mathsf I}\) trace against the~\(\mathcal{M}_{\mathsf S}\) trace once inputs are~\(\mathcal E\)-obscured, with trace equivalence, which rewrites obscured~\(\mathcal{M}_{\mathsf S}\)-behavior onto obscured~\(\mathcal{M}_{\mathsf I}\)-behavior, yielding the self-comparison required by~\Cref{def:hct-single}.
+Compose~\Cref{lem:sim-lift-erased-traces}, which aligns the~\(\mathcal{M}_{\mathsf I}\) trace against the~\(\mathcal{M}_{\mathsf S}\) trace once inputs are~\(\mathcal E\)-obscured, with erased-trace equivalence (\Cref{def:outputs-erased-bridge}), which rewrites obscured~\(\mathcal{M}_{\mathsf S}\)-behavior onto obscured~\(\mathcal{M}_{\mathsf I}\)-behavior, yielding the self-comparison required by~\Cref{def:hct-single}.
 \end{proof}
 
 \subsection{Example proof}
-Consider a state machine with one method \mintinline{coq}{tick} and one bit of state \mintinline{coq}{phase}. The method returns \mintinline{coq}{true} exactly when \mintinline{coq}{phase = false}, then flips \mintinline{coq}{phase}. In Slate-style pseudocode:
-\begin{minted}{coq}
-Definition tick : Action State bool :=
+As a concrete example, consider the following one-method machine whose output alternates every cycle its method is called.
+
+\newpage
+
+\begin{minted}[escapeinside=||,mathescape=true]{coq}
+Record S := mkS { phase : bool }.
+
+Definition tick : Action S bool :=
   begin
     let p = `phase`read();
     `phase`write(negb p);
     return (negb p)
   end.
+
+Definition |$M_{\mathsf{toggle}}$| : StateMachine S unit bool :=
+  mkStateMachine (mkS false) (fun '() => tick).
+
+Definition |$\mathsf{erase_{in}}$| := id.
+Definition |$\mathsf{erase_{out}}$| := id.
+Definition |$E_{\mathsf{toggle}}$| : ErasureContract I O :=
+  (erase_in_toggle, erase_out_toggle).
 \end{minted}
-The observable trace of repeated \mintinline{coq}{tick} calls alternates \mintinline{coq}{true}, \mintinline{coq}{false}, \mintinline{coq}{true}, \ldots\ and depends only on the public bit \mintinline{coq}{phase}. To prove HCT, choose \(\mathcal E\) so \(\mathsf{erase_{in}}\) erases all secret input fields (there are none here beyond the method token) and \(\mathsf{erase_{out}}\) keeps the Boolean output unchanged. Use self-simulation with relation \(R\) defined as equality on \mintinline{coq}{phase}. The one-step refinement obligation is immediate because both sides read equal \mintinline{coq}{phase}, return the same Boolean, and transition to equal successor states after toggling. Then apply~\Cref{lem:self-sim-hct} to conclude hardware constant time.
+
+\begin{theorem}[Toggle machine is hardware constant time]
+\label{thm:toggle-hct}
+The machine \(M_{\mathsf{toggle}}\) is hardware constant time with respect to \(E_{\mathsf{toggle}}\).
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+Use~\Cref{lem:self-sim-hct} with self-simulation. Let \(R\) be equality on states (equivalently, equality of \mintinline{coq}{phase}). We must show one-step simulation under erased inputs/outputs. Since \(\mathsf{erase_{in}}\) is identity, both sides execute the same method call \mintinline{coq}{Tick}. Since \(\mathsf{erase_{out}}\) is also identity, erased-output agreement reduces to plain output equality.
+
+Now unfold one step of \mintinline{coq}{tick}: both sides read the same current \mintinline{coq}{phase}, both return \mintinline{coq}{negb p}, and both update to \mintinline{coq}{phase := negb p}. Hence outputs are equal and successor states remain related by \(R\). Therefore \(M_{\mathsf{toggle}}\) self-simulates under \((R,E_{\mathsf{toggle}})\), and the initial states are trivially related. Applying~\Cref{lem:self-sim-hct} yields hardware constant time.
+\end{proof}
 
 \chapter{Verifying correctness for circuits} \label{chap:golemma}
 
