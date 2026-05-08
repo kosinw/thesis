@@ -19,6 +19,7 @@
 \usepackage[framemethod=default]{mdframed}
 \usepackage{float}
 \usepackage{needspace}
+\usepackage[all]{nowidow}
 
 \renewcommand{\bibname}{References}
 
@@ -269,10 +270,10 @@ Finally, it presents the grammar of Slate and a small illustrative example (\Cre
 
 \subsection{Shallow and deep embeddings} \label{sec:timing-monads-shallow}
 A \emph{shallow embedding} encodes an object language directly as terms of the host language.
-In this style, the host's type system, reduction rules, and terms \emph{are} the semantics of the embedded language.
+In this style, the host's type system, reduction rules, and terms \emph{are} the semantics of the object language.
 In Rocq, that means method bodies are ordinary Gallina functions rather than abstract syntax trees requiring a separate interpreter.
 By contrast, a \emph{deep embedding} defines explicit syntax via inductive datatypes for commands and expressions.
-A deep embedding must also include a separate interpreter or a relationally defined operational semantics.
+A deep embedding must also include a separate interpreter or a relationally defined operational semantics to be useful for verification work.
 
 Each style has distinct advantages and costs.
 Shallow embeddings are typically easier for verification work, because they directly leverage Rocq's facilities for Gallina; many proof steps reduce by unfolding and simplification rather than by reasoning about an interpreter or operational semantics.
@@ -748,27 +749,29 @@ Definition tick : Action S bool :=
     return (negb p)
   end.
 
-Definition |$M_{\mathsf{toggle}}$| : StateMachine S unit bool :=
+Definition |$\mathcal M_{\mathsf{toggle}}$| : StateMachine S unit bool :=
   mkStateMachine (mkS false) (fun '() => tick).
 
 Definition |$\mathsf{erase_{in}}$| := id.
 Definition |$\mathsf{erase_{out}}$| := id.
-Definition |$E_{\mathsf{toggle}}$| : ErasureContract I O :=
+Definition |$\mathcal{E}_{\mathsf{toggle}}$| : ErasureContract I O :=
   (erase_in_toggle, erase_out_toggle).
 \end{minted}
 
 \begin{theorem}[Toggle machine is hardware constant time]
 \label{thm:toggle-hct}
-The machine \(M_{\mathsf{toggle}}\) is hardware constant time with respect to \(E_{\mathsf{toggle}}\).
+The machine \(\mathcal M_{\mathsf{toggle}}\) is hardware constant time with respect to \(\mathcal E_{\mathsf{toggle}}\).
 \end{theorem}
 
 \begin{proof}[Proof sketch]
 Use~\Cref{lem:self-sim-hct} with self-simulation. Let \(R\) be equality on states (equivalently, equality of \mintinline{coq}{phase}). We must show one-step simulation under erased inputs/outputs. Since \(\mathsf{erase_{in}}\) is identity, both sides execute the same method call \mintinline{coq}{Tick}. Since \(\mathsf{erase_{out}}\) is also identity, erased-output agreement reduces to plain output equality.
 
-Now unfold one step of \mintinline{coq}{tick}: both sides read the same current \mintinline{coq}{phase}, both return \mintinline{coq}{negb p}, and both update to \mintinline{coq}{phase := negb p}. Hence outputs are equal and successor states remain related by \(R\). Therefore \(M_{\mathsf{toggle}}\) self-simulates under \((R,E_{\mathsf{toggle}})\), and the initial states are trivially related. Applying~\Cref{lem:self-sim-hct} yields hardware constant time.
+Now unfold one step of \mintinline{coq}{tick}: both sides read the same current \mintinline{coq}{phase}, both return \mintinline{coq}{negb p}, and both update to \mintinline{coq}{phase := negb p}. Hence outputs are equal and successor states remain related by \(R\). Therefore \(M_{\mathsf{toggle}}\) self-simulates under \((R,\mathcal E_{\mathsf{toggle}})\), and the initial states are trivially related. Applying~\Cref{lem:self-sim-hct} yields hardware constant time.
 \end{proof}
 
 \chapter{Verifying correctness for circuits} \label{chap:golemma}
+
+This chapter presents a framework for functional-correctness verification of synthesizable hardware circuits. It first introduces \emph{GoLemma}
 
 \chapter{Case studies} \label{chap:cases}
 
