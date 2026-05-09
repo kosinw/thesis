@@ -3,13 +3,10 @@
 \usepackage{setspace}
 \usepackage[capitalise,noabbrev]{cleveref}
 \usepackage{xcolor}
-\newcommand{\comment}[1]{\textcolor{blue}{\textbf{[#1]}}}
 \usepackage{amsmath}
 \usepackage{tikz-cd}
 \usepackage{stmaryrd}
 \usepackage{mathpartir}
-\newcommand{\sem}[1]{\llbracket #1 \rrbracket}
-\newcommand{\golemma}[1]{\texttt{#1}}
 \usepackage{minted}
 \let\openbox\relax
 \usepackage{amsthm}
@@ -21,6 +18,7 @@
 \usepackage{needspace}
 \usepackage[all]{nowidow}
 
+\newcommand{\comment}[1]{\textcolor{blue}{\textbf{[#1]}}}
 \renewcommand{\bibname}{References}
 
 \hypersetup{
@@ -248,7 +246,7 @@ The \emph{observation trace} of the run is the list
 For timing security, an adversary interprets elements of $O$ (modulo erasure, described in \Cref{sec:timing-ct}) as leaked information.
 Aborted transitions do not produce outputs in the observation trace.
 
-The state machine model is mechanized in Rocq as a plain record (\Cref{fig:circuit-typeclass}), parameterized by a state type~\texttt{s}, an input type~\texttt{i}, and an output type~\texttt{o}.
+The state machine model is mechanized in Rocq as a plain record (\Cref{fig:circuit-typeclass}), parameterized by a state type~\mintinline{coq}{s}, an input type~\mintinline{coq}{i}, and an output type~\mintinline{coq}{o}.
 These parameters correspond directly to $S$, $I$, and $O$.
 
 \begin{figure}[H]
@@ -258,8 +256,8 @@ Record StateMachine (s i o : Type) := {
   state_machine_call : i -> Action s o;
 }.
 \end{minted}
-\caption[State machine definition in Rocq.]{The \texttt{StateMachine} record. The fields \texttt{state\_machine\_rst}
-  and \texttt{state\_machine\_call} correspond to $s_0$ and to $\delta$ respectively.}
+\caption[State machine definition in Rocq.]{The \mintinline{coq}{StateMachine} record. The fields \mintinline{coq}{state\_machine\_rst}
+  and \mintinline{coq}{state\_machine\_call} correspond to $s_0$ and to $\delta$ respectively.}
 \label{fig:circuit-typeclass}
 \end{figure}
 
@@ -399,9 +397,9 @@ Definition call {s a b}
       match action (getter st) with
       | Some (st', x) => Some (setter st' st, x)
       | None => None
-      end).
+      end.
 \end{minted}
-\caption[Call operator for actions.]{\texttt{call} operator lifts the effects of submodule action to a larger state.}
+\caption[Call operator for actions.]{\mintinline{coq}{call} operator lifts the effects of submodule action to a larger state.}
 \label{fig:action-call}
 \end{figure}
 
@@ -580,7 +578,7 @@ Given $\mathcal{M}$, $\mathcal{E}$, and an input sequence $\vec\iota \in I^*$, w
 $\mathcal{T}_{\mathcal{E}}\bigl( \mathcal{M}, \vec\iota \bigr)$ as the \emph{erased observation trace} which is the observation trace $\mathcal{T}\bigl( \mathcal{M}, \vec\iota \bigr)$ with private output components deleted.
 \end{definition}
 
-\begin{definition}[Erased input sequence] \label{def:erased-run-outputs}
+\begin{definition}[Erased input sequence] \label{def:erased-input-sequence}
 Given $\mathcal{M}$, $\mathcal{E}$, and an input sequence $\vec\iota \in I^*$, we define
 $\vec\iota_\mathcal{E}$ as the \emph{erased input sequence} which is the input sequence with private input components deleted.
 \end{definition}
@@ -754,8 +752,8 @@ An \emph{interface} in GoLemma is a typed list of method signatures that a modul
 Interfaces serve as contracts in two complementary senses. First, it defines the compositional boundary between a module and its environment, playing the same role as the port list of a Verilog module. Second, it constrains what can be verified, since any specification must be stated in terms of the same method signatures that the implementation exposes.
 
 The interface for the GCD module (\Cref{fig:golemma-gcd-intf}) declares four methods.
-Two are \emph{action methods}: \texttt{load} and \texttt{step}, which can write registers and may abort if their guards are not met; their return type is \texttt{Action}.
-Two are \emph{value methods}: \texttt{result} and \texttt{done}, which are purely observational  and cannot modify registers.
+Two are \emph{action methods}: \mintinline{coq}{load} and \mintinline{coq}{step}, which can write registers and may abort if their guards are not met; their return type is \mintinline{coq}{Action}.
+Two are \emph{value methods}: \mintinline{coq}{result} and \mintinline{coq}{done}, which are purely observational  and cannot modify registers.
 
 \begin{figure}[H]
 \begin{minted}{coq}
@@ -766,7 +764,7 @@ interface GCD;
   method  Bit#(1)     done  <>;
 endinterface.
 \end{minted}
-\caption[GCD interface]{The \texttt{GCD} interface with two action methods and two value methods.}
+\caption[GCD interface]{The \mintinline{coq}{GCD} interface with two action methods and two value methods.}
 \label{fig:golemma-gcd-intf}
 \end{figure}
 
@@ -775,7 +773,7 @@ A \emph{module} instantiates an interface.
 Modules contain \emph{registers} that hold state across clock cycles, together with the method bodies that read and update them.
 Modules may also contain \emph{submodules} with which they interact through method invocations defined in interfaces.
 \Cref{fig:golemma-gcd} shows the implementation of the GCD module.
-The header declares that the module implements the \texttt{GCD} interface.
+The header declares that the module implements the \mintinline{coq}{GCD} interface.
 The two register declarations \mintinline{coq}{Reg#(Bit#(16)) x <- mkReg()} and \mintinline{coq}{Reg#(Bit#(16)) y <- mkReg()} create the persistent state.
 Register and submodule interactions use backtick notation, as in \mintinline{coq}{`x`read()} and \mintinline{coq}{`x`write(v)}.
 Unlike most register-transfer level languages, GoLemma does not have the restriction that every read within a method body sees the value the register held at the start of the method call; it sees the last write which occurred.
@@ -812,33 +810,33 @@ module mkGCD#(GCD);
   endmethod.
 endmodule.
 \end{minted}
-\caption[GCD module]{A GCD module implementing the \texttt{GCD} interface using two 16-bit registers.}
+\caption[GCD module]{A GCD module implementing the \mintinline{coq}{GCD} interface using two 16-bit registers.}
 \label{fig:golemma-gcd}
 \end{figure}
 
 \subsection{Methods}
 Every module method is declared with a return type, a name, and an optional parameter list enclosed in angle brackets.
-Methods whose return type is \texttt{Action} or \texttt{ActionValue\#(t)} may call submodule action methods; they can also abort, leaving the state unchanged.
+Methods whose return type is \mintinline{coq}{Action} or \mintinline{coq}{ActionValue\#(t)} may call submodule action methods; they can also abort, leaving the state unchanged.
 Methods with any other return type are \emph{value methods}: they may only read state and return a pure value, and they never abort.
 This distinction is enforced syntactically: only action methods may contain write or abort statements, so the separation between observation and mutation is visible directly in the interface signature.
 
 \subsection{Expressions}
 Expressions are pure terms of a given type.
-The primitive types in GoLemma are bitvectors (\texttt{Bit\#($n$)} for an $n$-bit word), vectors (\texttt{Vector\#($n$,$t$)} for a fixed-size array with $n$ items), structs, and enums.
-An expression can be a constant literal such as \texttt{16'd0}, a local variable bound by a prior \texttt{let} statement, a field access \texttt{e`f}, a primitive operator such as addition or comparison, or a submodule \emph{value method call} \texttt{`sub`met(args)}.
+The primitive types in GoLemma are bitvectors (\mintinline{coq}{Bit\#($n$)} for an $n$-bit word), vectors (\mintinline{coq}{Vector\#($n$,$t$)} for a fixed-size array with $n$ items), structs, and enums.
+An expression can be a constant literal such as \mintinline{coq}{16'd0}, a local variable bound by a prior \mintinline{coq}{let} statement, a field access \mintinline{coq}{e`f}, a primitive operator such as addition or comparison, or a submodule \emph{value method call} \mintinline{coq}{`sub`met(args)}.
 Value method calls read current register state inside a submodule and return a result without modifying it; they appear as expressions because their effect is purely observational.
 
 \subsection{Statements}
 Statements sequence effects inside a method body.
-The \texttt{let x = e} form binds a fresh variable \texttt{x} to the value of expression \texttt{e} in the rest of the block.
-A typed form \texttt{T\#($t$) x = e} binds \texttt{x} with an explicit type annotation.
-Register state is updated via submodule action method calls: \texttt{`reg`write(e)} calls the \texttt{write} action on register \texttt{reg} with argument \texttt{e}.
-The result of calling an action method can be captured with \texttt{let x <- `mod`met(args)}.
-Conditional branching uses \texttt{if (c) \{ ... \} else \{ ... \}}, where \texttt{c} is an expression of type \mintinline{coq}{Bit#(1)}; the \texttt{else} branch is optional and defaults to a no-op.
-A statement may be terminated early by \texttt{abort}, which causes the entire method to fail and appear as if it never exited.
-No special synthesis is needed to implement \texttt{abort}, but it induces a precondition on the method that must be proved to hold during verification.
-Statements are sequenced by separating them with semicolons inside a \texttt{begin} ... \texttt{end} block.
-A block may end with a \texttt{return e} expression that specifies the method's output value; methods of type \texttt{Action} whose return type is \texttt{unit} may omit the \texttt{return} and close with \texttt{end} directly.
+The \mintinline{coq}{let x = e} form binds a fresh variable \mintinline{coq}{x} to the value of expression \mintinline{coq}{e} in the rest of the block.
+A typed form \mintinline{coq}{T\#($t$) x = e} binds \mintinline{coq}{x} with an explicit type annotation.
+Register state is updated via submodule action method calls: \mintinline{coq}{`reg`write(e)} calls the \mintinline{coq}{write} action on register \mintinline{coq}{reg} with argument \mintinline{coq}{e}.
+The result of calling an action method can be captured with \mintinline{coq}{let x <- `mod`met(args)}.
+Conditional branching uses \mintinline{coq}{if (c) \{ ... \} else \{ ... \}}, where \mintinline{coq}{c} is an expression of type \mintinline{coq}{Bit#(1)}; the \mintinline{coq}{else} branch is optional and defaults to a no-op.
+A statement may be terminated early by \mintinline{coq}{abort}, which causes the entire method to fail and appear as if it never exited.
+No special synthesis is needed to implement \mintinline{coq}{abort}, but it induces a precondition on the method that must be proved to hold during verification.
+Statements are sequenced by separating them with semicolons inside a \mintinline{coq}{begin} ... \mintinline{coq}{end} block.
+A block may end with a \mintinline{coq}{return e} expression that specifies the method's output value; methods of type \mintinline{coq}{Action} whose return type is \mintinline{coq}{unit} may omit the \mintinline{coq}{return} and close with \mintinline{coq}{end} directly.
 
 \section{Extending GoLemma with typeclasses} \label{sec:golemma-synth}
 
@@ -885,7 +883,7 @@ Record MyConfig := {
 
 Instance myconfig_struct : Struct MyConfig. derive_struct. Defined.
 \end{minted}
-\caption[Struct instance]{Deriving a \texttt{Struct} instance for a Rocq record.}
+\caption[Struct instance]{Deriving a \mintinline{coq}{Struct} instance for a Rocq record.}
 \label{fig:synth-struct}
 \end{figure}
 
@@ -901,7 +899,7 @@ Variant Color : Set := Red | Green | Blue.
 
 Instance color_enum : Enum Color. derive_enum. Defined.
 \end{minted}
-\caption[Enum instance]{Deriving an \texttt{Enum} instance for a Rocq variant type.}
+\caption[Enum instance]{Deriving an \mintinline{coq}{Enum} instance for a Rocq variant type.}
 \label{fig:synth-enum}
 \end{figure}
 
@@ -922,7 +920,7 @@ Definition user_rx : Bitset Permission := {[Valid; Read; Execute; User]}.
 
 Example user_rx_has_read : elem_of Read user_rx. Proof. set_solver. Qed.
 \end{minted}
-\caption[Bitflags instance]{Deriving a \texttt{Bitflags} instance and using stdpp set reasoning.}
+\caption[Bitflags instance]{Deriving a \mintinline{coq}{Bitflags} instance and using stdpp set reasoning.}
 \label{fig:synth-bitflags}
 \end{figure}
 
@@ -1004,7 +1002,7 @@ Action method specifications have the following type, where the postcondition ad
 In both cases the outermost proposition is the body of the specification.
 
 \paragraph{Value methods.}
-The \texttt{result} method returns the current first operand, and \texttt{done} returns whether the second operand is zero.
+The \mintinline{coq}{result} method returns the current first operand, and \mintinline{coq}{done} returns whether the second operand is zero.
 Each specification simply calls $P$ on the appropriate return value:
 \begin{minted}{coq}
 Definition result : MRVSpec State (mkMetSig <> Bit#(16)) :=
@@ -1019,7 +1017,7 @@ Different terms produce stronger or weaker guarantees; the specification's job i
 
 \paragraph{Action methods and preconditions.}
 Action method specifications additionally describe how the abstract state evolves.
-The \texttt{load} method sets the two operands to the supplied arguments:
+The \mintinline{coq}{load} method sets the two operands to the supplied arguments:
 \begin{minted}{coq}
 Definition load : MRASpec State (mkMetSig <Bit#(16) a, Bit#(16) b> Bit#(0)) :=
   fun '(args, _) P =>
@@ -1029,7 +1027,7 @@ Definition load : MRASpec State (mkMetSig <Bit#(16) a, Bit#(16) b> Bit#(0)) :=
 \end{minted}
 The successor state \mintinline{coq}{st'} is introduced existentially and constrained to satisfy the postcondition \mintinline{coq}{P}.
 
-The \texttt{step} method is more interesting because the implementation aborts when the second operand is zero.
+The \mintinline{coq}{step} method is more interesting because the implementation aborts when the second operand is zero.
 A \emph{precondition} on the method is expressed as a conjunct placed \emph{outside} of $P$, before any existential quantification:
 \begin{minted}{coq}
 Definition step' : MRASpec State (mkMetSig <> Bit#(0)) :=
@@ -1042,7 +1040,7 @@ Definition step' : MRASpec State (mkMetSig <> Bit#(0)) :=
       P (bv_0 _, st').
 \end{minted}
 Because \mintinline{coq}{st.(b) <> 0%bv} sits outside $P$, it is a delegated obligation that callers of this submodule must discharge.
-The refinement proof must show that the implementation never invokes \texttt{step} in a state where the abort path can be reached.
+The refinement proof must show that the implementation never invokes \mintinline{coq}{step} in a state where the abort path can be reached.
 Postconditions, by contrast, are captured by choosing which \mintinline{coq}{st'} to quantify over and what constraint on it to conjoin with \mintinline{coq}{P (0%bv, st')}.
 
 \paragraph{Representation invariants.}
@@ -1053,7 +1051,7 @@ This proof field is a \emph{representation invariant} that every abstract state 
 Because \mintinline{coq}{wf} is a field of the record, Rocq's type system ensures it is present in every \mintinline{coq}{GcdState} value---there is no way to construct an abstract state that violates it.
 This means that specifications and lemmas can rely on the invariant without stating it as an explicit hypothesis: any bound abstract state already carries the \emph{well-foundedness} condition as a proof term.
 Action method specifications that modify the state have a proof obligation to discharge the invariant.
-For example, the \texttt{step} specification must supply a proof that the reduced pair still satisfies \mintinline{coq}{wf} whenever it quantifies over \mintinline{coq}{st'}.
+For example, the \mintinline{coq}{step} specification must supply a proof that the reduced pair still satisfies \mintinline{coq}{wf} whenever it quantifies over \mintinline{coq}{st'}.
 
 \paragraph{Discussion: connection to abstract data types.}
 This specification style is directly analogous to the theory of \emph{abstract data types} (ADTs).
