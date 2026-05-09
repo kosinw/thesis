@@ -435,7 +435,7 @@ This style reads like imperative code while denoting a Gallina term.
 
 \begin{figure}[H]
 \begin{minted}{coq}
-Record GCDState := { x : Bit 16; y : Bit 16 }.
+Record GCDState := { x : Bit#(16); y : Bit#(16) }.
 
 Definition step : Action GCDState unit :=
   begin
@@ -692,16 +692,7 @@ The self-simulation and cross-simulation instances of this definition are shown 
 \subsection{Trace-equivalence lemmas} \label{sec:timing-proof-trace}
 This subsection turns the stepwise lockstep obligations from~\Cref{fig:sim-action-square,fig:sim-machines} into trace consequences. We first define output-erased trace equivalence and show that machine simulation lifts to equality of erased traces. We then use these lemmas to derive the two proof patterns for hardware constant time: direct self-simulation and cross-simulation via a trace-equivalent specification.
 
-\begin{definition}[Erased-trace equivalence] \label{def:outputs-erased-bridge}
-Call~\(\mathcal M_2\) \emph{erased-trace equivalent} to~\(\mathcal M_1\) under~\(\mathcal E\) when, for every~\(\vec\iota\in I^*\), the erased-input histories~\(\vec\iota_{\mathcal E}\) induce the same erased observation trace:
-\[
-  \mathcal{T}^{\mathcal E}(\mathcal M_2,\vec\iota_{\mathcal E})
-  =
-  \mathcal{T}^{\mathcal E}(\mathcal M_1,\vec\iota_{\mathcal E}).
-\]
-\end{definition}
-
-\begin{lemma}[Simulation lifts to erased traces]
+\begin{lemma}[Simulation implies erased-trace equivalence]
 \label{lem:sim-lift-erased-traces}
 If \(\mathcal{M}_1\) simulates \(\mathcal{M}_2\) under~\((R, \mathcal E)\) in the sense of~\Cref{def:machine-refinement} and \(R(s_{0,1},s_{0,2})\), then for every input history~\(\vec\iota\in I^*\),
 \[
