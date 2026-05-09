@@ -200,7 +200,7 @@ This thesis continues in the same tradition, carrying these timing-security proo
 
 This chapter presents a framework for timing-security verification of hardware circuits.
 It begins by giving a formalism of state machines (\Cref{sec:timing-state-machine}) to model hardware circuits and then introduces \emph{Slate} (\textbf{s}urface \textbf{l}anguage for \textbf{a}ctions), a shallowly embedded language in Rocq for specifying hardware circuits (\Cref{sec:timing-monads}).
-Finally, it defines hardware timing security in terms of erased attacker observations (\Cref{sec:timing-ct}) and develops the simulation-based proof structure used to establish it (\Cref{sec:timing-proof}).
+Finally, it defines hardware timing security and develops the simulation-based proof structure used to establish it (\Cref{sec:timing-security}).
 The chapter's framework is exercised in two case studies: a constant-time multiplier (\Cref{chap:case-multiplier}) and a constant-time, multi-cycle processor (\Cref{chap:case-processor}).
 
 \section{State machines} \label{sec:timing-state-machine}
@@ -475,10 +475,12 @@ Definition step : Action GCDState unit :=
 \label{fig:slate-bind}
 \end{figure}
 
-\section{Security definitions} \label{sec:timing-ct}
+\section{Specifying and proving timing security} \label{sec:timing-security}
 
-This section introduces the concept of hardware constant time and motivates it as a robust security property that can model a range of attackers.
-It first describes the cryptographic constant time security property (\Cref{sec:cct}) and its application to software programs. Then, it extends this property to hardware circuits as the hardware constant time security property (\Cref{sec:hct}).
+Establishing that a hardware circuit is free from timing side channels requires both a precise definition of what it means to be secure and a systematic method for proving that a given circuit satisfies that definition.
+This section addresses both concerns.
+It first introduces cryptographic constant time (CCT) in the software setting and then extends the idea to hardware circuits as hardware constant time (HCT), stated in terms of erasure contracts that model the attacker's observational capabilities (\Cref{sec:cct,sec:hct}).
+It then develops the simulation-based proof strategy used to establish HCT: using lockstep simulation with trace-equivalence lemmas that connects simulations and the HCT definition (\Cref{sec:timing-proof-lockstep,sec:timing-proof-trace}).
 
 \subsection{Cryptographic constant time} \label{sec:cct}
 Cryptographic software often cares about the \emph{cryptographic constant time} (CCT) property: attackers should not observe leakage events such as branch direction, memory-access patterns, or variable-latency instructions influenced by secret inputs.
@@ -599,10 +601,7 @@ Concretely, $\mathsf{erase_{in}}$ controls observability on input wires: it pres
 Similarly, $\mathsf{erase_{out}}$ controls observability on output wires: it keeps attacker-visible outputs and removes or abstracts outputs that are outside the attacker's view.
 Under this interpretation, HCT says that varying secret (erased) inputs cannot change the attacker-visible output trace.
 
-\section{Proof strategy} \label{sec:timing-proof}
-
-This section develops the simulation-based proof strategy used to establish hardware constant time from \Cref{sec:hct}. It first introduces lockstep simulation and its two key variants: self-simulation of a single machine and cross-simulation between an implementation machine and an abstract machine (\Cref{sec:timing-proof-lockstep}). It then derives the trace-inclusion lemmas needed to imply hardware constant time from both simulation strategies (\Cref{sec:timing-proof-trace}).
-
+\phantomsection\label{sec:timing-proof}
 \subsection{Lockstep simulation} \label{sec:timing-proof-lockstep}
 The hardware constant time property (\Cref{def:hct-single}) reasons about entire runs of state machines rather than isolated steps.
 This affords flexibility in potential proof techniques that may not reason about each step in isolation, but in the future could allow simulation-based proofs which rely on skipping steps or taking multiple steps.
