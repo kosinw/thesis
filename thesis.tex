@@ -39,7 +39,7 @@
 \setminted{
   style=perldoc,
   fontsize=\small,
-  linenos=true,
+  linenos=false,
   frame=lines,
   framerule=0.4pt,
   framesep=8pt,
@@ -84,10 +84,11 @@
 \begin{abstract}
 High-performance processors rely on out-of-order execution, an instruction-scheduling algorithm that is both difficult to implement correctly and prone to timing side-channel attacks without principled defenses.
 This thesis develops an approach using the Rocq proof assistant for specifying and proving timing-security properties of hardware circuits.
-To express hardware circuits in a proof-friendly style, the thesis introduces \emph{Slate}, a shallowly embedded surface language built on guarded state monads.
-Slate provides imperative-style notation while preserving direct reduction and equational reasoning in Gallina, enabling compact circuit descriptions and reusable proof structure.
-The timing-security framework is developed in a general form and then exercised on two case studies: a variable-latency multiplier and a sequential multi-cycle processor.
+To express hardware circuits in a proof-friendly style, the thesis introduces \emph{Slate}, a shallowly embedded surface language built on state monads.
+Slate provides an imperative-programming model to describe circuits compactly in Gallina. Since Slate circuits are Gallina functions, reasoning about them in proofs are simple.
+The timing-security framework is exercised on two case studies: a variable-latency multiplier and a sequential multi-cycle processor.
 In parallel, the thesis uses \emph{GoLemma}, a deeply embedded hardware language in Rocq, to establish functional-correctness results for key out-of-order processor submodules.
+GoLemma provides facilities for modularity and exposes a sequential execution model which makes functional-correctness reasoning simple.
 Together, these contributions provide a foundation for scaling toward integrated proofs of correctness and timing security for full out-of-order processors.
 \end{abstract}
 
@@ -98,23 +99,6 @@ Together, these contributions provide a foundation for scaling toward integrated
 \tableofcontents
 \listoffigures
 \listoftables
-
-\chapter*{List of abbreviations}
-\addcontentsline{toc}{chapter}{List of abbreviations}
-\begin{description}
-  \item[CCT] Cryptographic constant time.
-  \item[CPU] Central processing unit.
-  \item[FU] Functional unit.
-  \item[HCT] Hardware constant time.
-  \item[ISA] Instruction-set architecture.
-  \item[OoO] Out-of-order (execution).
-  \item[ORAAT] One-rule-at-a-time.
-  \item[R10K] MIPS R10000 processor.
-  \item[RAT] Register alias table.
-  \item[ROB] Reorder buffer.
-  \item[RTL] Register-transfer level.
-\end{description}
-
 
 \chapter{Introduction}
 This thesis contributes an approach for proving correctness and timing properties for hardware circuits described in the Rocq proof assistant.
@@ -136,7 +120,6 @@ The algorithm is a modified design based on the MIPS R10000 (R10K) processor~\ci
   \label{fig:fig1}
 \end{figure}
 
-\subsection{Pipeline overview}
 Our algorithm is split into seven separate pipeline stages: fetch, decode, rename, issue, execute, writeback, and retire.
 The front end stage fetches instructions from the instruction stream and decodes them into an internal data type the machine can schedule.
 The renaming stage then maps architectural registers to a larger physical register file so false dependencies can be dissolved.
@@ -144,7 +127,6 @@ The issue stage selects ready renamed operations and sends them to functional un
 The writeback stage then posts results to the physical registers so that later instructions can consume operands as they become ready.
 The retire stage retires instructions in program order, committing their effects to the architectural state.
 
-\subsection{Renaming, snapshots, and recovery}
 Our design diverges from the R10K algorithm in two major aspects to simplify which invariants are needed to write proofs.
 The most important difference is how the renaming mechanism works.
 The original R10K algorithm records, in the reorder buffer (ROB), the previous physical register index for each instruction's destination so that the rename map can be rolled back precisely when a younger path is squashed.
@@ -157,7 +139,6 @@ Our design therefore pairs the dual RAT with explicit snapshots of register valu
 Enough snapshots are retained to reconstruct the physical register file as it stood at the last retired instruction, so a squash restores both the mapping from each architectural register to its physical backing and the bit patterns stored in those physical registers at that point.
 The maximum number of snapshots is finite, so it bounds the number of branches the machine can speculate ahead; once that budget is exhausted, the issue stage must stall until retire frees snapshot capacity.
 
-\subsection{Speculative memory}
 A second major deviation concerns speculative memory accesses.
 To make timing properties easier to state and prove at first, we delay all speculative loads and stores.
 This policy is extremely pessimistic: it sacrifices the performance that comes from speculative execution when interacting with memory and is not meant as a proposal for a serious, production-ready design.
@@ -219,7 +200,7 @@ This thesis continues in the same tradition, carrying these timing-security proo
 \chapter{Verifying timing security for circuits} \label{chap:timing}
 
 This chapter presents a framework for timing-security verification of hardware circuits.
-It begins by giving a formalism of state machines (\Cref{sec:timing-state-machine}) to model hardware circuits and then introduces \emph{Slate}, a shallowly embedded language in Rocq for specifying hardware circuits (\Cref{sec:timing-monads}).
+It begins by giving a formalism of state machines (\Cref{sec:timing-state-machine}) to model hardware circuits and then introduces \emph{Slate} (\textbf{s}urface \textbf{l}anguage for \textbf{a}ctions), a shallowly embedded language in Rocq for specifying hardware circuits (\Cref{sec:timing-monads}).
 Finally, it defines hardware timing security in terms of erased attacker observations (\Cref{sec:timing-ct}) and develops the simulation-based proof structure used to establish it (\Cref{sec:timing-proof}).
 The chapter's framework is exercised in two case studies: a constant-time multiplier (\Cref{chap:case-multiplier}) and a constant-time, multi-cycle processor (\Cref{chap:case-processor}).
 
@@ -422,11 +403,11 @@ Definition call {s a b}
 \label{fig:action-call}
 \end{figure}
 
-\subsection{Syntax} \label{sec:timing-monads-slate}
-The syntax for Slate is implemented using the notation facilities in Rocq.
-Crucially, this notation elaborates directly into actions as described above; it does not introduce a syntax tree.
+\subsection{Slate by example} \label{sec:timing-monads-slate}
+The syntax for Slate is implemented using the extensible parser in Rocq.
+Crucially, the parser elaborates Slate syntax directly into actions as described above; it does not introduce a syntax tree.
 An abstract syntax of the grammar is given in \Cref{fig:action-grammar}.
-The terminal \texttt{term} in the grammar refers to arbitrary Gallina terms, which you can embed directly into Slate.
+The terminal \texttt{term} in the grammar refers to arbitrary Gallina terms, which you can be embedded directly in Slate.
 
 \begin{figure}[H]
 \begin{mdframed}
@@ -447,43 +428,51 @@ The terminal \texttt{term} in the grammar refers to arbitrary Gallina terms, whi
 \label{fig:action-grammar}
 \end{figure}
 
-Consider \Cref{fig:empty-surface}, which implements the body of a method called \mintinline{coq}{mark_busy} over the state type \mintinline{coq}{State}.
-In Slate, the method reads the phase register into the let binding \mintinline{coq}{ph}, checks the condition \mintinline{coq}{ph == Empty}, writes to the phase register, and returns a Boolean result.
-This style is close to imperative code while still denoting a pure Gallina term.
-The same method can be written directly with monadic operators (\Cref{fig:empty-bind}).
-This version makes sequencing explicit through \mintinline{coq}{>>=}, but is less readable for longer method bodies.
-In practice, both forms are definitionally equivalent after notation expansion.
-
+Consider \Cref{fig:slate-surface}, which implements the \mintinline{coq}{step} method of a GCD module.
+The state type \mintinline{coq}{GCDState} holds two registers \mintinline{coq}{x} and \mintinline{coq}{y}.
+The method reads both registers into let bindings, aborts immediately when \mintinline{coq}{y = 0} (the computation is already done), and otherwise subtracts the smaller value from the larger.
+This style reads like imperative code while denoting a Gallina term.
 
 \begin{figure}[H]
 \begin{minted}{coq}
-Definition mark_busy : Action State bool :=
+Record GCDState := { x : Bit 16; y : Bit 16 }.
+
+Definition step : Action GCDState unit :=
   begin
-    let ph = `phase`read();
-    if (ph == Empty) begin
-      `phase`write(Busy);
-      return true
+    let xv = `x`read();
+    let yv = `y`read();
+    when (yv == 0) abort;
+    if (xv >= yv) begin
+      `x`write(xv - yv);
+      return tt
     end else begin
-      return false
+      `y`write(yv - xv);
+      return tt
     end
   end.
 \end{minted}
-\caption{Method \mintinline{coq}{mark_busy} using Slate.}
-\label{fig:empty-surface}
+\caption{The \mintinline{coq}{step} method of a GCD module using Slate.}
+\label{fig:slate-surface}
 \end{figure}
+
+The same method can be written directly with monadic operators (\Cref{fig:slate-bind}).
+This version makes sequencing explicit through \mintinline{coq}{>>=}, but is noticeably less readable for method bodies of this length.
+In practice, both forms are definitionally equal after notation elaboration.
 
 \begin{figure}[H]
 \begin{minted}{coq}
-Definition mark_busy : Action State bool :=
-  read phase >>= fun ph =>
-  if (ph == Empty) then
-    put {| phase := Busy |} >>= fun _ =>
-    ret true
+Definition step : Action GCDState unit :=
+  get >>= fun st =>
+  (if st.(y) =? 0 then fail else ret tt) >>= fun _ =>
+  if st.(x) >=? st.(y) then
+    modify (fun s => {| x := s.(x) - s.(y); y := s.(y) |}) >>= fun _ =>
+    ret tt
   else
-    ret false.
+    modify (fun s => {| x := s.(x); y := s.(y) - s.(x) |}) >>= fun _ =>
+    ret tt.
 \end{minted}
-\caption{Method \mintinline{coq}{mark_busy} using inline monadic notation.}
-\label{fig:empty-bind}
+\caption{The \mintinline{coq}{step} method of a GCD module using inline monadic notation.}
+\label{fig:slate-bind}
 \end{figure}
 
 \section{Security definitions} \label{sec:timing-ct}
@@ -747,53 +736,111 @@ Compose~\Cref{lem:sim-lift-erased-traces}, which aligns the~\(\mathcal{M}_{\math
 
 \newpage
 
-\subsection{Example proof}
-As a concrete example, consider the following one-method machine whose output alternates every cycle its method is called.
-
-\begin{minted}[escapeinside=||,mathescape=true]{coq}
-Record S := mkS { phase : bool }.
-
-Definition tick : Action S bool :=
-  begin
-    let p = `phase`read();
-    `phase`write(negb p);
-    return (negb p)
-  end.
-
-Definition |$\mathcal M_{\mathsf{toggle}}$| : StateMachine S unit bool :=
-  mkStateMachine (mkS false) (fun '() => tick).
-
-Definition |$\mathsf{erase_{in}}$| := id.
-Definition |$\mathsf{erase_{out}}$| := id.
-Definition |$\mathcal{E}_{\mathsf{toggle}}$| : ErasureContract I O :=
-  (erase_in_toggle, erase_out_toggle).
-\end{minted}
-
-\begin{theorem}[Toggle machine is hardware constant time]
-\label{thm:toggle-hct}
-The machine \(\mathcal M_{\mathsf{toggle}}\) is hardware constant time with respect to \(\mathcal E_{\mathsf{toggle}}\).
-\end{theorem}
-
-\begin{proof}[Proof sketch]
-Use~\Cref{lem:self-sim-hct} with self-simulation. Let \(R\) be equality on states (equivalently, equality of \mintinline{coq}{phase}). We must show one-step simulation under erased inputs/outputs. Since \(\mathsf{erase_{in}}\) is identity, both sides execute the same method call \mintinline{coq}{tick}. Since \(\mathsf{erase_{out}}\) is also identity, erased-output agreement reduces to plain output equality.
-
-Now unfold one step of \mintinline{coq}{tick}: both sides read the same current \mintinline{coq}{phase}, both return \mintinline{coq}{negb p}, and both update to \mintinline{coq}{phase := negb p}. Hence outputs are equal and successor states remain related by \(R\).
-Therefore \(M_{\mathsf{toggle}}\) self-simulates under \((R,\mathcal E_{\mathsf{toggle}})\), and the initial states are trivially related.
-\end{proof}
-
 \chapter{Verifying correctness for circuits} \label{chap:golemma}
 
-This chapter presents a framework for verifying functional correctness on synthesizable hardware circuits. It first introduces the GoLemma hardware description language: a modular, synthesizable, rules-based language similar to Bluespec SystemVerilog, but replaces the execution model of guarded atomic actions with a sequential execution model (\Cref{sec:golemma-intro}). Then, it describes the formal semantics of GoLemma (\Cref{sec:golemma-formal}). Finally, it discusses how functional specifications are written (\Cref{sec:golemma-spec}) and develops the simulation-based proof structure used to show modular refinement \Cref{sec:golemma-proof}. This chapter's framework is exercised in two case studies: a ring buffer (\Cref{sec:ring-buffer}) and a reorder buffer (\Cref{sec:reorder-buffer}).
+This chapter presents a framework for verifying functional correctness on synthesizable hardware circuits. It first introduces the deeply-embedded GoLemma language which has similarities Bluespec SystemVerilog (\Cref{sec:golemma-intro}).
+Then, it covers language extensions that enable the synthesis of Gallina types and for loops into GoLemma (\Cref{sec:golemma-synth}).
+Finally, it discusses how functional specifications are written (\Cref{sec:golemma-spec}) and develops the simulation-based proof structure used to show modular refinement (\Cref{sec:golemma-proof}).
+This chapter's framework is exercised in two case studies: a ring buffer (\Cref{sec:ring-buffer}) and a reorder buffer (\Cref{sec:reorder-buffer}).
 
-\section{Introduction} \label{sec:golemma-intro}
+\section{GoLemma by example} \label{sec:golemma-intro}
+This section introduces the key constructs of GoLemma through an example circuit: a module that computes the greatest common divisor (GCD) of two 16-bit numbers using the Euclidean algorithm.
+The interface and module definition are shown in~\Cref{fig:golemma-gcd-intf,fig:golemma-gcd}, respectively.
 
-\subsection{Modules and interfaces}
-\subsection{Methods and rules}
+\subsection{Interfaces}
+An \emph{interface} in GoLemma is a typed list of method signatures that a module presents to its environment.
+Interfaces serve as contract in two complementary senses: structurally, it defines the compositional boundary between a module and its environment, playing the same role as the port list of a Verilog module; and formally, it constrains what can be verified, since any specification must be stated in terms of the same method signatures that the implementation exposes.
 
-\section{Formal description} \label{sec:golemma-formal}
+The interface for the GCD module (\Cref{fig:golemma-gcd-intf}) declares four methods.
+Two are \emph{action methods}: \texttt{load} and \texttt{step}, which can write registers and may abort if their guards are not met; their return type is \texttt{Action}.
+Two are \emph{value methods}: \texttt{result} and \texttt{done}, which are purely observational  and cannot modify registers.
 
-\subsection{Syntax}
-\subsection{Semantics}
+\begin{figure}[H]
+\begin{minted}{coq}
+interface GCD;
+  method  Action      load  <Bit#(16) a, Bit#(16) b>;
+  method  Action      step  <>;
+  method  Bit#(16)    result <>;
+  method  Bit#(1)     done  <>;
+endinterface.
+\end{minted}
+\caption[GCD interface]{The \texttt{GCD} interface with two action methods and two value methods.}
+\label{fig:golemma-gcd-intf}
+\end{figure}
+
+\subsection{Modules}
+A \emph{module} instansiates an interface.
+Modules contain \emph{registers} that hold state across clock cycles, together with the method bodies that read and update them.
+Modules may also contain \emph{submodules} in which they can interact with through method invocations defined in interfaces.
+\Cref{fig:golemma-gcd} shows the implementation of the GCD module.
+The header declares that the module implements the \texttt{GCD} interface.
+The two register declarations \mintinline{coq}{Reg#(Bit#(16)) x <- mkReg()} and \mintinline{coq}{Reg#(Bit#(16)) y <- mkReg()} create the persistent state.
+Interacting with registers and submodules via methods use the backtick notation such as \mintinline{coq}{`x`read()} and \mintinline{coq}{`x`write(v)}.
+Unlike most register-transfer level languages, GoLemma does not have the restriction every read within a method body sees the value the register held at the start of the method call; it sees the last write which occurred.
+
+\begin{figure}[t]
+\begin{minted}{coq}
+module mkGCD#(GCD);
+  Reg#(Bit#(16))  x  <- mkCFReg();
+  Reg#(Bit#(16))  y  <- mkCFReg();
+
+  method Action load <Bit#(16) a, Bit#(16) b>;
+    begin
+      `x`write(a);
+      `y`write(b);
+    end.
+  endmethod.
+
+  method Action step <>;
+    begin
+      let xv = `x`read();
+      let yv = `y`read();
+      if (yv == 16'd0)  abort;
+      if (xv >= yv)     `x`write(xv - yv);
+      else              `y`write(yv - xv);
+    end.
+  endmethod.
+
+  method Bit#(16) result <>;
+    begin return `x`read(); end.
+  endmethod.
+
+  method Bit#(1) done <>;
+    begin return (`y`read() == 16'd0); end.
+  endmethod.
+endmodule.
+\end{minted}
+\caption[GCD module]{A GCD module implementing the \texttt{GCD} interface using two 16-bit registers.}
+\label{fig:golemma-gcd}
+\end{figure}
+
+\subsection{Methods}
+Every module method is declared with a return type, a name, and an optional parameter list enclosed in angle brackets.
+Methods whose return type is \texttt{Action} or \texttt{ActionValue\#(t)} may call submodule action methods; they can also abort, leaving the state unchanged.
+Methods with any other return type are \emph{value methods}: they may only read state and return a pure value, and they never abort.
+This distinction is enforced syntactically: only action methods may contain write or abort statements, so the separation between observation and mutation is visible directly in the interface signature.
+
+\subsection{Expressions}
+Expressions are pure terms of a given type.
+The primitive types in GoLemma are bitvectors (\texttt{Bit\#($n$)} for an $n$-bit word), vectors (\texttt{Vector\#($n$,$t$)} for a fixed-size array with $n$ items), structs, and enums.
+An expression can be a constant literal such as \texttt{16'd0}, a local variable bound by a prior \texttt{let} statement, a field access \texttt{e`f}, a primitive operator such as addition or comparison, or a submodule \emph{value method call} \texttt{`sub`met(args)}.
+Value method calls read current register state inside a submodule and return a result without modifying it; they appear as expressions because their effect is purely observational.
+
+\subsection{Statements}
+Statements sequence effects inside a method body.
+The \texttt{let x = e} form binds a fresh variable \texttt{x} to the value of expression \texttt{e} in the rest of the block.
+A typed form \texttt{T\#($t$) x = e} binds \texttt{x} with an explicit type annotation.
+Register state is updated via submodule action method calls: \texttt{`reg`write(e)} calls the \texttt{write} action on register \texttt{reg} with argument \texttt{e}.
+The result of calling an action method can be captured with \texttt{let x <- `mod`met(args)}.
+Conditional branching uses \texttt{if (c) \{ ... \} else \{ ... \}}, where \texttt{c} is an expression of type \mintinline{coq}{Bit#(1)}; the \texttt{else} branch is optional and defaults to a no-op.
+A statement may be terminated early by \texttt{abort}, which causes the entire method to fail and appear as if it never exited.
+No special synthesis is needed to implement, but it specifies a precondition for the method which must be proved to not be violated during verification.
+Statements are sequenced by separating them with semicolons inside a \texttt{begin} ... \texttt{end} block.
+A block may end with a \texttt{return e} expression that specifies the method's output value; methods of type \texttt{Action} whose return type is \texttt{unit} may omit the \texttt{return} and close with \texttt{end} directly.
+
+\section{Extending GoLemma} \label{sec:golemma-synth}
+
+This section first introduces a language extension which enables the reflection of finite Gallina types into the deeply-embedded type system of GoLemma.
 
 \section{Functional specification} \label{sec:golemma-spec}
 
