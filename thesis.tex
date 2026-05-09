@@ -261,7 +261,7 @@ Record StateMachine (s i o : Type) := {
 \label{fig:circuit-typeclass}
 \end{figure}
 
-\section{Encoding circuits} \label{sec:timing-monads}
+\section{Encoding circuits with Slate} \label{sec:timing-monads}
 
 This section introduces Slate, a language for describing hardware as executable descriptions in Rocq.
 It first compares shallow and deep embeddings and explains why Slate is implemented as a shallow embedding (\Cref{sec:timing-monads-shallow}).
@@ -743,7 +743,7 @@ Then, it covers language extensions that enable the synthesis of Gallina types a
 Finally, it discusses how functional specifications are written (\Cref{sec:golemma-spec}) and develops the simulation-based proof structure used to show modular refinement (\Cref{sec:golemma-proof}).
 This chapter's framework is exercised in two case studies: a ring buffer (\Cref{sec:ring-buffer}) and a reorder buffer (\Cref{sec:reorder-buffer}).
 
-\section{GoLemma by example} \label{sec:golemma-intro}
+\section{Encoding circuits with GoLemma} \label{sec:golemma-intro}
 This section introduces the key constructs of GoLemma through an example circuit: a module that computes the greatest common divisor (GCD) of two 16-bit numbers using the Euclidean algorithm.
 The interface and module definition are shown in~\Cref{fig:golemma-gcd-intf,fig:golemma-gcd}, respectively.
 
@@ -781,8 +781,8 @@ Unlike most register-transfer level languages, GoLemma does not have the restric
 \begin{figure}[t]
 \begin{minted}{coq}
 module mkGCD#(GCD);
-  Reg#(Bit#(16))  x  <- mkCFReg();
-  Reg#(Bit#(16))  y  <- mkCFReg();
+  Reg#(Bit#(16))  x  <- mkReg();
+  Reg#(Bit#(16))  y  <- mkReg();
 
   method Action load <Bit#(16) a, Bit#(16) b>;
     begin
@@ -838,41 +838,39 @@ No special synthesis is needed to implement, but it specifies a precondition for
 Statements are sequenced by separating them with semicolons inside a \texttt{begin} ... \texttt{end} block.
 A block may end with a \texttt{return e} expression that specifies the method's output value; methods of type \texttt{Action} whose return type is \texttt{unit} may omit the \texttt{return} and close with \texttt{end} directly.
 
-\section{Extending GoLemma} \label{sec:golemma-synth}
+\section{Extending GoLemma with typeclasses} \label{sec:golemma-synth}
 
-This section first introduces a language extension which enables both the reflection of finite Gallina types and terms into GoLemma (\Cref{sec:golemma-synthesizable}). Then it discusses another extension which adds for loops, which was built upon the first extension (\Cref{sec:golemma-for}).
+This section discusses a language extension which enables the reflection of finite Gallina types and terms into GoLemma (\Cref{sec:golemma-synthesizable}). It discusses how this extension allows the implementation of other language features such as structs (\Cref{sec:golemma-struct}), enums (\Cref{sec:golemma-enum}), bitflags (\Cref{sec:golemma-bitflag}) and for loops (\Cref{sec:golemma-for}).
 
 \subsection{Synthesizable types} \label{sec:golemma-synthesizable}
 
-GoLemma's deep embedding has its own type system which is disjoint from the type system of Rocq.
-Registers hold values of GoLemma types, and method bodies operate on GoLemma-typed expressions.
-Writing functional specifications and simulation relations directly over GoLemma types would be technically possible, but cumbersome: proofs would need to reason about raw bitvectors and struct tuples rather than the natural Gallina types used in the rest of the development.
+GoLemma programs cannot directly use standard Rocq types such as plain records and inductive types; instead, they must use the types provided by GoLemma's type system.
+Writing functional specifications and invariants which reason directly over GoLemma types is possible, but cumbersome: proofs would need to reason about raw bitvectors and struct tuples rather than natural Gallina types, which are the easiest to work with and the most performant with the type checker in proofs.
 A better approach is to allow the developer to use familiar Gallina types directly in GoLemma circuits, so that specifications and proofs can be stated at the Gallina level and then connected to the hardware representation transparently.
 
-The \mintinline{coq}{Synthesizable} typeclass formalizes this connection.
-An instance of \mintinline{coq}{Synthesizable A} witnesses that the Gallina type \mintinline{coq}{A} has a corresponding GoLemma hardware type, and provides the two functions that convert between them:
-\begin{minted}{coq}
-Class Synthesizable (A : Type) := {
-  tau        : type;
-  pack       : A -> type_denote tau;
-  unpack     : type_denote tau -> A;
+The Synthesizable typeclass formalizes this connection.
+Instances of the Synthesizalble typeclass witnesses that the a Gallina type $\alpha$ has a corresponding GoLemma hardware type $\tau$, and provides the two functions that convert between them:
+\begin{minted}[mathescape=true,escapeinside=||]{coq}
+Class Synthesizable (|$\alpha$| : Type) := {
+  (* [type] is the type of embedded GoLemma types *)
+  |$\tau$|           : type;
+  pack        : |$\alpha$| -> type_denote |$\tau$|;
+  unpack      : type_denote |$\tau$| -> |$\alpha$|;
   pack_unpack : forall x, unpack (pack x) = x;
 }.
 \end{minted}
-The field \mintinline{coq}{tau} is the GoLemma type representing \mintinline{coq}{A} in hardware.
-The functions \mintinline{coq}{pack} and \mintinline{coq}{unpack} form a retraction: \mintinline{coq}{pack} converts a Gallina value to its hardware encoding, and \mintinline{coq}{unpack} recovers the Gallina value from the encoding, with \mintinline{coq}{pack_unpack} proving that the round-trip is the identity.
+The field $\tau$ is the GoLemma type representing $\alpha$ in hardware.
+The function \mintinline{coq}{pack} is an injection from $\alpha$ into the hardware representation: \mintinline{coq}{unpack} is its left inverse, recovering the original Gallina value from the encoding, and \mintinline{coq}{pack_unpack} proves that \mintinline{coq}{pack} is indeed an injection.
 Every native GoLemma type is trivially synthesizable with \mintinline{coq}{pack = unpack = id}.
-Beyond that, several finite Gallina types have built-in instances: bitvectors \mintinline{coq}{bv n}, finite ordinals \mintinline{coq}{fin n}, and \mintinline{coq}{unit}.
+Beyond that, several finite Gallina types have built-in instances: bitvectors \mintinline{coq}{bv n}, bounded naturals \mintinline{coq}{fin n}, Booleans \mintinline{coq}{bool}, and \mintinline{coq}{unit}.
+Three additional typeclasses extend \mintinline{coq}{Synthesizable} to structured Gallina types: Struct, Enum, and Bitflags.
+Each provides a Synthesizable instance automatically during typeclass resolution.
 
-Three additional typeclasses extend \mintinline{coq}{Synthesizable} to structured Gallina types: \mintinline{coq}{Struct}, \mintinline{coq}{Enum}, and \mintinline{coq}{Bitflags}.
-Each provides a \mintinline{coq}{Synthesizable} instance automatically once the typeclass is resolved.
-
-\paragraph{Struct.}
-The \mintinline{coq}{Struct} typeclass handles Gallina records whose fields are all synthesizable.
+\subsection{Structure types} \label{sec:golemma-struct}
+The Struct typeclass handles Gallina records whose fields are all synthesizable.
 An instance maps the record to a GoLemma deeply-embedded struct type, with each field packed and unpacked field-by-field.
 \Cref{fig:synth-struct} shows a simple example.
-The tactic \mintinline{coq}{derive_struct} inspects the inductive definition of the record using Ltac2 metaprogramming (described below), extracts the field names and types, and discharges all proof obligations automatically.
-Once the instance is declared, \mintinline{coq}{MyConfig} can be used directly as a register type in GoLemma circuits, and specifications over \mintinline{coq}{MyConfig} values are stated in terms of Gallina records rather than raw struct tuples.
+The tactic \mintinline{coq}{derive_struct} inspects the definition of the record using Ltac2 metaprogramming (\Cref{par:ltac2}), extracts the field names and types, constructs the packing and unpacking mechanism, and discharges all proof obligations automatically.
 
 \begin{figure}[H]
 \begin{minted}{coq}
@@ -881,17 +879,15 @@ Record MyConfig := {
   id      : bv 8;
 }.
 
-Global Instance myconfig_struct : Struct MyConfig.
-  derive_struct.
-Defined.
+Instance myconfig_struct : Struct MyConfig. derive_struct. Defined.
 \end{minted}
 \caption[Struct instance]{Deriving a \texttt{Struct} instance for a Rocq record.}
 \label{fig:synth-struct}
 \end{figure}
 
-\paragraph{Enum.}
-The \mintinline{coq}{Enum} typeclass handles Gallina inductive types with only nullary constructors---i.e., simple variant types with no associated data.
-An instance maps each constructor to a distinct element of a GoLemma \mintinline{coq}{enum_t}, with the representation width chosen as $\lceil \log_2 n \rceil$ bits for an $n$-constructor type.
+\subsection{Enumerable types} \label{sec:golemma-enum}
+The Enum typeclass handles Gallina inductive types with only nullary constructors, that is, simple variant types with no associated data.
+An instance maps each constructor to a distinct element of a GoLemma \mintinline{coq}{enum_t}, with the representation width chosen as $\lceil \log_2 n \rceil$ bits for a type with $n$ constructors.
 \Cref{fig:synth-enum} shows a three-constructor color type.
 The tactic \mintinline{coq}{derive_enum} automatically computes the constructor names, bitvector representations, and all proof obligations.
 
@@ -899,57 +895,64 @@ The tactic \mintinline{coq}{derive_enum} automatically computes the constructor 
 \begin{minted}{coq}
 Variant Color : Set := Red | Green | Blue.
 
-Global Instance color_enum : Enum Color.
-  derive_enum.
-Defined.
+Instance color_enum : Enum Color. derive_enum. Defined.
 \end{minted}
 \caption[Enum instance]{Deriving an \texttt{Enum} instance for a Rocq variant type.}
 \label{fig:synth-enum}
 \end{figure}
 
-\paragraph{Bitflags.}
-The \mintinline{coq}{Bitflags} typeclass handles Gallina variant types where each constructor represents an independent flag in a bitset.
-Each constructor is mapped to a distinct bit position in a fixed-width bitvector, and the associated \mintinline{coq}{Bitset A} type---a newtype wrapper around the bitvector---is given a full set of stdpp set-algebra instances: membership (\mintinline{coq}{elem_of}), empty set, singleton, union, intersection, and difference.
-Proofs over bitsets can therefore use \mintinline{coq}{set_solver} and the full stdpp set lemma library.
-\Cref{fig:synth-bitflags} shows a hardware-flag example with eight variants.
-The \mintinline{coq}{Bitset} type synthesizes to a \mintinline{coq}{Bit#(n)} hardware register, so a register that holds a set of flags at the hardware level corresponds directly to a \mintinline{coq}{Bitset} value in specifications.
+\subsection{Bitflag types} \label{sec:golemma-bitflag}
+The Bitflags typeclass handles Gallina variant types where each constructor represents an independent flag in a bitset.
+Each constructor is mapped to a distinct bit position in a fixed-width bitvector, and the associated \mintinline{coq}{Bitset} type which is given formalized as a finite set using set-algebra instances from stdpp.
+Proofs over bitsets can therefore use the \mintinline{coq}{set_solver} tactic and the full stdpp set lemma library.
+\Cref{fig:synth-bitflags} shows a hardware-flag example with five variants.
+The \mintinline{coq}{Bitset} type synthesizes to a \mintinline{coq}{Bit#(n)} for a type with $n$ constructors.
 
 \begin{figure}[H]
 \begin{minted}{coq}
-Variant Permission : Set :=
-  | Read | Write | Execute | User | Valid.
+Variant Permission := Read | Write | Execute | User | Valid.
 
-Global Instance permission_flags : Bitflags Permission.
-  derive_bitflags.
-Defined.
+Instance permission_flags : Bitflags Permission. derive_bitflags. Defined.
 
-(* A specification-level set of permissions. *)
-Definition user_rx : Bitset Permission :=
-  {[Valid; Read; Execute; User]}.
+Definition user_rx : Bitset Permission := {[Valid; Read; Execute; User]}.
 
-Example user_rx_has_read : elem_of Read user_rx.
-Proof. set_solver. Qed.
-
-Example user_rx_no_write : ~ elem_of Write user_rx.
-Proof. set_solver. Qed.
+Example user_rx_has_read : elem_of Read user_rx. Proof. set_solver. Qed.
 \end{minted}
 \caption[Bitflags instance]{Deriving a \texttt{Bitflags} instance and using stdpp set reasoning.}
 \label{fig:synth-bitflags}
 \end{figure}
 
-\paragraph{Ltac2 metaprogramming.}
-Deriving instances for \mintinline{coq}{Struct}, \mintinline{coq}{Enum}, and \mintinline{coq}{Bitflags} requires inspecting the inductive definition of the target type at proof time: reading constructor names, counting arguments, computing bit widths, and building the GoLemma deeply-embedded type signature.
-Rather than requiring the developer to write these by hand, the framework uses \emph{Ltac2} to perform this metaprogramming.
-Ltac2 is Rocq's typed tactic language, which, unlike Ltac1, exposes the kernel's constr representation and provides a typed API for inspecting inductive types.
-The derivation tactics (\mintinline{coq}{derive_struct}, \mintinline{coq}{derive_enum}, \mintinline{coq}{derive_bitflags}) each reflect the Rocq inductive into a GoLemma type signature---computing field names, constructor names, bitvector widths, and representation vectors---and then discharge the resulting proof obligations using Ltac1 for the more routine steps.
+\subsection{Metaprogramming} \label{par:ltac2}
+Deriving instances for Struct, Enum, and Bitflags requires inspecting definitions of inductive types evaluation time with metaprogramming facilities.
+Rather than requiring these typeclass instances to be derived by hand, the framework uses Ltac2 to perform this metaprogramming.
+Ltac2 is Rocq's typed tactic language, which exposes interfaces to enable some metaprogramming. Ltac2 exposes the internal representations from the kernel and provides a typed API for inspecting inductive types.
+The derivation tactics (\mintinline{coq}{derive_struct}, \mintinline{coq}{derive_enum}, \mintinline{coq}{derive_bitflags}) each reflect the Rocq inductive into a GoLemma type signature and discharges any resulting proof obligations using Ltac1.
 
-\paragraph{Typeclass-driven identifier resolution.}
-A further integration concern is the following: when a GoLemma method body contains an identifier such as \mintinline{coq}{cfg}, the elaborator needs to decide whether it refers to a local method parameter, a hardware register, or a Gallina-level constant of some synthesizable type.
-This resolution is handled by a \mintinline{coq}{Hint Extern} that fires whenever the elaborator encounters the \mintinline{coq}{StrRes} typeclass goal---the hook GoLemma's notation system uses to resolve identifiers.
-The hint, written in Ltac2, recovers the identifier name as a Rocq string, searches first among local hypotheses and then the global environment for a binding with that name, and, if found, wraps the value in \mintinline{coq}{Cst (pack -)}: the GoLemma constant node that packs the Gallina value into the appropriate hardware type.
+When a GoLemma expression contains an identifier, the language front-end uses a sophisticated typeclass resolution mechanism to decide if it refers to a local method parameter, a local let binding, or a submodule.
+To add support for referring to record projections or Gallina constructors, this sytems was extended to recognize identifiers related to synthesizable types.
+This resolution is handled by a hint in the typeclass resolution database that fires whenever the elaborator encounters the a particular typeclass goal which resolves identifiers.
+The hint, written in Ltac2, recovers the identifier name as a Rocq string, searches first among local hypotheses and then the global environment for a binding with that name, and, if found, wraps the value in \mintinline[escapeinside=||]{coq}{Cst (pack |$\cdot$|)}: the syntax tree for a constant node in GoLemma.
 The result is that any Gallina constant or local variable of a synthesizable type can be dropped into a GoLemma expression directly by name, without any explicit coercion syntax.
 
 \subsection{For loops} \label{sec:golemma-for}
+
+Hardware circuits commonly need to operate over fixed-size arrays of registers, for example, to implement content-addressable memories (CAMs).
+GoLemma did not provide syntax for for-loop iteration natively at time this thesis was written.  The for constructor in the syntax tree takes a bound $m$ and a body function from \mintinline{coq}{Fin m} to a block of actions, executing the body once for each index in \(0, 1, \ldots, m-1\).
+The library wraps this in a small definition:
+\begin{minted}{coq}
+Definition for_loop (m : N)
+    (body : bv m -> actions' ...) : action sig sig :=
+  For (fun i => body (Z_to_bv m (Z.of_N i.(fin_value)))).
+\end{minted}
+The key step is converting the index \mintinline{coq}{i : Fin m} into a bitvector of size $\lceil \log_2{m} \rceil$ so that the body can use it in GoLemma expressions directly.
+This conversion process happens automatically via the typeclass resolution procedure described in \cref{sec:golemma-synthesizable,par:ltac2}.
+A custom notation then exposes this as a familiar loop syntax as a GoLemma statement:
+\begin{minted}{coq}
+for (let i = 0 to hi) begin
+  (* body, i : bv hi *)
+end
+\end{minted}
+The loop bound \mintinline{coq}{hi} must be a natural number fixed at elaboration time, so the loop always runs a statically known number of iterations, as required for synthesizability. During verification, for-loop semantics will reduce to a loop rule which will require providing an explicit loop invariant.
 
 \section{Functional specification} \label{sec:golemma-spec}
 
