@@ -234,7 +234,7 @@ This restriction is convenient for reasoning about the proof obligations in \Cre
 Determinism is a design choice of convenience, not necessity; as discussed in \Cref{chap:golemma}, the framework for deeply embedded circuits can use nondeterministic semantics (in particular, omnisemantics~\cite{chargueraud2023}) to describe specifications.
 
 Given an input sequence $\iota_1, \iota_2, \ldots, \iota_n \in I$, repeatedly applying $\delta$ from the initial state $s_0$ defines a \emph{run} of the machine.
-The corresponding sequence of per-step observations is called the machine's \emph{trace}.
+The corresponding sequence of per-step observations is called the machine's \emph{observation trace}.
 Concretely, the machine $\mathcal{M}$ produces a sequence of optional outputs by unfolding $\delta$ from $s_0$:
 \[
   s_0 \xrightarrow{\iota_1 / o_1} s_1 \xrightarrow{\iota_2 / o_2} s_2 \;\cdots\; \xrightarrow{\iota_n / o_n} s_n, \qquad o_i \in O,\ s_i \in S.
@@ -243,7 +243,7 @@ The \emph{observation trace} of the run is the list
 \[
   \mathcal{T}\bigl( \mathcal{M}, \vec\iota \bigr) \;\triangleq\; o_1,\ldots,o_n
 .\]
-For timing security, an adversary interprets elements of $O$ (modulo erasure, described in \Cref{sec:timing-ct}) as leaked information.
+For timing security, an attacker interprets elements of $O$ (modulo erasure, described in \Cref{sec:timing-ct}) as leaked information.
 Aborted transitions do not produce outputs in the observation trace.
 
 The state machine model is mechanized in Rocq as a plain record (\Cref{fig:circuit-typeclass}), parameterized by a state type~\mintinline{coq}{s}, an input type~\mintinline{coq}{i}, and an output type~\mintinline{coq}{o}.
@@ -256,8 +256,8 @@ Record StateMachine (s i o : Type) := {
   state_machine_call : i -> Action s o;
 }.
 \end{minted}
-\caption[State machine definition in Rocq.]{The \mintinline{coq}{StateMachine} record. The fields \mintinline{coq}{state\_machine\_rst}
-  and \mintinline{coq}{state\_machine\_call} correspond to $s_0$ and to $\delta$ respectively.}
+\caption[State machine definition in Rocq.]{The \mintinline{coq}{StateMachine} record. The fields \mintinline{coq}{state_machine_rst}
+  and \mintinline{coq}{state_machine_call} correspond to $s_0$ and to $\delta$ respectively.}
 \label{fig:circuit-typeclass}
 \end{figure}
 
@@ -703,7 +703,7 @@ Call~\(\mathcal M_2\) \emph{erased-trace equivalent} to~\(\mathcal M_1\) under~\
 
 \begin{lemma}[Simulation lifts to erased traces]
 \label{lem:sim-lift-erased-traces}
-If \(\mathcal{M}_1\) simulates \(\mathcal{M}_2\) under~\((\mathcal E,R)\) in the sense of~\Cref{def:machine-refinement} and \(R(s_{0,1},s_{0,2})\), then for every input history~\(\vec\iota\in I^*\),
+If \(\mathcal{M}_1\) simulates \(\mathcal{M}_2\) under~\((R, \mathcal E)\) in the sense of~\Cref{def:machine-refinement} and \(R(s_{0,1},s_{0,2})\), then for every input history~\(\vec\iota\in I^*\),
 \[
   \mathcal{T}_{\mathcal E}(\mathcal M_1,\vec\iota)
   =
