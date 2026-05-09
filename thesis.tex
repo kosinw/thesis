@@ -963,7 +963,7 @@ Finally, it discusses the proof strategy needed to show that the implementation 
 
 \subsection{Writing specifications} \label{sec:golemma-spec-framework}
 
-A specification describes the set of valid behaviors a module may exhibit without prescribing how those behaviors are realized.
+A specification describes the set of valid behaviors a module may exhibit without giving a concrete executable model for it.
 Specifications do not need to be executable; they are ordinary Rocq propositions, and it is perfectly acceptable for them to reason existentially, use set membership, or invoke any Gallina predicate.
 The only constraint is that a specification must cover the same interface as the implementation it is meant to describe: the interface acts as the specification boundary, and both the concrete module and its specification provide an implementation of every method declared there, with matching argument and return types.
 
