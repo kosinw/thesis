@@ -740,7 +740,7 @@ Compose~\Cref{lem:sim-lift-erased-traces}, which aligns the~\(\mathcal{M}_{\math
 
 This chapter presents a framework for verifying functional correctness on synthesizable hardware circuits. It first introduces the deeply-embedded GoLemma language which has similarities Bluespec SystemVerilog (\Cref{sec:golemma-intro}).
 Then, it covers language extensions that enable the synthesis of Gallina types and for loops into GoLemma (\Cref{sec:golemma-synth}).
-Finally, it discusses how functional specifications are written (\Cref{sec:golemma-spec}) and develops the simulation-based proof structure used to show modular refinement (\Cref{sec:golemma-proof}).
+Finally, it discusses how functional specifications are written and develops the proof strategy used to show modular refinement (\Cref{sec:golemma-spec}).
 This chapter's framework is exercised in two case studies: a ring buffer (\Cref{sec:ring-buffer}) and a reorder buffer (\Cref{sec:reorder-buffer}).
 
 \section{Encoding circuits with GoLemma} \label{sec:golemma-intro}
@@ -954,21 +954,123 @@ end
 \end{minted}
 The loop bound \mintinline{coq}{hi} must be a natural number fixed at elaboration time, so the loop always runs a statically known number of iterations, as required for synthesizability. During verification, for-loop semantics will reduce to a loop rule which will require providing an explicit loop invariant.
 
-\section{Functional specification} \label{sec:golemma-spec}
+\section{Specifying and proving functional correctness} \label{sec:golemma-spec}
 
-\section{Proof strategy} \label{sec:golemma-proof}
+Proving that a GoLemma module is correct requires a way to express what the module is "supposed to do" and a way to connect that description to the module's behavior.
+This section describes both.
+It first introduces how to write relational specifications for GoLemma methods and rules which are then composed into a modular specification (\Cref{sec:golemma-spec-framework}).
+Finally, it discusses the proof strategy needed to show that the implementation refines the specification (\Cref{sec:golemma-spec-refinement}).
+
+\subsection{Writing specifications} \label{sec:golemma-spec-framework}
+
+A specification describes the set of valid behaviors a module may exhibit without prescribing how those behaviors are realized.
+Specifications do not need to be executable; they are ordinary Rocq propositions, and it is perfectly acceptable for them to reason existentially, use set membership, or invoke any Gallina predicate.
+The only constraint is that a specification must cover the same interface as the implementation it is meant to describe: the interface acts as the specification boundary, and both the concrete module and its specification provide an implementation of every method declared there, with matching argument and return types.
+
+The rest of this subsection develops a specification for the \texttt{GCD} interface from \Cref{fig:golemma-gcd-intf}, using it to illustrate each aspect of the specification style.
+
+\paragraph{Abstract state.}
+Every specification module has an associated \emph{abstract state} type, which is an ordinary Gallina type chosen to model the module's behavior at the desired level of abstraction.
+For the GCD module, the natural abstract state is a pair of 16-bit operands:
+
+\begin{minted}{coq}
+Record State := mkState { gcd_a : bv 16; gcd_b : bv 16 }.
+
+Definition rst : State := mkState (bv_0 _) (bv_0 _).
+\end{minted}
+
+This Gallina record has no connection to GoLemma's hardware type system.
+The abstract state lives entirely in Gallina; it is only the implementation that lives in the hardware embedding.
+The distinction is the central benefit: proofs about the specification are stated in terms of \texttt{bv 16} arithmetic rather than in terms of register reads and writes.
+
+\paragraph{Predicate-transformer style.}
+Each method specification is written in a \emph{predicate-transformer} style.
+Rather than producing an output value directly, a specification takes a postcondition $P$ and is responsible for establishing that $P$ holds of its outputs.
+This continuation-passing convention gives a uniform way to state both what the method requires of its inputs and what it guarantees about its outputs.
+
+GoLemma provides two specification types.
+Value method specifications have type \mintinline{coq}{MRVSpec State sig}, instantiated as functions of the form:
+\[
+  (\mathit{args} \times \mathit{State}) \to (\mathit{ret} \to \mathsf{Prop}) \to \mathsf{Prop}
+\]
+Action method specifications have type \mintinline{coq}{MRASpec State sig}, where the postcondition additionally receives the next state:
+\[
+  (\mathit{args} \times \mathit{State}) \to ((\mathit{ret} \times \mathit{State}) \to \mathsf{Prop}) \to \mathsf{Prop}
+\]
+In both cases the outermost proposition is the body of the specification.
+
+\paragraph{Value methods.}
+The \texttt{result} method returns the current first operand, and \texttt{done} returns whether the second operand is zero.
+Each specification simply calls $P$ on the appropriate return value:
+\begin{minted}{coq}
+Definition result' : MRVSpec State (mkMetSig <> Bit#(16)) :=
+  fun '(_, st) P => P (gcd_a st).
+
+Definition done' : MRVSpec State (mkMetSig <> Bit#(1)) :=
+  fun '(_, st) P =>
+    P (if decide (gcd_b st = bv_0 _) then pack true else pack false).
+\end{minted}
+The postcondition is stated by choosing what term to apply $P$ to.
+Different terms produce stronger or weaker guarantees; the specification's job is to apply $P$ to exactly the value the method is guaranteed to return.
+
+\paragraph{Action methods and preconditions.}
+Action method specifications additionally describe how the abstract state evolves.
+The \texttt{load} method sets the two operands to the supplied arguments:
+\begin{minted}{coq}
+Definition load' : MRASpec State (mkMetSig <Bit#(16) a, Bit#(16) b> Bit#(0)) :=
+  fun '(args, _) P =>
+    let a := args[[@0]] in  let b := args[[@1]] in
+    exists st', st' = mkState a b /\ P (bv_0 _, st').
+\end{minted}
+The successor state \mintinline{coq}{st'} is introduced existentially and constrained to satisfy the postcondition \mintinline{coq}{P}.
+
+The \texttt{step} method is more interesting because the implementation aborts when the second operand is zero.
+A \emph{precondition} on the method is expressed as a conjunct placed \emph{outside} of $P$, before any existential quantification:
+\begin{minted}{coq}
+Definition step' : MRASpec State (mkMetSig <> Bit#(0)) :=
+  fun '(_, st) P =>
+    gcd_b st <> bv_0 _ /\
+    exists st',
+      st' = (if decide (bv_uge (gcd_a st) (gcd_b st))
+             then mkState (bv_sub (gcd_a st) (gcd_b st)) (gcd_b st)
+             else mkState (gcd_a st) (bv_sub (gcd_b st) (gcd_a st))) /\
+      P (bv_0 _, st').
+\end{minted}
+Because \mintinline{coq}{gcd_b st <> bv_0 _} sits outside $P$, it is a hard obligation on the \emph{caller}: the refinement proof must demonstrate that the implementation never invokes \texttt{step} in a state where the abort path can be reached.
+Postconditions, by contrast, are captured by choosing which \mintinline{coq}{st'} to quantify over and what constraint on it to conjoin with \mintinline{coq}{P (bv_0 _, st')}.
+
+\paragraph{Representation invariants.}
+The abstract state does not need to mirror the implementation's concrete layout.
+For the GCD module, the flat \mintinline{coq}{State} record is sufficient because any pair of bitvectors is a valid abstract state.
+More complex modules require a \emph{representation invariant} that restricts which abstract states are reachable.
+This is expressed by adding a dependent proof field to the state record:
+\begin{minted}{coq}
+Record State := mkState {
+  items : list Item;
+  wf    : Forall (fun it => item_rob_idx it < N) items /\
+          NoDup (item_rob_idx <$> items) /\
+          length items <= N;
+}.
+\end{minted}
+The \mintinline{coq}{wf} field is a Rocq proof term carried alongside every abstract state value.
+Since Rocq's type system enforces that the field is present, only states satisfying the invariant can be constructed; no explicit invariant hypothesis is needed in proofs.
+Method specifications then discharge the invariant for their successor state as part of their existential witness, maintaining it at every step.
+
+\subsection{Proof strategy} \label{sec:golemma-spec-refinement}
 
 \chapter{Case studies} \label{chap:cases}
 
 \section{Timing security: Multiplier} \label{chap:case-multiplier}
+\comment{TODO(kosinw): Write section}
 \section{Timing security: Multiple-cycle processor} \label{chap:case-processor}
+\comment{TODO(kosinw): Write section}
 \section{Functional correctness: Ring buffer} \label{sec:ring-buffer}
+\comment{TODO(kosinw): Write section}
 \section{Functional correctness: Reorder buffer} \label{sec:reorder-buffer}
+\comment{TODO(kosinw): Write section}
 
 \chapter{Conclusion}
-\section{Developer effort}
-\section{Discussion}
-\section{Future work}
+\comment{TODO(kosinw): Write chapter}
 
 \bibliographystyle{plain}
 \bibliography{refs}
