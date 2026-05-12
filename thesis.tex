@@ -5,6 +5,7 @@
 \usepackage{xcolor}
 \usepackage{amsmath}
 \usepackage{tikz-cd}
+\usetikzlibrary{arrows.meta}
 \usepackage{stmaryrd}
 \usepackage{mathpartir}
 \usepackage{minted}
@@ -63,7 +64,7 @@
 % \setcounter{topnumber}{1}
 
 \begin{document}
-\title{Towards Verifying Correctness and Timing Properties for \\ Out-of-Order Machines}
+\title{Towards Verifying Correctness and Timing Properties for \protect\\ Out-of-Order Machines}
 \Author{Kosi Nwabueze}{Department of Electrical Engineering and Computer Science} [S.B., Massachusetts Institute of Technology (2025)]
 \Degree{Master of Engineering in Electrical Engineering and Computer Science}{Department of Electrical Engineering and Computer Science}
 \Supervisor{Adam Chlipala}{Professor of Computer Science}[Department of Electrical Engineering and Computer Science]
@@ -196,12 +197,12 @@ Prior work on hardware timing security~\cite{duxovni2018} builds off the Kami fr
 More recent work~\cite{lau2024} formally specifies and verifies strong timing isolation for hardware enclaves, reasoning about cycle-accurate circuit semantics with respect to an air-gapped-machine formulation of isolation and applying the method to a multicore, pipelined RISC-V design.
 This thesis continues in the same tradition, carrying these timing-security proof techniques into the setting of individual submodules of a large out-of-order machine.
 
-\chapter{Verifying timing security for circuits} \label{chap:timing}
+\chapter{Verifying timing security for circuits} \label{chap:Slate}
 
 This chapter presents a framework for timing-security verification of hardware circuits.
 It begins by giving a formalism of state machines (\Cref{sec:timing-state-machine}) to model hardware circuits and then introduces \emph{Slate} (\textbf{s}urface \textbf{l}anguage for \textbf{a}ctions), a shallowly embedded language in Rocq for specifying hardware circuits (\Cref{sec:timing-monads}).
 Finally, it defines hardware timing security and develops the simulation-based proof structure used to establish it (\Cref{sec:timing-security}).
-The chapter's framework is exercised in two case studies: a constant-time multiplier (\Cref{chap:case-multiplier}) and a constant-time, multi-cycle processor (\Cref{chap:case-processor}).
+The chapter's framework is exercised in two case studies: a constant-time multiplier (\Cref{sec:case-study-multiplier}) and a constant-time, multi-cycle processor (\Cref{sec:case-study-processor}).
 
 \section{State machines} \label{sec:timing-state-machine}
 
@@ -254,7 +255,7 @@ Concretely, the machine $\mathcal{M}$ produces a sequence of optional outputs by
 \]
 The \emph{observation trace} of the run is the list
 \[
-  \mathcal{T}\bigl( \mathcal{M}, \vec\iota \bigr) \;\triangleq\; o_1,\ldots,o_n
+  \mathcal{T}\bigl( \mathcal{M}, \vec\iota \bigr) \;\triangleq\; \bigl(o_1,o_2,\ldots,o_n \bigr)
 .\]
 For timing security, an attacker interprets elements of $O$ (modulo erasure, described in \Cref{sec:timing-security}) as leaked information.
 Aborted transitions do not produce outputs in the observation trace.
@@ -752,7 +753,7 @@ Instantiate~\Cref{lem:sim-lift-erased-traces} with the implementation taken to b
 This chapter presents a framework for verifying functional correctness on synthesizable hardware circuits. It first introduces the deeply embedded Golemma language, which has similarities to Bluespec SystemVerilog (\Cref{sec:Golemma-intro}).
 Then, it covers language extensions that enable the synthesis of Gallina types and for loops into Golemma (\Cref{sec:Golemma-synth}).
 Finally, it discusses how functional specifications are written and develops the proof strategy used to show modular refinement (\Cref{sec:Golemma-spec}).
-This chapter's framework is exercised in two case studies: a ring buffer (\Cref{sec:ring-buffer}) and a reorder buffer (\Cref{sec:reorder-buffer}).
+This chapter's framework is exercised in two case studies: a ring buffer (\Cref{sec:case-study-ring-buffer}) and a reorder buffer (\Cref{sec:case-study-reorder-buffer}).
 
 \section{Encoding circuits with Golemma} \label{sec:Golemma-intro}
 This section introduces the key constructs of Golemma through an example circuit: a module that computes the greatest common divisor (GCD) of two 16-bit numbers using the Euclidean algorithm.
@@ -881,7 +882,7 @@ Beyond Golemma types, several finite Gallina types have built-in instances: bitv
 Three additional type classes extend \mintinline{coq}{Synthesizable} to structured Gallina types: Struct, Enum, and Bitflags.
 Each provides a Synthesizable instance automatically during type-class resolution.
 
-\subsection{Structure types} \label{sec:Golemma-struct}
+\subsection{Structures} \label{sec:Golemma-struct}
 The Struct type class handles Gallina records whose fields are all synthesizable.
 An instance maps the record to a Golemma deeply embedded struct type, with each field packed and unpacked field-by-field.
 \Cref{fig:synth-struct} shows a simple example.
@@ -905,7 +906,7 @@ Instance decoded_instr_struct : Struct DecodedInstr. derive_struct. Defined.
 \label{fig:synth-struct}
 \end{figure}
 
-\subsection{Enumerable types} \label{sec:Golemma-enum}
+\subsection{Enumerables} \label{sec:Golemma-enum}
 The Enum type class handles Gallina inductive types with only nullary constructors, that is, simple variant types with no associated data.
 An instance maps each constructor to a distinct element of a Golemma \mintinline{coq}{enum_t}, with the representation width chosen as $\lceil \log_2 n \rceil$ bits for a type with $n$ constructors.
 \Cref{fig:synth-enum} shows a three-constructor color type.
@@ -921,7 +922,7 @@ Instance color_enum : Enum Color. derive_enum. Defined.
 \label{fig:synth-enum}
 \end{figure}
 
-\subsection{Bitflag types} \label{sec:Golemma-bitflag}
+\subsection{Bitflags} \label{sec:Golemma-bitflag}
 The Bitflags type class handles Gallina variant types where each constructor represents an independent flag in a bitset.
 Each constructor is mapped to a distinct bit position in a fixed-width bitvector, and the associated \mintinline{coq}{Bitset} type, which is formalized as a finite set using set-algebra instances from stdpp.
 Proofs over bitsets can therefore use the \mintinline{coq}{set_solver} tactic and the full stdpp set lemma library.
@@ -943,10 +944,11 @@ Example user_rx_has_read : elem_of Read user_rx. Proof. set_solver. Qed.
 \end{figure}
 
 \subsection{Metaprogramming} \label{par:ltac2}
+Ltac1 is Rocq's original and most commonly used tactic language; tactics are used as scripts to construct proof terms in Rocq.
+Ltac2 is a newer, typed tactic language with better support for inspecting and constructing Rocq terms programmatically, making it a better fit for metaprogramming purposes.
+
 Deriving instances for \mintinline{coq}{Struct}, \mintinline{coq}{Enum}, and \mintinline{coq}{Bitflags} requires inspecting inductive type definitions at elaboration time.
 Rather than requiring these type-class instances to be derived by hand, the framework uses Ltac2 to perform this metaprogramming.
-Ltac1 is Rocq's original and most commonly used tactic language; tactics are used as scripts to construct proof terms in Rocq.
-Ltac2 is a newer, typed tactic language with better support for inspecting and constructing Rocq terms programmatically, making it a better fit for deriving type-class instances from syntax.
 The derivation tactics (\mintinline{coq}{derive_struct}, \mintinline{coq}{derive_enum}, \mintinline{coq}{derive_bitflags}) each reflect a Rocq inductive into a Golemma type signature and discharge any resulting proof obligations using Ltac1.
 
 When a Golemma expression contains an identifier, the language front-end uses a sophisticated type-class-resolution mechanism to decide if it refers to a local method parameter, a local let binding, or a submodule.
@@ -1083,7 +1085,7 @@ The predicate-transformer style mirrors Hoare-logic-style method contracts.
 A precondition is a proposition outside $P$ that constrains what the method requires of its inputs; a postcondition is a proposition inside $P$ that describes what the method guarantees about its outputs.
 Similar to ADT specifications, these contracts are \emph{relational}. Specifications are allowed to use arbitrary Gallina propositions, including existential quantification, so they can express nondeterminism cleanly.
 An implementation that can nondeterministically return any element of a set satisfying some predicate is expressed by quantifying existentially over the return value. The specification makes no commitment about which element is chosen.
-This feature is particularly useful when specifying the issue logic of an out-of-order processor scheduler (\Cref{sec:reorder-buffer}), where the choice of which ready instruction to issue is left unspecified.
+This feature is particularly useful when specifying the issue logic of an out-of-order processor scheduler (\Cref{sec:case-study-reorder-buffer}), where the choice of which ready instruction to issue is left unspecified.
 The abstraction function appears explicitly as the simulation relation between the concrete register state of the implementation and the abstract state, when establishing refinement.
 
 \subsection{Writing proofs} \label{sec:Golemma-spec-refinement}
@@ -1146,11 +1148,11 @@ A module $\mathcal{M}_I$ \emph{refines} a module $\mathcal{M}_S$ when there exis
 \end{enumerate}
 \end{definition}
 
-\paragraph{Example proof.}
-To make the proof methodology concrete, we walk through a complete functional-correctness proof for the GCD module as a worked example.
-The proof reduces to a collection of per-method and per-rule lemmas.
-The most consequential design decision is the choice of simulation relation~$R$.
-The relation asserts that each register value, converted from a bitvector to a natural number, agrees with the corresponding \mintinline{coq}{GcdState} field.
+\paragraph{Example.}
+We walk through a complete functional-correctness proof for the GCD module as a worked example.
+The proof obligations reduce to a collection of per-method-refinement lemmas.
+The most important design decision for the proof is the choice of simulation relation~$R$.
+The relation asserts that each register value, converted from a bitvector to a natural number, agrees with the corresponding abstract field.
 \Cref{fig:gcd-R} shows the Rocq definition.
 \begin{figure}[H]
 \begin{minted}{coq}
@@ -1161,11 +1163,19 @@ Definition R (ist : ImplState) (sst : GcdState) : Prop :=
 \label{fig:gcd-R}
 \end{figure}
 With $R$ fixed, each method proof follows the same pattern: use the equalities in $R$ to rewrite the implementation's register values as their abstract counterparts, then show the resulting expression matches the postcondition $P$ of the specification.
-Action-method and rule proofs require exhibiting a successor abstract state and showing that $R$ is restored after the step.
+Action-method proofs require exhibiting a successor abstract state and showing that $R$ is restored after the step.
 The lemmas below demonstrate an example proof for each method of the GCD module.
 
 \begin{lemma} \label{lem:gcd-zero}
 For all $a$, $b$, $x$, if $\gcd(a, b) = \gcd(x, 0)$ then $x = \gcd(a, b)$.
+\end{lemma}
+
+\begin{lemma} \label{lem:gcd-subtract}
+For all $a$, $b$, if $b \geq a$ then $\gcd(a, b) = \gcd(b, b - a)$.
+\end{lemma}
+
+\begin{lemma} \label{lem:gcd-swap}
+For all $a$, $b$, $\gcd(a, b) = \gcd(b, a)$.
 \end{lemma}
 
 \begin{lemma}\label{lem:gcd-finished-refines}
@@ -1179,14 +1189,13 @@ Since $R$ equates the two (modulo type conversion), both checks yield the same B
 \end{proof}
 
 \begin{lemma} \label{lem:gcd-result-refines}
-The implementation of \mintinline{coq}{result} refines its value-method specification under $R$.
+The implementation of \mintinline{coq}{result} refines its value-method specification under $R$, provided $s.b' = 0$.
 Moreover, the value returned by \mintinline{coq}{result} equals $\gcd(s.a, s.b)$.
 \end{lemma}
 
 \begin{proof}[Proof sketch]
 Assume $(i, s) \in R$.
 The specification gives the bitvector encoding of $s.a'$. Since $R$ equates $i.a$ with $s.a'$, the implementation's return value is equal to what the specification states.
-As part of the precondition for \mintinline{coq}{result}, we assume that $s.b'$ is zero.
 The representation invariant gives $\gcd(s.a, s.b) = \gcd(s.a', 0)$, and \Cref{lem:gcd-zero} then concludes $i.a = s.a' = \gcd(s.a, s.b)$.
 \end{proof}
 
@@ -1202,16 +1211,20 @@ Taking the successor abstract state to be the one the specification constructs, 
 \end{proof}
 
 \begin{lemma} \label{lem:gcd-step-refines}
-The implementation of \mintinline{coq}{step} refines its action-method specification under $R$, provided $b' \neq 0$.
+The implementation of \mintinline{coq}{step} refines its action-method specification under $R$, provided $s.b' \neq 0$.
 \end{lemma}
 
 \begin{proof}[Proof sketch]
-Assume $(i, s) \in R$ with $b' \neq 0$.
+Assume $(i, s) \in R$.
 Since $R$ equates $s.b'$ with $i.b$, $i.b$ is also nonzero, so the implementation does not reach the \mintinline{coq}{abort} path.
-Both the specification and the implementation perform the same conditional subtraction: if $s.a' \geq s.b'$ they subtract $s.b'$ from $s.a'$, and otherwise they subtract $s.a'$ from $s.b'$.
-Since the register values equal the abstract fields (by $R$), the implementation's conditional and the specification's conditional take the same branch.
-After the update the new register values equal the new abstract fields, so $R$ is restored.
-The representation invariant is preserved because subtracting the smaller operand from the larger does not change the GCD.
+Both the specification and the implementation perform the same conditional subtraction, and since the register values equal the abstract fields by $R$, the two conditionals take the same branch.
+After the update, the new register values equal the new abstract fields, so $R$ is restored.
+
+It remains to show the representation invariant $\gcd(a, b) = \gcd(a'', b'')$ holds for the successor state $(a'', b'')$.
+In the first branch, $s.a' \geq s.b'$, so $(a'', b'') = (s.a' - s.b',\; s.b')$.
+The invariant $\gcd(a,b) = \gcd(s.a', s.b')$ and \Cref{lem:gcd-subtract} give $\gcd(s.a', s.b') = \gcd(s.a' - s.b', s.b')$, establishing the invariant.
+In the second branch, $s.a' < s.b'$, so $(a'', b'') = (s.a',\; s.b' - s.a')$.
+Applying \Cref{lem:gcd-swap} gives $\gcd(s.a', s.b') = \gcd(s.b', s.a')$, then \Cref{lem:gcd-subtract} gives $\gcd(s.b', s.a') = \gcd(s.b' - s.a', s.a')$, and a final application of \Cref{lem:gcd-swap} yields $\gcd(s.a', s.b' - s.a')$, establishing the invariant.
 \end{proof}
 
 \begin{theorem} \label{thm:gcd-correct}
@@ -1223,20 +1236,307 @@ Apply \Cref{def:refines-module}: the reset states are related by construction, a
 \end{proof}
 
 \chapter{Case studies} \label{chap:cases}
+This chapter demonstates the expressivity of the two verification frameworks covered in~\Cref{chap:Slate,chap:Golemma} by presenting a series of case studies. First, it discusses proofs of timing security for a variable-latency multiplier and a multiple-cycle processor using the Slate framework (\Cref{sec:case-study-multiplier,sec:case-study-processor}). Then, it uses the Golemma framework to present functional-correctness proofs for a ring buffer and a reorder buffer (\Cref{sec:case-study-ring-buffer,sec:case-study-reorder-buffer}).
 
-\section{Timing security: Multiplier} \label{chap:case-multiplier}
-\comment{TODO(kosinw): Write section}
-\section{Timing security: Multiple-cycle processor} \label{chap:case-processor}
-\comment{TODO(kosinw): Write section}
-\section{Functional correctness: Ring buffer} \label{sec:ring-buffer}
-\comment{TODO(kosinw): Write section}
-\section{Functional correctness: Reorder buffer} \label{sec:reorder-buffer}
-\comment{TODO(kosinw): Write section}
+\section{Timing security: Variable-latency multiplier} \label{sec:case-study-multiplier}
+
+This section presents the hardware-constant-time verification of a variable-latency integer multiplier.
+The multiplier computes the product of two 8-bit operands using a shift-and-add algorithm that iterates once per bit of the first operand.
+Because the number of cycles depends on the first operand and not the second, the second operand can be treated as a secret without affecting the timing behavior.
+The goal is to establish hardware constant time with respect to an erasure contract that hides the second operand and the final product.
+
+\subsection{Interface}
+
+The multiplier exposes six methods.
+Three operations are stateful: \mintinline{coq}{enq} loads a pair of operands and starts the computation, \mintinline{coq}{step} advances the shift-and-add algorithm by one step, and \mintinline{coq}{deq} retrieves the result once it is ready.
+Three additional operations are observational: \mintinline{coq}{empty}, \mintinline{coq}{busy}, and \mintinline{coq}{full}.
+
+\Cref{fig:mult-block-diagram} shows the port-level signals of the multiplier.
+Each method is represented as a group of signals: an enable input, driven by the caller to invoke the method, and a ready output, driven by the module to indicate that the method's guard holds and the call will succeed.
+These signals form a handshaking protocol which ensures that the method will only execute if both signals are latched logical high on the same cycle.
+Stateful methods may also carry data signals: \mintinline{coq}{enq} takes the two operands \texttt{a[7:0]} and \texttt{b[7:0]} as inputs, while \mintinline{coq}{deq} produces the 16-bit product \texttt{c[15:0]} as an output.
+The observational methods (\mintinline{coq}{empty}, \mintinline{coq}{busy}, \mintinline{coq}{full}) each return a single boolean result.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  >=stealth, thick,
+  sig/.style={font=\ttfamily\scriptsize, inner sep=1pt},
+  grp/.style={font=\sffamily\scriptsize, text=gray!70, inner sep=1pt},
+]
+\def\bw{3.0}
+\def\sw{1.1}
+
+\draw[very thick] (0,0) rectangle (\bw,8.6);
+\node[font=\sffamily\small\bfseries, above=2pt] at (\bw/2,8.6) {Multiplier};
+
+\draw[gray!50, thin, dashed] (0,6.0) -- (\bw,6.0);
+\draw[gray!50, thin, dashed] (0,4.2) -- (\bw,4.2);
+\draw[gray!50, thin, dashed] (0,2.7) -- (\bw,2.7);
+
+\node[grp] at (\bw/2,7.3) {enq};
+\node[grp] at (\bw/2,5.1) {deq};
+\node[grp] at (\bw/2,3.45) {step};
+\node[grp] at (\bw/2,1.35) {status};
+
+% enq
+\draw[->,sig] (-\sw,8.1) -- (0,8.1) node[sig,pos=0,left] {enq\_en};
+\draw[->,sig] (-\sw,7.5) -- (0,7.5) node[sig,pos=0,left] {a[7:0]};
+\draw[->,sig] (-\sw,6.7) -- (0,6.7) node[sig,pos=0,left] {b[7:0]};
+\draw[->,sig] (\bw,7.5) -- (\bw+\sw,7.5) node[sig,pos=1,right] {enq\_rdy};
+
+% deq
+\draw[->,sig] (-\sw,5.1) -- (0,5.1) node[sig,pos=0,left] {deq\_en};
+\draw[->,sig] (\bw,5.5) -- (\bw+\sw,5.5) node[sig,pos=1,right] {deq\_rdy};
+\draw[->,sig] (\bw,4.7) -- (\bw+\sw,4.7) node[sig,pos=1,right] {c[15:0]};
+
+% rule
+\draw[->,sig] (-\sw,3.45) -- (0,3.45) node[sig,pos=0,left] {step\_en};
+\draw[->,sig] (\bw,3.45) -- (\bw+\sw,3.45) node[sig,pos=1,right] {step\_rdy};
+
+% status
+\draw[->,sig] (-\sw,2.2) -- (0,2.2) node[sig,pos=0,left] {empty\_en};
+\draw[->,sig] (\bw,2.2) -- (\bw+\sw,2.2) node[sig,pos=1,right] {empty\_r};
+\draw[->,sig] (-\sw,1.45) -- (0,1.45) node[sig,pos=0,left] {busy\_en};
+\draw[->,sig] (\bw,1.45) -- (\bw+\sw,1.45) node[sig,pos=1,right] {busy\_r};
+\draw[->,sig] (-\sw,0.7) -- (0,0.7) node[sig,pos=0,left] {full\_en};
+\draw[->,sig] (\bw,0.7) -- (\bw+\sw,0.7) node[sig,pos=1,right] {full\_r};
+
+\end{tikzpicture}
+\caption[Port-level block diagram of multiplier]{Port-level block diagram of a variable-latency multiplier.
+Each method exposes a enable input (asserted by the caller) and a ready output (asserted by the module when the guard holds).}
+\label{fig:mult-block-diagram}
+\end{figure}
+
+\subsection{Erasure contract}
+
+The secrets are the second operand \mintinline{coq}{b[7:0]} and the product \mintinline{coq}{c[15:0]} it gives rise to.
+The attacker's observation model is as follows: the attacker can see \emph{when} any method is called, but not the values of \mintinline{coq}{b[7:0]} or \mintinline{coq}{c[15:0]} being transferred.
+\Cref{fig:mult-attacker-diagram} highlights the attacker-visible signals under this threat model.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  >=stealth, thick,
+  sig/.style={font=\ttfamily\scriptsize, inner sep=1pt},
+  grp/.style={font=\sffamily\scriptsize, inner sep=1pt},
+  hid/.style={opacity=0.18},
+]
+\def\bw{3.0}
+\def\sw{1.1}
+
+\draw[very thick] (0,0) rectangle (\bw,8.6);
+\node[font=\sffamily\small\bfseries, above=2pt] at (\bw/2,8.6) {Multiplier};
+
+\draw[gray!50, thin, dashed] (0,6.0) -- (\bw,6.0);
+\draw[gray!50, thin, dashed] (0,4.2) -- (\bw,4.2);
+\draw[gray!50, thin, dashed] (0,2.7) -- (\bw,2.7);
+
+% Group labels: visible groups in black, hidden group faded
+\node[grp, text=gray!70] at (\bw/2,7.3) {enq};
+\node[grp, text=gray!70] at (\bw/2,5.1) {deq};
+\node[grp, text=gray!70] at (\bw/2,3.45) {step};
+\node[grp, text=gray!70] at (\bw/2,1.35) {status};
+
+% enq -- en and a are visible; b is hidden
+\draw[->,sig] (-\sw,8.1) -- (0,8.1) node[sig,pos=0,left] {enq\_en};
+\draw[->,sig] (-\sw,7.5) -- (0,7.5) node[sig,pos=0,left] {a[7:0]};
+\begin{scope}[hid]
+  \draw[->,sig] (-\sw,6.7) -- (0,6.7) node[sig,pos=0,left] {b[7:0]};
+\end{scope}
+\draw[->,sig] (\bw,7.5) -- (\bw+\sw,7.5) node[sig,pos=1,right] {enq\_rdy};
+
+% deq -- en and rdy are visible; product c is hidden
+\draw[->,sig] (-\sw,5.1) -- (0,5.1) node[sig,pos=0,left] {deq\_en};
+\draw[->,sig] (\bw,5.5) -- (\bw+\sw,5.5) node[sig,pos=1,right] {deq\_rdy};
+\begin{scope}[hid]
+  \draw[->,sig] (\bw,4.7) -- (\bw+\sw,4.7) node[sig,pos=1,right] {c[15:0]};
+\end{scope}
+
+% rule -- output erased to None; both signals hidden
+\draw[->,sig] (-\sw,3.45) -- (0,3.45) node[sig,pos=0,left] {rule\_en};
+\draw[->,sig] (\bw,3.45) -- (\bw+\sw,3.45) node[sig,pos=1,right] {rule\_rdy};
+
+% status -- enables visible; outputs erased to None
+\draw[->,sig] (-\sw,2.2) -- (0,2.2) node[sig,pos=0,left] {empty\_en};
+\draw[->,sig] (-\sw,1.45) -- (0,1.45) node[sig,pos=0,left] {busy\_en};
+\draw[->,sig] (-\sw,0.7) -- (0,0.7) node[sig,pos=0,left] {full\_en};
+\draw[->,sig] (\bw,2.2) -- (\bw+\sw,2.2) node[sig,pos=1,right] {empty\_r};
+\draw[->,sig] (\bw,1.45) -- (\bw+\sw,1.45) node[sig,pos=1,right] {busy\_r};
+\draw[->,sig] (\bw,0.7) -- (\bw+\sw,0.7) node[sig,pos=1,right] {full\_r};
+
+\end{tikzpicture}
+\caption{Attacker-visible signals of the multiplier under the erasure contract.
+Faded signals are erased: \texttt{b[7:0]} is replaced by zero in \texttt{erase\_inp},
+the product \texttt{c[15:0]} is mapped to \texttt{None} in \texttt{erase\_out}.}
+\label{fig:mult-attacker-diagram}
+\end{figure}
+
+The erasure contract formalizes this model in two functions shown in \Cref{fig:mult-erasure}.
+\mintinline{coq}{erase_inp} replaces the second operand with zero on every \mintinline{coq}{InpEnq} and leaves all other inputs unchanged.
+\mintinline{coq}{erase_out} preserves \mintinline{coq}{OutEnq} as is, replaces the product in \mintinline{coq}{OutDeq} with zero, and maps all remaining outputs to \mintinline{coq}{None} (not observable).
+
+\begin{figure}[H]
+\begin{minted}{coq}
+Definition erase_inp (m : I) : I :=
+  match m with
+  | InpEnq a _ => InpEnq a 0%bv
+  | other      => other
+  end.
+
+Definition erase_out (out : option O) : option O :=
+  match out with
+  | Some (OutDeq _)  => Some (OutDeq 0%bv)
+  | ohter            => other
+  end.
+\end{minted}
+\caption{Erasure functions for the multiplier. The second operand and the product are both hidden.}
+\label{fig:mult-erasure}
+\end{figure}
+
+\subsection{Implementation}
+
+The multiplier holds five registers: \mintinline{coq}{src1} and \mintinline{coq}{src2} (the two 8-bit operands), \mintinline{coq}{dst} (the 16-bit accumulator), \mintinline{coq}{count} (a 3-bit iteration counter), and \mintinline{coq}{phase} (the pipeline stage).
+\Cref{fig:mult-state} shows the state record and reset values.
+
+\begin{figure}[H]
+\begin{minted}{coq}
+Variant Phase := Empty | Busy | Full.
+
+Record State := {
+  src1  : Bit#(8);
+  src2  : Bit#(8);
+  dst   : Bit#(16);
+  count : Bit#(3);
+  phase : Phase;
+}.
+\end{minted}
+\caption{State type and pipeline phases of the multiplier.}
+\label{fig:mult-state}
+\end{figure}
+
+Each call to \mintinline{coq}{rule} invokes the \mintinline{coq}{shift_and_add} subroutine shown in \Cref{fig:mult-shift-add}.
+If \mintinline{coq}{src1} is already zero the step is a no-op; otherwise, if the least significant bit of \mintinline{coq}{src1} is one, the subroutine adds \mintinline{coq}{src2} shifted left by \mintinline{coq}{count} to \mintinline{coq}{dst}.
+In both cases, \mintinline{coq}{src1} is right-shifted by one and \mintinline{coq}{count} is incremented.
+Once \mintinline{coq}{src1} reaches zero, the outer \mintinline{coq}{rule} transitions the phase to \mintinline{coq}{Full}, making the result available for dequeue.
+
+\begin{figure}[H]
+\begin{minted}{coq}
+Definition shift_and_add :=
+  begin
+    let src1'  = `src1`read();
+    let src2'  = `src2`read();
+    let count' = `count`read();
+    let dst'   = `dst`read();
+    if (src1' == 0%bv)
+      pass
+    else begin
+      let t =
+        if (truncate1 src1' == 1)%bv then
+          zero_extend src2'
+        else
+          (16`0x00)%bv;
+      `dst`write((dst' + bv_shiftl t (zero_extend count'))%bv);
+      `count`write((count' + 1)%bv);
+      `src1`write(bv_shiftr src1' 1)
+    end
+  end.
+\end{minted}
+\caption{The \mintinline{coq}{shift_and_add} subroutine. On each call it processes one bit of \mintinline{coq}{src1}, conditionally adding a shifted copy of \mintinline{coq}{src2} to the accumulator.}
+\label{fig:mult-shift-add}
+\end{figure}
+
+\subsection{Proofs}
+
+The central observation is that the timing of the multiplier depends entirely on \mintinline{coq}{src1}: the number of rule firings before the phase transitions to \mintinline{coq}{Full} is exactly the position of the most significant set bit of \mintinline{coq}{src1}.
+The value of \mintinline{coq}{src2} affects only the accumulator \mintinline{coq}{dst} and therefore does not influence any externally observable timing signal.
+
+This observation is captured by the simulation relation in \Cref{fig:mult-rel}, which equates the \mintinline{coq}{phase}, \mintinline{coq}{count}, and \mintinline{coq}{src1} registers of two states but makes no requirement on \mintinline{coq}{src2} or \mintinline{coq}{dst}.
+
+\begin{figure}[H]
+\begin{minted}{coq}
+Definition rel (st st' : State) : Prop :=
+  st.(phase) = st'.(phase) /\
+  st.(count) = st'.(count) /\
+  st.(src1)  = st'.(src1).
+\end{minted}
+\caption{Simulation relation for the multiplier. Two states are related when they agree on the timing-relevant registers.}
+\label{fig:mult-rel}
+\end{figure}
+
+The proof uses self-simulation (\Cref{lem:self-sim-hct}): the implementation is simulated against itself with the erased second operand.
+It suffices to show that \mintinline{coq}{rel} is preserved by each operation.
+The per-operation lemmas are stated below.
+
+\begin{lemma}[Enqueue refines under erasure] \label{lem:mult-enq}
+For all first operands $a$ and all second operands $b$, $\mathsf{enq}(a, b)$ refines $\mathsf{enq}(a, 0)$ under $(\mathsf{erase\_out}, \mathsf{rel})$.
+\end{lemma}
+
+\begin{proof}[Proof sketch]
+Assume $\mathsf{rel}(s_1, s_2)$, so $s_1$ and $s_2$ agree on \mintinline{coq}{phase}, \mintinline{coq}{count}, and \mintinline{coq}{src1}.
+Both actions guard on \mintinline{coq}{phase == Empty}; since the phases are equal, both guards take the same branch.
+When the guard succeeds, both actions write \mintinline{coq}{src1 := a}, \mintinline{coq}{dst := 0}, \mintinline{coq}{count := 0}, and \mintinline{coq}{phase := Busy}.
+The first action additionally writes \mintinline{coq}{src2 := b} and the second writes \mintinline{coq}{src2 := 0}; since \mintinline{coq}{src2} is not tracked by \mintinline{coq}{rel}, the relation holds for the successor states.
+Both actions return \mintinline{coq}{OutEnq}, which \mintinline{coq}{erase\_out} maps identically in both cases.
+\end{proof}
+
+\begin{lemma}[Dequeue refines under erasure] \label{lem:mult-deq}
+$\mathsf{deq}$ refines $\mathsf{deq}$ under $(\mathsf{erase\_out}, \mathsf{rel})$.
+\end{lemma}
+
+\begin{proof}[Proof sketch]
+Both actions guard on \mintinline{coq}{phase == Full}; the guard takes the same branch in both states since \mintinline{coq}{rel} equates the phases.
+When the guard succeeds, both write \mintinline{coq}{phase := Empty} and return \mintinline{coq}{OutDeq dst}.
+The products \mintinline{coq}{dst} may differ between the two states, but \mintinline{coq}{erase\_out} maps both to \mintinline{coq}{OutDeq 0}, so the observed outputs are equal.
+The successor states agree on \mintinline{coq}{phase}, \mintinline{coq}{count}, and \mintinline{coq}{src1}, so \mintinline{coq}{rel} is preserved.
+\end{proof}
+
+\begin{lemma}[Rule refines under erasure] \label{lem:mult-rule}
+$\mathsf{rule}$ refines $\mathsf{rule}$ under $(\mathsf{erase\_out}, \mathsf{rel})$.
+\end{lemma}
+
+\begin{proof}[Proof sketch]
+Both actions guard on \mintinline{coq}{phase == Busy}, which takes the same branch by \mintinline{coq}{rel}.
+Inside the guard, both actions check whether \mintinline{coq}{src1 == 0}; since \mintinline{coq}{rel} equates \mintinline{coq}{src1}, the same branch is taken.
+If \mintinline{coq}{src1} is zero, both transition to \mintinline{coq}{Full}.
+Otherwise, both call \mintinline{coq}{shift_and_add}: the operations on \mintinline{coq}{src1} and \mintinline{coq}{count} are identical (right-shifting \mintinline{coq}{src1} by one, incrementing \mintinline{coq}{count}), so those registers remain equal.
+The accumulation into \mintinline{coq}{dst} may differ since \mintinline{coq}{src2} differs, but \mintinline{coq}{dst} is not tracked by \mintinline{coq}{rel}.
+Both actions return \mintinline{coq}{OutRule}, which \mintinline{coq}{erase\_out} maps to \mintinline{coq}{None} in both cases.
+\end{proof}
+
+\begin{lemma}[Status queries refine under erasure] \label{lem:mult-status}
+$\mathsf{empty}$, $\mathsf{busy}$, and $\mathsf{full}$ each refine themselves under $(\mathsf{erase\_out}, \mathsf{rel})$.
+\end{lemma}
+
+\begin{proof}[Proof sketch]
+Each status query reads only \mintinline{coq}{phase}, compares it against a constant, and returns a Boolean.
+Since \mintinline{coq}{rel} equates the two phases, both calls produce the same Boolean, leaving both states unchanged with equal observed outputs.
+\end{proof}
+
+\begin{theorem}[Multiplier hardware constant time] \label{thm:mult-hct}
+The multiplier satisfies hardware constant time with respect to the erasure contract $(\mathsf{erase\_inp}, \mathsf{erase\_out})$.
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+Apply \Cref{lem:self-sim-hct}: it suffices to exhibit a simulation relation $R$ preserved by every operation and holding at the reset state.
+Take $R = \mathsf{rel}$.
+\Cref{lem:mult-enq,lem:mult-deq,lem:mult-rule,lem:mult-status} discharge the per-operation obligations.
+The reset state satisfies \mintinline{coq}{rel} trivially since both copies of the reset record are identical.
+\end{proof}
+
+\section{Timing security: Multiple-cycle processor} \label{sec:case-study-processor}
+
+\section{Functional correctness: Ring buffer} \label{sec:case-study-ring-buffer}
+
+\section{Functional correctness: Reorder buffer} \label{sec:case-study-reorder-buffer}
 
 \chapter{Conclusion}
-\comment{TODO(kosinw): Write chapter}
+\section{Developer effort}
+\section{Evaluation}
+\section{Discussion}
+\section{Future work}
 
-\bibliographystyle{unsrt}
+\bibliographystyle{IEEEtran}
 \bibliography{refs}
 
 \end{document}
