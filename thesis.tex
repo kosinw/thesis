@@ -1253,9 +1253,9 @@ Three additional operations are observational: \mintinline{coq}{empty}, \mintinl
 
 \Cref{fig:mult-block-diagram} shows the port-level signals of the multiplier.
 Each method is represented as a group of signals: an enable input, driven by the caller to invoke the method, and a ready output, driven by the module to indicate that the method's guard holds and the call will succeed.
-These signals form a handshaking protocol which ensures that the method will only execute if both signals are latched logical high on the same cycle.
+These signals form a handshaking protocol which ensures that the method will only execute if both signals are latched high on the same cycle.
 Stateful methods may also carry data signals: \mintinline{coq}{enq} takes the two operands \texttt{a[7:0]} and \texttt{b[7:0]} as inputs, while \mintinline{coq}{deq} produces the 16-bit product \texttt{c[15:0]} as an output.
-The observational methods (\mintinline{coq}{empty}, \mintinline{coq}{busy}, \mintinline{coq}{full}) each return a single boolean result.
+The observational methods (\mintinline{coq}{empty}, \mintinline{coq}{busy}, \mintinline{coq}{full}) each return a single boolean result and do not require handshaking.
 
 \begin{figure}[H]
 \centering
@@ -1309,7 +1309,6 @@ Each method exposes a enable input (asserted by the caller) and a ready output (
 \end{figure}
 
 \subsection{Erasure contract}
-
 The secrets are the second operand \mintinline{coq}{b[7:0]} and the product \mintinline{coq}{c[15:0]} it gives rise to.
 The attacker's observation model is as follows: the attacker can see \emph{when} any method is called, but not the values of \mintinline{coq}{b[7:0]} or \mintinline{coq}{c[15:0]} being transferred.
 \Cref{fig:mult-attacker-diagram} highlights the attacker-visible signals under this threat model.
@@ -1372,11 +1371,11 @@ the product \texttt{c[15:0]} is mapped to \texttt{None} in \texttt{erase\_out}.}
 \label{fig:mult-attacker-diagram}
 \end{figure}
 
-The erasure contract formalizes this model in two functions shown in \Cref{fig:mult-erasure}.
-\mintinline{coq}{erase_inp} replaces the second operand with zero on every \mintinline{coq}{InpEnq} and leaves all other inputs unchanged.
-\mintinline{coq}{erase_out} preserves \mintinline{coq}{OutEnq} as is, replaces the product in \mintinline{coq}{OutDeq} with zero, and maps all remaining outputs to \mintinline{coq}{None} (not observable).
+The erasure contract $\mathcal{E} =$ (\mintinline{coq}{erase_inp}, \mintinline{coq}{erase_out}) formalizes this model in two functions shown in \Cref{fig:mult-erasure}.
+\mintinline{coq}{erase_inp} replaces the second operand with zero on every \mintinline{coq}{enq} and leaves all other inputs unchanged.
+\mintinline{coq}{erase_out} replaces the product in \mintinline{coq}{deq} with zero, and maps all remaining outputs to observable.
 
-\begin{figure}[H]
+\begin{figure}[ht]
 \begin{minted}{coq}
 Definition erase_inp (m : I) : I :=
   match m with
@@ -1387,7 +1386,7 @@ Definition erase_inp (m : I) : I :=
 Definition erase_out (out : option O) : option O :=
   match out with
   | Some (OutDeq _)  => Some (OutDeq 0%bv)
-  | ohter            => other
+  | other            => other
   end.
 \end{minted}
 \caption{Erasure functions for the multiplier. The second operand and the product are both hidden.}
@@ -1397,9 +1396,9 @@ Definition erase_out (out : option O) : option O :=
 \subsection{Implementation}
 
 The multiplier holds five registers: \mintinline{coq}{src1} and \mintinline{coq}{src2} (the two 8-bit operands), \mintinline{coq}{dst} (the 16-bit accumulator), \mintinline{coq}{count} (a 3-bit iteration counter), and \mintinline{coq}{phase} (the pipeline stage).
-\Cref{fig:mult-state} shows the state record and reset values.
+\Cref{fig:mult-state} shows the state record.
 
-\begin{figure}[H]
+\begin{figure}[ht]
 \begin{minted}{coq}
 Variant Phase := Empty | Busy | Full.
 
@@ -1415,12 +1414,12 @@ Record State := {
 \label{fig:mult-state}
 \end{figure}
 
-Each call to \mintinline{coq}{rule} invokes the \mintinline{coq}{shift_and_add} subroutine shown in \Cref{fig:mult-shift-add}.
+Each method call to \mintinline{coq}{step} invokes the \mintinline{coq}{shift_and_add} subroutine shown in \Cref{fig:mult-shift-add}.
 If \mintinline{coq}{src1} is already zero the step is a no-op; otherwise, if the least significant bit of \mintinline{coq}{src1} is one, the subroutine adds \mintinline{coq}{src2} shifted left by \mintinline{coq}{count} to \mintinline{coq}{dst}.
 In both cases, \mintinline{coq}{src1} is right-shifted by one and \mintinline{coq}{count} is incremented.
-Once \mintinline{coq}{src1} reaches zero, the outer \mintinline{coq}{rule} transitions the phase to \mintinline{coq}{Full}, making the result available for dequeue.
+Once \mintinline{coq}{src1} reaches zero, the outer \mintinline{coq}{step} transitions the phase to \mintinline{coq}{Full}, making the result available for dequeue.
 
-\begin{figure}[H]
+\begin{figure}[ht]
 \begin{minted}{coq}
 Definition shift_and_add :=
   begin
@@ -1446,16 +1445,15 @@ Definition shift_and_add :=
 \label{fig:mult-shift-add}
 \end{figure}
 
-\subsection{Proofs}
+\subsection{Verification}
 
-The central observation is that the timing of the multiplier depends entirely on \mintinline{coq}{src1}: the number of rule firings before the phase transitions to \mintinline{coq}{Full} is exactly the position of the most significant set bit of \mintinline{coq}{src1}.
+The central observation is that the timing of the multiplier depends entirely on \mintinline{coq}{src1}: the number of steps before the phase transitions to \mintinline{coq}{Full} is exactly the position of the most significant set bit of \mintinline{coq}{src1}.
 The value of \mintinline{coq}{src2} affects only the accumulator \mintinline{coq}{dst} and therefore does not influence any externally observable timing signal.
-
 This observation is captured by the simulation relation in \Cref{fig:mult-rel}, which equates the \mintinline{coq}{phase}, \mintinline{coq}{count}, and \mintinline{coq}{src1} registers of two states but makes no requirement on \mintinline{coq}{src2} or \mintinline{coq}{dst}.
 
-\begin{figure}[H]
+\begin{figure}[ht]
 \begin{minted}{coq}
-Definition rel (st st' : State) : Prop :=
+Definition @$R$@ (st st' : State) : Prop :=
   st.(phase) = st'.(phase) /\
   st.(count) = st'.(count) /\
   st.(src1)  = st'.(src1).
@@ -1464,31 +1462,30 @@ Definition rel (st st' : State) : Prop :=
 \label{fig:mult-rel}
 \end{figure}
 
-The proof uses self-simulation (\Cref{lem:self-sim-hct}): the implementation is simulated against itself with the erased second operand.
-It suffices to show that \mintinline{coq}{rel} is preserved by each operation.
-The per-operation lemmas are stated below.
+The proof uses self-simulation (\Cref{lem:self-sim-hct}): the implementation is simulated against itself with the erased arguments and results.
+It suffices to show that $R$ is preserved by each operation.
 
-\begin{lemma}[Enqueue refines under erasure] \label{lem:mult-enq}
-For all first operands $a$ and all second operands $b$, $\mathsf{enq}(a, b)$ refines $\mathsf{enq}(a, 0)$ under $(\mathsf{erase\_out}, \mathsf{rel})$.
+\begin{lemma} \label{lem:mult-enq}
+For all $a, b \in \mathsf{Bit\#(8)}$, $\mathsf{enq}(a, b)$ simulates $\mathsf{enq}(a, 0)$ under $(R, \mathcal{E})$.
 \end{lemma}
 
 \begin{proof}[Proof sketch]
-Assume $\mathsf{rel}(s_1, s_2)$, so $s_1$ and $s_2$ agree on \mintinline{coq}{phase}, \mintinline{coq}{count}, and \mintinline{coq}{src1}.
+Assume $R(s_1, s_2)$, so $s_1$ and $s_2$ agree on \mintinline{coq}{phase}, \mintinline{coq}{count}, and \mintinline{coq}{src1}.
 Both actions guard on \mintinline{coq}{phase == Empty}; since the phases are equal, both guards take the same branch.
 When the guard succeeds, both actions write \mintinline{coq}{src1 := a}, \mintinline{coq}{dst := 0}, \mintinline{coq}{count := 0}, and \mintinline{coq}{phase := Busy}.
-The first action additionally writes \mintinline{coq}{src2 := b} and the second writes \mintinline{coq}{src2 := 0}; since \mintinline{coq}{src2} is not tracked by \mintinline{coq}{rel}, the relation holds for the successor states.
-Both actions return \mintinline{coq}{OutEnq}, which \mintinline{coq}{erase\_out} maps identically in both cases.
+The first action additionally writes \mintinline{coq}{src2 := b} and the second writes \mintinline{coq}{src2 := 0}; since \mintinline{coq}{src2} is not tracked by $R$, the relation holds for the successor states.
+Both actions return the same result, so we can successfully conclude the simulation.
 \end{proof}
 
-\begin{lemma}[Dequeue refines under erasure] \label{lem:mult-deq}
-$\mathsf{deq}$ refines $\mathsf{deq}$ under $(\mathsf{erase\_out}, \mathsf{rel})$.
+\begin{lemma} \label{lem:mult-deq}
+$\mathsf{deq}()$ simulates $\mathsf{deq}()$ under $(R, \mathcal{E})$.
 \end{lemma}
 
 \begin{proof}[Proof sketch]
 Both actions guard on \mintinline{coq}{phase == Full}; the guard takes the same branch in both states since \mintinline{coq}{rel} equates the phases.
-When the guard succeeds, both write \mintinline{coq}{phase := Empty} and return \mintinline{coq}{OutDeq dst}.
-The products \mintinline{coq}{dst} may differ between the two states, but \mintinline{coq}{erase\_out} maps both to \mintinline{coq}{OutDeq 0}, so the observed outputs are equal.
-The successor states agree on \mintinline{coq}{phase}, \mintinline{coq}{count}, and \mintinline{coq}{src1}, so \mintinline{coq}{rel} is preserved.
+When the guard succeeds, both write \mintinline{coq}{phase := Empty} and return \mintinline{coq}{dst}.
+The products \mintinline{coq}{dst} may differ between the two states, but \mintinline{coq}{erase_out} maps both to \mintinline{coq}{0}, so the observed outputs are equal.
+The successor states agree on \mintinline{coq}{phase}, \mintinline{coq}{count}, and \mintinline{coq}{src1}, so $R$ is preserved.
 \end{proof}
 
 \begin{lemma}[Rule refines under erasure] \label{lem:mult-rule}
