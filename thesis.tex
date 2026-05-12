@@ -86,8 +86,8 @@ To express hardware circuits in a proof-friendly style, the thesis introduces \e
 Slate provides an imperative-programming model to describe circuits compactly in Gallina.
 Since Slate circuits are Gallina functions, reasoning about them in proofs is simple.
 The timing-security framework is exercised on two case studies: a variable-latency multiplier and a sequential multi-cycle processor.
-In parallel, the thesis uses \emph{GoLemma}, a deeply embedded hardware language in Rocq, to establish functional-correctness results for key out-of-order processor submodules.
-GoLemma provides facilities for modularity and exposes a sequential execution model which makes functional-correctness reasoning simple.
+In parallel, the thesis uses \emph{Golemma}, a deeply embedded hardware language in Rocq, to establish functional-correctness results for key out-of-order processor submodules.
+Golemma provides facilities for modularity and exposes a sequential execution model which makes functional-correctness reasoning simple.
 Together, these contributions provide a foundation for scaling toward integrated proofs of correctness and timing security for full out-of-order processors.
 \end{abstract}
 
@@ -104,9 +104,9 @@ This thesis contributes an approach for proving correctness and timing propertie
 This work serves as the first step towards the mechanization of entire correctness and timing proofs for a realistic, modern computer system including a single out-of-order core complete with a memory hierarchy.
 
 \section{Background: out-of-order execution} \label{sec:ooo}
-Most modern high-speed processors are based on out-of-order (OoO) execution, which allows the CPU to dynamically reorder instructions based on the availability of functional units (FUs) and input operands, minimizing structural hazards.
-Instruction scheduling algorithms supporting out-of-order execution with precise exceptions started with Tomasulo's algorithm~\cite{tomasulo1967}, which first introduced the concept of register renaming to eliminate false dependencies between instructions.
-Out-of-order processors combined with another ubiquitous performance optimization, speculative execution, are vulnerable to transient execution attacks, which in-order processors are not.
+Most modern high-speed processors are based on out-of-order (OoO) execution, which allows the CPU to reorder instructions dynamically based on the availability of functional units (FUs) and input operands, minimizing structural hazards.
+Instruction-scheduling algorithms supporting out-of-order execution with precise exceptions started with Tomasulo's algorithm~\cite{tomasulo1967}, which first introduced the concept of register renaming to eliminate false dependencies between instructions.
+Out-of-order processors combined with another ubiquitous performance optimization, speculative execution, are vulnerable to transient-execution attacks, which in-order processors are not.
 Principled defenses must be carefully designed to ensure that attackers cannot exploit programs that are safe for in-order processors to execute but unsafe for out-of-order processors.
 
 \Cref{fig:fig1} shows a block diagram for the particular variant of the out-of-order algorithm discussed in this thesis.
@@ -120,7 +120,7 @@ The algorithm is a modified design based on the MIPS R10000 (R10K) processor~\ci
 \end{figure}
 
 Our algorithm is split into seven separate pipeline stages: fetch, decode, rename, issue, execute, writeback, and retire.
-The front end stage fetches instructions from the instruction stream and decodes them into an internal data type the machine can schedule.
+The frontend stage fetches instructions from the instruction stream and decodes them into an internal data type the machine can schedule.
 The renaming stage then maps architectural registers to a larger physical register file so false dependencies can be dissolved.
 The issue stage selects ready renamed operations and sends them to functional units that execute the actual computation.
 The writeback stage then posts results to the physical registers so that later instructions can consume operands as they become ready.
@@ -141,7 +141,7 @@ The maximum number of snapshots is finite, so it bounds the number of branches t
 A second major deviation concerns speculative memory accesses.
 To make timing properties easier to state and prove at first, we delay all speculative loads and stores.
 This policy is extremely pessimistic: it sacrifices the performance that comes from speculative execution when interacting with memory and is not meant as a proposal for a serious, production-ready design.
-Looking ahead, we expect that a more realistic design can be achieved by pairing speculative memory execution with a dynamic taint-tracking defense, together with a mechanized proof that the resulting design still satisfies the same class of timing-security obligations; that extension is left to future work.
+Looking ahead, we expect that a realistic design can be achieved by pairing speculative memory execution with a dynamic taint-tracking defense, together with a mechanized proof that the resulting design still satisfies the same class of timing-security obligations; that extension is left to future work.
 
 \section{Goal: verifying hardware circuits}
 This thesis develops techniques for proving correctness and timing properties of synthesizable hardware described in Rocq.
@@ -150,22 +150,22 @@ Prior work on security proofs for hardware tends to reason about simplified ISA-
 This thesis focuses on synthesizable circuits because they are consumable by downstream synthesis tools for future evaluation on FPGAs or ASICs.
 
 \section{Individual contributions}
-The content presented in this thesis was completed during an active collaboration between me, Shixin Song, Jiazheng Liu, Stella Lau, and Andres Erbsen, advised by Professor Adam Chlipala.
-GoLemma, the deeply embedded hardware description language described in \Cref{chap:golemma}, was developed by Jiazheng Liu.
+The content presented in this thesis was completed during an active collaboration between me, Shixin Song, Jiazheng Liu, Stella Lau, and Andres Erbsen, advised by Professors Adam Chlipala and Mengjia Yan.
+Golemma, the deeply embedded hardware-description language described in \Cref{chap:Golemma}, was developed by Jiazheng Liu.
 Stella contributed security formalizations and proofs for a five-stage pipelined processor combined with an external I/O and memory system, which does not directly appear in this thesis, but whose theoretical ideas carry over.
-Shixin worked on a correctness proof for the out-of-order algorithm described in \Cref{sec:ooo}, which a full mechanized proof is the end goal for a larger project.
+Shixin worked on a correctness proof for the out-of-order algorithm described in \Cref{sec:ooo}, for which a full mechanized proof is the end goal for a larger project.
 My personal contributions include specifications, implementations, correctness proofs, and timing proofs for individual submodules of the out-of-order machine, as discussed in \Cref{chap:cases}.
 
 \chapter{Related work}
 
 This chapter first surveys prior work on formal correctness for hardware (\Cref{sec:related-correctness}), which informs the implementation, specification and proof methodologies used throughout the remainder of this thesis.
-Then it covers prior work on timing security, both the attacks that motivate this work and the hardware and software defenses which mitigate them (\Cref{sec:related-timing}).
+Then it covers prior work on timing security, both the attacks that motivate this work and the hardware and software defenses that mitigate them (\Cref{sec:related-timing}).
 
 \section{Correctness} \label{sec:related-correctness}
 
-Several prior projects have tackled hardware correctness by embedding hardware description languages directly into a proof assistant.
+Several prior projects have tackled hardware correctness by embedding hardware-description languages directly into a proof assistant.
 
-Kami~\cite{choi2017} is a hardware description language, embedded in Rocq, for specifying and verifying hardware circuits in the style of Bluespec SystemVerilog.
+Kami~\cite{choi2017} is a hardware-description language, embedded in Rocq, for specifying and verifying hardware circuits in the style of Bluespec SystemVerilog.
 Circuits are semantically treated as labeled transition systems composed of guarded atomic rules, and correctness arguments proceed by refinement between more-abstract and more-concrete specifications.
 
 Ko\^{i}ka~\cite{koika2020} is another language for rule-based hardware design that gives Bluespec-style rules a precise sequential semantics characterized by the \emph{one-rule-at-a-time} (ORAAT) property.
@@ -177,14 +177,14 @@ However, Ko\^{i}ka does not support a module system, so circuits must be describ
 
 The Meltdown~\cite{lipp2018} and Spectre~\cite{kocher2019} attacks, disclosed in 2018, demonstrated that speculative execution, while critical for performance, introduces new side-channel vulnerabilities absent in in-order processors.
 Both attacks exploit the fact that transiently executed instructions leave measurable traces in microarchitectural state, such as cache-residency patterns, that an attacker can recover.
-These attacks motivated a large body of research~\cite{koruyeh2018,maisuradze2018,kiriansky2018,schwarz2019,minkin2019} on transient execution attacks.
+These attacks motivated a large body of research~\cite{koruyeh2018,maisuradze2018,kiriansky2018,schwarz2019,minkin2019} on transient-execution attacks.
 
 Hardware-software contracts~\cite{guarnieri2021} formalize hardware defenses by specifying, for a particular design, both what information is leaked and which speculative paths are explored.
 An analysis of an abstract out-of-order processor protected by speculative taint tracking~\cite{yu2019} shows that the defense satisfies a contract in which leakage events are branch targets, addresses of loads and stores, and operands of variable-latency instructions.
-The key limitation of this line of work is that it reasons about abstract processor models rather than concrete designs expressible in a hardware description language; this thesis targets the gap to synthesizable RTL.
+The key limitation of this line of work is that it reasons about abstract processor models rather than concrete designs expressible in a hardware-description language; this thesis targets the gap to synthesizable RTL.
 
-At the software level, constant-time verification for nondeterministic programs and compilers~\cite{conoly2025} develops techniques for proving constant-time properties in the Rocq proof assistant.
-Using a formulation of constant time as a single-copy property over omnisemantics, the work proves end-to-end preservation of constant-time routines compiled from Bedrock2~\cite{erbsen2021} source to RISC-V machine code.
+At the software level, prior work on constant-time verification for compilers~\cite{conoly2025} developed techniques for proving constant-time properties for nondeterministic programs.
+Using a formulation of constant time as a single-copy property, the work proves end-to-end preservation of constant-time routines compiled from Bedrock2~\cite{erbsen2021} source to RISC-V machine code.
 The single-copy formulation of constant time used in this thesis is taken from that work, repurposing the approach from software compilers to hardware verification.
 
 SecSep~\cite{song2025} addresses the gap between source-level constant-time guarantees and speculative execution on real hardware through an assembly-level transformation framework.
@@ -210,7 +210,7 @@ Hardware modules function as physical state machines.
 Registers serve as the memory that holds the current state, while combinational logic describes the transition function that determines both the module's outputs and its next state as a function of the current state.
 We view hardware modules as interacting through well-defined interfaces composed of methods rather than raw, unstructured signals.
 Each discrete state transition in the system corresponds to the execution of a method, supplied with arguments that represent the transition's data.
-This approach is consistent with prior work~\cite{koika2020,choi2017}, which views hardware modules as high-level transition systems whose transitions lie on external method boundaries.
+This approach is consistent with prior work~\cite{choi2017,koika2020}, which views hardware modules as high-level transition systems whose transitions lie on external method boundaries.
 We adopt the following formal definition of a state machine.
 
 \begin{definition}[State machine]
@@ -229,13 +229,26 @@ The transition function $\delta$ is partial on $S \times I$ to reflect that the 
 An aborted call leaves the circuit in the same configuration.
 This convention simplifies trace definitions and simulation proofs: each input sequence determines one run, and the optional output indicates whether the call produced a visible event in the output trace.
 
-For the purpose of reasoning about security with this framework, we additionally restrict attention to circuits whose behavior is \emph{deterministic} in the sense above: for each $s \in S$ and $\iota \in I$, there is at most one pair $(s', o) = \delta(s,\iota)$ with $o \in O$.
-This restriction is convenient for reasoning about the proof obligations in \Cref{sec:timing-ct} and \Cref{sec:timing-proof}, where we compare runs under related inputs and want equality of traces without existentially quantifying over implementation-defined resolution of nondeterminism in proofs.
-Determinism is a design choice of convenience, not necessity; as discussed in \Cref{chap:golemma}, the framework for deeply embedded circuits can use nondeterministic semantics (in particular, omnisemantics~\cite{chargueraud2023}) to describe specifications.
+For the purpose of reasoning about security with this framework, we additionally restrict attention to circuits whose behavior is \emph{deterministic} in the sense above:
+\[
+  \begin{aligned}
+  &\forall s \in S.\; \forall \iota \in I.\;
+    \forall s_1,s_2 \in S.\; \forall o_1,o_2 \in O.\\
+  &\qquad
+    \delta(s,\iota) = (s_1,o_1)
+    \land
+    \delta(s,\iota) = (s_2,o_2)\\
+  &\qquad\implies
+    s_1 = s_2 \land o_1 = o_2.
+  \end{aligned}
+\]
+In words, if a state and input can step to two results, then those results must be identical.
+This restriction is convenient for reasoning about the proof obligations in \Cref{sec:timing-security}, where we compare runs under related inputs and want equality of traces without existentially quantifying over implementation-defined resolution of nondeterminism in proofs.
+Determinism is a design choice of convenience, not necessity; as discussed in \Cref{chap:Golemma}, the framework for deeply embedded circuits can use nondeterministic semantics (in particular, omnisemantics~\cite{chargueraud2023}) to describe specifications.
 
 Given an input sequence $\iota_1, \iota_2, \ldots, \iota_n \in I$, repeatedly applying $\delta$ from the initial state $s_0$ defines a \emph{run} of the machine.
 The corresponding sequence of per-step observations is called the machine's \emph{observation trace}.
-Concretely, the machine $\mathcal{M}$ produces a sequence of optional outputs by unfolding $\delta$ from $s_0$:
+Concretely, the machine $\mathcal{M}$ produces a sequence of optional outputs by repeatedly applying $\delta$ from $s_0$ for each input $\iota_k \in I$:
 \[
   s_0 \xrightarrow{\iota_1 / o_1} s_1 \xrightarrow{\iota_2 / o_2} s_2 \;\cdots\; \xrightarrow{\iota_n / o_n} s_n, \qquad o_i \in O,\ s_i \in S.
 \]
@@ -243,10 +256,10 @@ The \emph{observation trace} of the run is the list
 \[
   \mathcal{T}\bigl( \mathcal{M}, \vec\iota \bigr) \;\triangleq\; o_1,\ldots,o_n
 .\]
-For timing security, an attacker interprets elements of $O$ (modulo erasure, described in \Cref{sec:timing-ct}) as leaked information.
+For timing security, an attacker interprets elements of $O$ (modulo erasure, described in \Cref{sec:timing-security}) as leaked information.
 Aborted transitions do not produce outputs in the observation trace.
 
-The state machine model is mechanized in Rocq as a plain record (\Cref{fig:circuit-typeclass}), parameterized by a state type~\mintinline{coq}{s}, an input type~\mintinline{coq}{i}, and an output type~\mintinline{coq}{o}.
+The state-machine model is mechanized in Rocq as a plain record (\Cref{fig:circuit-typeclass}), parameterized by a state type~\mintinline{coq}{s}, an input type~\mintinline{coq}{i}, and an output type~\mintinline{coq}{o}.
 These parameters correspond directly to $S$, $I$, and $O$.
 
 \begin{figure}[H]
@@ -269,11 +282,11 @@ It then describes state monads and guarded state monads (actions) and motivates 
 Finally, it presents the grammar of Slate and a small illustrative example (\Cref{sec:timing-monads-slate}).
 
 \subsection{Shallow and deep embeddings} \label{sec:timing-monads-shallow}
-A \emph{shallow embedding} encodes an object language directly as terms of the host language.
+A \emph{shallow embedding} encodes a source language directly as terms of the host language.
 In this style, the host's type system, reduction rules, and terms \emph{are} the semantics of the object language.
-In Rocq, that means method bodies are ordinary Gallina functions rather than abstract syntax trees requiring a separate interpreter.
+In Rocq, shallow embeddings are represented as ordinary Gallina functions rather than abstract syntax trees requiring a separate interpreter.
 By contrast, a \emph{deep embedding} defines explicit syntax via inductive datatypes for commands and expressions.
-A deep embedding must also include a separate interpreter or a relationally defined operational semantics to be useful for verification work.
+Since syntax trees do not execute by reducing as Gallina terms, deep embeddings must come with separate semantics, such as an interpreter or operational semantics.
 
 Each style has distinct advantages and costs.
 Shallow embeddings are typically easier for verification work, because they directly leverage Rocq's facilities for Gallina; many proof steps reduce by unfolding and simplification rather than by reasoning about an interpreter or operational semantics.
@@ -282,21 +295,20 @@ These tasks often require reification and metaprogramming support to recover a s
 
 Deep embeddings make syntax explicit from the beginning, so compiler construction and optimization passes are easier to express.
 However, they impose additional verification overhead: one must define and reason about an interpreter (or step relation), and prove that this semantics aligns with the intended meaning.
-As a result, proofs on deep embeddings are more involved for similar theorems on shallow embeddings.
+As a result, proofs on deep embeddings are more-involved than similar theorems on shallow embeddings.
 \emph{Slate}, the surface language used for timing-security verification in this thesis, is a shallow embedding.
 Its core semantics work as an imperative language with mutable references.
-We introduce the state monad structure that underlies Slate method definitions.
+We introduce the state-monad structure that underlies Slate method definitions.
 
 \subsection{State monads and actions} \label{sec:timing-monads-state}
 \paragraph{State monads}
-A \emph{state monad} over state type $s$ and result type $t$ is defined as
+For a fixed state type $s$, the \emph{state monad} is the type family that maps each result type $t$ to
 \[
-  \mathsf{State}\;(s, t) \;\triangleq\; s \to (s * t)
+  \mathsf{State}_s(t) \;\triangleq\; s \to (s * t)
 ,\]
-that is, a function that takes an input state and returns a new state together with a result.
-A stateful computation can be understood as a function that consumes a state and returns a pair of the updated state and a result value.
-This representation is powerful because it expresses side effects sequentially by chaining computations with \mintinline{coq}{bind}.
-Mutable references do not need to be primitively supported by the meta-language (i.e. Gallina); instead, they are ordinary functions that transform an explicit state argument.
+where an element of $\mathsf{State}_s(t)$ is a stateful computation that takes an input state and returns a new state together with a result.
+This representation is powerful because computations can be sequenced with the monadic bind operation.
+Mutable references do not need to be primitively supported by the metalanguage (i.e., Gallina); instead, stateful programs are ordinary functions that transform an explicit state argument.
 As a consequence, one can describe sequential hardware behavior in a pure functional setting and still recover the usual intuition of sequential logic, by reading registers at the start of the cycle, performing some combinational function on those values, and updating the registers at the end of the cycle.
 
 \Cref{fig:state-monad-core} shows the state monad encoded in Rocq together with its basic operations.
@@ -322,21 +334,22 @@ Definition get {s} : State s s :=
 Definition put {s} (x : s) : State s unit :=
   fun _ => (x, tt).
 \end{minted}
-\caption{State monad definitions in Rocq.}
+\caption{State-monad definitions in Rocq.}
 \label{fig:state-monad-core}
 \end{figure}
 
 \paragraph{Guarded state monads}
-A \emph{guarded state monad}, also referred to as an \emph{action}, over state type $s$ and result type $t$ is the type of computations
+% For a fixed state type $s$, the \emph{state monad} is the type family that maps each result type $t$ to
+For a fixed state type $s$, the \emph{guarded state monad} or \emph{action} is type family that maps each result type $t$ to
 \[
-  \mathsf{Action}\;(s,t) \;\triangleq\; s \to \texttt{option}\;(s * t)
+  \mathsf{Action}_s\;(t) \;\triangleq\; s \to \texttt{option}\;(s * t)
 ,\]
 that is, a function that takes an input state and either returns a new state together with a result or aborts.
-The framework uses this to model method calls that are enabled only when their guards hold.
+The framework uses actions to model method calls that are enabled only when their guards hold.
 The \mintinline{coq}{Some} case represents a successful step that returns an updated state and a value.
 The \mintinline{coq}{None} case represents an aborted step (for example, when a guard is false).
 \Cref{fig:guarded-state-monad-core} shows the guarded state monad encoded in Rocq together with its basic operations.
-\mintinline{coq}{ret}, \mintinline{coq}{bind}, \mintinline{coq}{get}, and \mintinline{coq}{put} work similarly to their state monad analogues.
+\mintinline{coq}{ret}, \mintinline{coq}{bind}, \mintinline{coq}{get}, and \mintinline{coq}{put} work similarly to their state-monad analogues.
 
 \begin{figure}[H]
 \begin{minted}{coq}
@@ -376,15 +389,15 @@ Proof obligations involving \mintinline{coq}{modify} usually reduce to equalitie
 
 \paragraph{Guard failure}
 \mintinline{coq}{fail} returns \mintinline{coq}{None} for any input state.
-In hardware description semantics, this represents an aborted method call (for example, violating a ready condition).
-At the state machine level, this is later normalized into a step with no observable output and no state changes.
+In hardware-description semantics, a \mintinline{coq}{None} result represents an aborted method call (for example, violating a ready condition).
+At the state-machine level, guard failure is normalized into a step with no observable output and no state changes.
 Introducing failure in the monad itself keeps reasoning about guards local to method definitions.
 
 \paragraph{Submodule calls}
 The operator \mintinline{coq}{call} implements modular method calls over nested state.
-It uses \mintinline{coq}{getter} to project a substate, runs an \mintinline{coq}{Action} on that substate, and then re-integrates the updated substate using \mintinline{coq}{setter} as shown in \Cref{fig:action-call}.
+It uses \mintinline{coq}{getter} to project a substate, runs an \mintinline{coq}{Action} on that substate, and then reintegrates the updated substate using \mintinline{coq}{setter} as shown in \Cref{fig:action-call}.
 If the callee action fails, the caller fails.
-This mirrors calling semantics in Bluespec SystemVerilog, where a method call that fails to fire causes the caller to fail to fire.
+Submodule calls with guarded state monads calling semantics in Bluespec SystemVerilog, where a method call that fails to fire causes the caller to fail to fire.
 
 \begin{figure}[H]
 \begin{minted}{coq}
@@ -399,7 +412,7 @@ Definition call {s a b}
       | None => None
       end.
 \end{minted}
-\caption[Call operator for actions.]{\mintinline{coq}{call} operator lifts the effects of submodule action to a larger state.}
+\caption[Call operator for actions.]{\mintinline{coq}{call} operator lifts the effects of a submodule action to a larger state.}
 \label{fig:action-call}
 \end{figure}
 
@@ -441,13 +454,12 @@ Definition step : Action GCDState unit :=
   begin
     let xv = `x`read();
     let yv = `y`read();
-    when (yv == 0) abort;
+    when (yv == 0)
+      abort;
     if (xv >= yv) begin
-      `x`write(xv - yv);
-      return tt
+      `x`write(xv - yv)
     end else begin
-      `y`write(yv - xv);
-      return tt
+      `y`write(yv - xv)
     end
   end.
 \end{minted}
@@ -477,18 +489,18 @@ Definition step : Action GCDState unit :=
 
 \section{Specifying and proving timing security} \label{sec:timing-security}
 
-Establishing that a hardware circuit is free from timing side channels requires both a precise definition of what it means to be secure and a systematic method for proving that a given circuit satisfies that definition.
+Establishing that a hardware circuit is free from timing side channels requires both a precise definition of what it means to be secure and a methodology for proving that a given circuit satisfies that definition.
 This section addresses both concerns.
 It first introduces cryptographic constant time (CCT) in the software setting and then extends the idea to hardware circuits as hardware constant time (HCT), stated in terms of erasure contracts that model the attacker's observational capabilities (\Cref{sec:cct,sec:hct}).
-It then develops the simulation-based proof strategy used to establish HCT: using lockstep simulation with trace-equivalence lemmas that connects simulations and the HCT definition (\Cref{sec:timing-proof-lockstep,sec:timing-proof-trace}).
+It then develops the simulation-based proof strategy used to establish HCT: using lockstep simulation with trace-equivalence lemmas that connects simulations to the HCT definition (\Cref{sec:timing-proof-lockstep,sec:timing-proof-trace}).
 
 \subsection{Cryptographic constant time} \label{sec:cct}
-Cryptographic software often cares about the \emph{cryptographic constant time} (CCT) property: attackers should not observe leakage events such as branch direction, memory-access patterns, or variable-latency instructions influenced by secret inputs.
-This principle has been formalized and mechanically verified for software programs in multiple prior works~\cite{almeida2016,conoly2025,guarnieri2021}.
+Cryptographic software often cares about the \emph{cryptographic-constant-time} (CCT) property: attackers should not observe leakage events such as branch direction, memory-access patterns, or variable-latency instructions influenced by secret inputs.
+This principle has been formalized and mechanically verified for software programs in multiple prior works~\cite{guarnieri2021,conoly2025,almeida2016}.
 \Cref{fig:cct-intuition} illustrates the key intuition with two small routines: one has a secret-dependent branch and is not constant time, while the other computes through bit masking and avoids control-flow dependent on secret data.
 
 More formally, constant-time security is stated as an observational equality under varying secrets: if two executions agree on public inputs, then they must be indistinguishable with respect to the attacker-observable trace.
-The next definition makes this precise in the traditional two-copy (hyperproperty) style, before introducing an equivalent one-copy formulation.
+The next definition makes constant time precise in the traditional two-copy (hyperproperty) style~\cite{clarkson2010}, before introducing an equivalent one-copy formulation.
 
 \begin{figure}[H]
 \begin{minipage}[t]{0.48\linewidth}
@@ -517,12 +529,12 @@ uint32_t f_ct(x, y, secret) {
 }
 \end{minted}
 \end{minipage}
-\caption{Constant time example: secret-dependent branch (left) versus branch-free masked selection (right).}
+\caption{Constant-time example: secret-dependent branch (left) versus branch-free masked selection (right).}
 \label{fig:cct-intuition}
 \end{figure}
 
 \begin{definition}[Cryptographic constant time as a two-copy hyperproperty] \label{def:two-copy}
-A state machine $\mathcal{M} = (S, s_0, I, O, \delta)$ is \emph{cryptographic constant time} (CCT)
+A state machine $\mathcal{M} = (S, s_0, I, O, \delta)$ is \emph{cryptographic-constant-time} (CCT)
 if given partitions
 \[
   s = (s^{\mathrm{pub}}, s^{\mathrm{sec}}), \quad
@@ -539,7 +551,7 @@ This definition is relational: it compares two universally quantified executions
 Next, we introduce a one-copy formalism of constant time which is logically equivalent to \Cref{def:two-copy}.
 
 \begin{definition}[Cryptographic constant time as a one-copy property]
-A state machine $\mathcal{M} = (S, s_0, I, O, \delta)$ is \emph{cryptographic constant time} (CCT)
+A state machine $\mathcal{M} = (S, s_0, I, O, \delta)$ is \emph{cryptographic-constant-time} (CCT)
 if given partitions of states, inputs, and outputs
 \[
   s = (s^{\mathrm{pub}}, s^{\mathrm{sec}}), \quad
@@ -553,7 +565,7 @@ there exists a predictor function
   S^{\mathrm{pub}} \times (I^{\mathrm{pub}})^* \to (O^{\mathrm{pub}})^*
 ,\]
 where $\mathsf{pub\_inputs}(\vec{i})$ is the elementwise projection of an input sequence
-to public components and $\mathsf{pub\_outputs}(\mathcal{M}, s_0, \vec{i})$ is the corresponding projected observation trace.
+to public components, and $\mathsf{pub\_outputs}(\mathcal{M}, s_0, \vec{i})$ is the corresponding projected observation trace.
 Then, for every initial state $s_0 \in S$ and input sequence $\vec{i} \in I^*$,
 \[
   \mathsf{pub\_outputs}(\mathcal{M},s_0,\vec{i})
@@ -564,29 +576,29 @@ Then, for every initial state $s_0 \in S$ and input sequence $\vec{i} \in I^*$,
 
 This definition originally comes from work on retrofitting the Bedrock2 compiler to prove preservation of cryptographic constant time across compiler passes~\cite{conoly2025}.
 Intuitively, the observable behavior is fully determined by the public projection of the input and the initial state.
-This is a one-copy specification style: each run is characterized independently without needing to relate two separate sequences.
+The definition above is a one-copy specification style: each run is characterized independently without needing to relate two separate sequences.
 This definition is useful for certain proof techniques that can existentially construct a nice predictor function ($f_\textsf{predict}$).
-The hardware development in this thesis uses the same one-copy perspective, but restricted to state machine traces with explicit input/output erasure functions that capture the notion of the partitioning state into secret and public components.
+The hardware development in this thesis uses the same one-copy perspective but restricted to state-machine traces with explicit input/output-erasure functions that capture the notion of partitioning state into secret and public components.
 
 \subsection{Hardware constant time} \label{sec:hct}
-Hardware constant time is motivated by hardware-software contracts~\cite{guarnieri2021}: the security guarantee is stated relative to an explicit attacker observation model. In that line of work, the contract ties together what information the attacker can observe (leakage events) and what information the system must hide as a function of secret inputs. In this thesis, we adopt the same pattern: we first make the attacker's observational capabilities explicit via erasure contracts (\Cref{def:erasure-spec}), and then define hardware constant time as an invariance of the erased observation when secret (erased) inputs vary.
+Hardware constant time is motivated by hardware-software contracts~\cite{guarnieri2021}: the security guarantee is stated relative to an explicit attacker observation model. In that line of work, the contract ties together what information the attacker can observe (leakage events) and what information the system must hide as a function of secret inputs. In this thesis, we adopt the same pattern: we first make the attacker's observational capabilities explicit via erasure contracts (\Cref{def:erasure-spec}) and then define hardware constant time as an invariance of the erased observation when secret (erased) inputs vary.
 
 \begin{definition}[Erasure contract] \label{def:erasure-spec}
-For a state machine $\mathcal{M}=(S,s_0,I,O,\delta)$, an \emph{erasure contract} is a pair $\mathcal{E} = (\mathsf{erase_{in}}, \mathsf{erase_{out}})$ where $\mathsf{erase_{in}}$ is a function which erases secret components of inputs $\iota \in I$ and $\mathsf{erase_{out}}$ is a function which erases secret components of outputs $o \in O$ from the observational trace.
+For a state machine $\mathcal{M}=(S,s_0,I,O,\delta)$, an \emph{erasure contract} is a pair $\mathcal{E} = (\mathsf{erase_{in}}, \mathsf{erase_{out}})$ where $\mathsf{erase_{in}}$ is a function that erases secret components of inputs $\iota \in I$, and $\mathsf{erase_{out}}$ is a function that erases secret components of outputs $o \in O$ from the observational trace.
 \end{definition}
 
 \begin{definition}[Erased observation trace] \label{def:erased-run-outputs}
 Given $\mathcal{M}$, $\mathcal{E}$, and an input sequence $\vec\iota \in I^*$, we define
-$\mathcal{T}_{\mathcal{E}}\bigl( \mathcal{M}, \vec\iota \bigr)$ as the \emph{erased observation trace} which is the observation trace $\mathcal{T}\bigl( \mathcal{M}, \vec\iota \bigr)$ with private output components deleted.
+$\mathcal{T}_{\mathcal{E}}\bigl( \mathcal{M}, \vec\iota \bigr)$ as the \emph{erased observation trace}, which is the observation trace $\mathcal{T}\bigl( \mathcal{M}, \vec\iota \bigr)$ with private output components deleted.
 \end{definition}
 
 \begin{definition}[Erased input sequence] \label{def:erased-input-sequence}
 Given $\mathcal{M}$, $\mathcal{E}$, and an input sequence $\vec\iota \in I^*$, we define
-$\vec\iota_\mathcal{E}$ as the \emph{erased input sequence} which is the input sequence with private input components deleted.
+$\vec\iota_\mathcal{E}$ as the \emph{erased input sequence}, which is the input sequence with private input components deleted.
 \end{definition}
 
 \begin{definition}[Hardware constant time] \label{def:hct-single}
-A state machine $\mathcal{M}$ is \emph{hardware constant time} (HCT) with respect to an erasure contract $\mathcal{E}$ when
+A state machine $\mathcal{M}$ is \emph{hardware-constant-time} (HCT) with respect to an erasure contract $\mathcal{E}$ when
 \[
   \forall \vec\iota \in I^*.\;\;
   \mathcal{T}_\mathcal{E}(\mathcal{M}, \vec\iota)
@@ -603,10 +615,10 @@ Under this interpretation, HCT says that varying secret (erased) inputs cannot c
 
 \phantomsection\label{sec:timing-proof}
 \subsection{Lockstep simulation} \label{sec:timing-proof-lockstep}
-The hardware constant time property (\Cref{def:hct-single}) reasons about entire runs of state machines rather than isolated steps.
-This affords flexibility in potential proof techniques that may not reason about each step in isolation, but in the future could allow simulation-based proofs which rely on skipping steps or taking multiple steps.
-We will restrict ourselves to only reason about \emph{lockstep} simulations, which disallow skipping or multiple steps.
-\Cref{fig:sim-machines} demonstrate the two different proof techniques introduced in this section: first, a machine compared against itself under erased inputs (self-simulation), and second, an implementation machine compared against an abstract specification (cross-simulation).
+The hardware-constant-time property (\Cref{def:hct-single}) reasons about entire runs of state machines rather than isolated steps.
+Entire-run reasoning affords flexibility in potential proof techniques that may not reason about each step in isolation, but in the future it could allow simulation-based proofs that rely on skipping steps or taking multiple steps.
+We will restrict ourselves to reason only about \emph{lockstep} simulations, which disallow skipping or multiple steps.
+\Cref{fig:sim-machines} demonstrates the two different proof techniques introduced in this section: first, a machine compared against itself under erased inputs (self-simulation); and second, an implementation machine compared against an abstract specification (cross-simulation).
 
 \paragraph{Setup}
 Fix state machines $\mathcal{M}_1$ and $\mathcal{M}_2$ and erasure contract $\mathcal{E}$ as the following
@@ -631,7 +643,7 @@ Given a relation $R \subseteq S_1 \times S_2$ and erasure contract $\mathcal{E}$
 \end{definition}
 
 \begin{definition}[Action simulation] \label{def:action-refinement}
-We say \(a_1\) \emph{simulates} \(a_2\) under \((R,\mathcal{E})\) at \((s_1,s_2)\) when
+We say $a_1 \sim a_2$ (read \emph{simulates}) under \((R,\mathcal{E})\) at \((s_1,s_2)\) when
 \[
   R(s_1,s_2) \Rightarrow R_\mathcal{E}\bigl(s_1',o_1,s_2',o_2\bigr).
 \]
@@ -649,20 +661,22 @@ This condition is depicted as a commutative diagram in~\Cref{fig:sim-action-squa
 \label{fig:sim-action-square}
 \end{figure}
 
-Next, machine simulation instantiates~\Cref{def:action-refinement} on every method invocation $\iota \in I$ where the abstraction machine observes~\(\mathsf{erase_{in}}(\iota)\) wherever the implementation machine observes~\(\iota\).
+Next, machine simulation instantiates~\Cref{def:action-refinement} on every method invocation $\iota \in I$ where the abstract machine observes~\(\mathsf{erase_{in}}(\iota)\) wherever the implementation machine observes~\(\iota\).
 
 \begin{definition}[Machine simulation] \label{def:machine-refinement}
-$\mathcal{M}_1$ \emph{simulates} $\mathcal{M}_2$ \emph{under} $(R, \mathcal{E})$ when, for every input $\iota \in I$, all $(s_1,s_2)\in R$, and actions $a_1$ and $a_2$:
+$\mathcal{M}_1 \sim \mathcal{M}_2$ (read \emph{simulates}) \emph{under} $(R, \mathcal{E})$ when, for all related states $(s_1,s_2)\in R$, the following input-indexed action simulation holds:
 \[
-a_1 = \lambda s.\; \delta_1(s,\iota)
-,\quad
-a_2 = \lambda s.\; \delta_2(s,\mathsf{erase_{in}}(\iota))
-,\]
-$a_1$ simulates $a_2$ under $(R,\mathcal{E})$ at $(s_1,s_2)$ in the sense of~\Cref{def:action-refinement}.
+  \forall \iota \in I.\;\;
+  \bigl(\lambda s.\; \delta_1(s,\iota)\bigr)
+  \sim
+  \bigl(\lambda s.\; \delta_2(s,\mathsf{erase_{in}}(\iota))\bigr)
+  \text{ under } (R,\mathcal{E})
+  \text{ at } (s_1,s_2)
+.\]
 \end{definition}
 
 \paragraph{Self-simulation and cross-simulation}
-The self-simulation and cross-simulation instances of this definition are shown in~\Cref{fig:sim-machines}. In self-simulation, the same machine appears on both sides: one side consumes the original input \(\iota\), while the other consumes the erased input \(\mathsf{erase_{in}}(\iota)\). This directly matches the shape of hardware constant time, where we compare a machine against itself under secret variation. In cross-simulation, the left side is a concrete implementation and the right side is a simpler abstract specification that already enforces the intended security behavior; the proof then factors through simulation to transfer that behavior back to the implementation.
+The self-simulation and cross-simulation instances of this definition are shown in~\Cref{fig:sim-machines}. In self-simulation, the same machine appears on both sides: one side consumes the original input \(\iota\), while the other consumes the erased input \(\mathsf{erase_{in}}(\iota)\). Self-simulation directly matches the shape of hardware constant time, where we compare a machine against itself under secret variation. In cross-simulation, the left side is a concrete implementation, and the right side is a simpler abstract specification that already enforces the intended security behavior; the proof then factors through simulation to transfer that behavior back to the implementation.
 
 \begin{figure}[H]
 \centering
@@ -733,24 +747,24 @@ Then \(\mathcal{M}_{\mathsf I}\) satisfies hardware constant time (\Cref{def:hct
 Instantiate~\Cref{lem:sim-lift-erased-traces} with the implementation taken to be $\mathcal{M}_{\mathsf I}$ and the specification taken to be $\mathcal{M}_{\mathsf S}$. Proof obligations to show $\mathcal{M}_{\mathsf I}$ simulates $\mathcal{M}_{\mathsf S}$ under $(R, \mathcal{E})$ and that $R(s_{0,\mathsf I}, s_{0,\mathsf S})$ are provided as assumptions of the lemma.
 \end{proof}
 
-\chapter{Verifying correctness for circuits} \label{chap:golemma}
+\chapter{Verifying correctness for circuits} \label{chap:Golemma}
 
-This chapter presents a framework for verifying functional correctness on synthesizable hardware circuits. It first introduces the deeply embedded GoLemma language, which has similarities to Bluespec SystemVerilog (\Cref{sec:golemma-intro}).
-Then, it covers language extensions that enable the synthesis of Gallina types and for loops into GoLemma (\Cref{sec:golemma-synth}).
-Finally, it discusses how functional specifications are written and develops the proof strategy used to show modular refinement (\Cref{sec:golemma-spec}).
+This chapter presents a framework for verifying functional correctness on synthesizable hardware circuits. It first introduces the deeply embedded Golemma language, which has similarities to Bluespec SystemVerilog (\Cref{sec:Golemma-intro}).
+Then, it covers language extensions that enable the synthesis of Gallina types and for loops into Golemma (\Cref{sec:Golemma-synth}).
+Finally, it discusses how functional specifications are written and develops the proof strategy used to show modular refinement (\Cref{sec:Golemma-spec}).
 This chapter's framework is exercised in two case studies: a ring buffer (\Cref{sec:ring-buffer}) and a reorder buffer (\Cref{sec:reorder-buffer}).
 
-\section{Encoding circuits with GoLemma} \label{sec:golemma-intro}
-This section introduces the key constructs of GoLemma through an example circuit: a module that computes the greatest common divisor (GCD) of two 16-bit numbers using the Euclidean algorithm.
-The interface and module definition are shown in~\Cref{fig:golemma-gcd-intf,fig:golemma-gcd}, respectively.
+\section{Encoding circuits with Golemma} \label{sec:Golemma-intro}
+This section introduces the key constructs of Golemma through an example circuit: a module that computes the greatest common divisor (GCD) of two 16-bit numbers using the Euclidean algorithm.
+The interface and module definition are shown in~\Cref{fig:Golemma-gcd-intf,fig:Golemma-gcd}, respectively.
 
 \subsection{Interfaces}
-An \emph{interface} in GoLemma is a typed list of method signatures that a module presents to its environment.
-Interfaces serve as contracts in two complementary senses. First, it defines the compositional boundary between a module and its environment, playing the same role as the port list of a Verilog module. Second, it constrains what can be verified, since any specification must be stated in terms of the same method signatures that the implementation exposes.
+An \emph{interface} in Golemma is a typed list of method signatures that a module presents to its environment.
+Interfaces serve as contracts in two complementary senses. First, interfaces defines the compositional boundary between a module and its environment, playing the same role as the port list of a Verilog module. Second, it constrains what can be verified, since any specification must be stated in terms of the same method signatures that the implementation exposes.
 
-The interface for the GCD module (\Cref{fig:golemma-gcd-intf}) declares four methods.
+The interface for the GCD module (\Cref{fig:Golemma-gcd-intf}) declares four methods.
 Two are \emph{action methods}: \mintinline{coq}{load} and \mintinline{coq}{step}, which can write registers and may abort if their guards are not met; their return type is \mintinline{coq}{Action}.
-Two are \emph{value methods}: \mintinline{coq}{result} and \mintinline{coq}{done}, which are purely observational  and cannot modify registers.
+Two are \emph{value methods}: \mintinline{coq}{result} and \mintinline{coq}{finished}, which are purely observational  and cannot modify registers.
 
 \begin{figure}[H]
 \begin{minted}{coq}
@@ -758,22 +772,22 @@ interface GCD;
   method  Action      load  <Bit#(16) a, Bit#(16) b>;
   method  Action      step  <>;
   method  Bit#(16)    result <>;
-  method  Bit#(1)     done  <>;
+  method  Bit#(1)     finished  <>;
 endinterface.
 \end{minted}
 \caption[GCD interface]{The \mintinline{coq}{GCD} interface with two action methods and two value methods.}
-\label{fig:golemma-gcd-intf}
+\label{fig:Golemma-gcd-intf}
 \end{figure}
 
 \subsection{Modules}
 A \emph{module} instantiates an interface.
-Modules contain \emph{registers} that hold state across clock cycles, together with the method bodies that read and update them.
-Modules may also contain \emph{submodules} with which they interact through method invocations defined in interfaces.
-\Cref{fig:golemma-gcd} shows the implementation of the GCD module.
+Modules contain \emph{submodules} with which they interact through method invocations defined in interfaces.
+Registers are implemented as submodules: a register submodule holds state across clock cycles and exposes methods for reading and updating that state.
+\Cref{fig:Golemma-gcd} shows the implementation of the GCD module.
 The header declares that the module implements the \mintinline{coq}{GCD} interface.
 The two register declarations \mintinline{coq}{Reg#(Bit#(16)) x <- mkReg()} and \mintinline{coq}{Reg#(Bit#(16)) y <- mkReg()} create the persistent state.
-Register and submodule interactions use backtick notation, as in \mintinline{coq}{`x`read()} and \mintinline{coq}{`x`write(v)}.
-Unlike most register-transfer level languages, GoLemma does not have the restriction that every read within a method body sees the value the register held at the start of the method call; it sees the last write which occurred.
+Submodule interactions, including register reads and writes, use backtick notation, as in \mintinline{coq}{`x`read()} and \mintinline{coq}{`x`write(v)}.
+Unlike most register-transfer-level languages, Golemma does not have the restriction that every read within a method body sees the value the register held at the start of the method call; it sees the last write that occurred.
 
 \begin{figure}[t]
 \begin{minted}{coq}
@@ -802,91 +816,98 @@ module mkGCD#(GCD);
     begin return `x`read(); end.
   endmethod.
 
-  method Bit#(1) done <>;
+  method Bit#(1) finished <>;
     begin return (`y`read() == 16'd0); end.
   endmethod.
 endmodule.
 \end{minted}
 \caption[GCD module]{A GCD module implementing the \mintinline{coq}{GCD} interface using two 16-bit registers.}
-\label{fig:golemma-gcd}
+\label{fig:Golemma-gcd}
 \end{figure}
 
 \subsection{Methods}
 Every module method is declared with a return type, a name, and an optional parameter list enclosed in angle brackets.
-Methods whose return type is \mintinline{coq}{Action} or \mintinline{coq}{ActionValue\#(t)} may call submodule action methods; they can also abort, leaving the state unchanged.
-Methods with any other return type are \emph{value methods}: they may only read state and return a pure value, and they never abort.
+Methods whose return type are \mintinline{coq}{Action} or \mintinline{coq}{ActionValue\#(t)} may call submodule action methods; they can also abort, leaving state unchanged.
+Methods with any other return types are \emph{value methods}: they may only read state and return pure values, and they never abort.
 This distinction is enforced syntactically: only action methods may contain write or abort statements, so the separation between observation and mutation is visible directly in the interface signature.
 
 \subsection{Expressions}
 Expressions are pure terms of a given type.
-The primitive types in GoLemma are bitvectors (\mintinline{coq}{Bit\#($n$)} for an $n$-bit word), vectors (\mintinline{coq}{Vector\#($n$,$t$)} for a fixed-size array with $n$ items), structs, and enums.
+The primitive types in Golemma are bitvectors (\mintinline{coq}{Bit\#($n$)} for an $n$-bit word), vectors (\mintinline{coq}{Vector\#($n$,$t$)} for a fixed-size array with $n$ items), structs, and enums.
 An expression can be a constant literal such as \mintinline{coq}{16'd0}, a local variable bound by a prior \mintinline{coq}{let} statement, a field access \mintinline{coq}{e`f}, a primitive operator such as addition or comparison, or a submodule \emph{value method call} \mintinline{coq}{`sub`met(args)}.
-Value method calls read current register state inside a submodule and return a result without modifying it; they appear as expressions because their effect is purely observational.
+Value method calls read current register state inside a submodule and return a result without modifying it; they appear as expressions because their effect are purely observational.
 
 \subsection{Statements}
 Statements sequence effects inside a method body.
 The \mintinline{coq}{let x = e} form binds a fresh variable \mintinline{coq}{x} to the value of expression \mintinline{coq}{e} in the rest of the block.
 A typed form \mintinline{coq}{T\#($t$) x = e} binds \mintinline{coq}{x} with an explicit type annotation.
 Register state is updated via submodule action method calls: \mintinline{coq}{`reg`write(e)} calls the \mintinline{coq}{write} action on register \mintinline{coq}{reg} with argument \mintinline{coq}{e}.
-The result of calling an action method can be captured with \mintinline{coq}{let x <- `mod`met(args)}.
-Conditional branching uses \mintinline{coq}{if (c) \{ ... \} else \{ ... \}}, where \mintinline{coq}{c} is an expression of type \mintinline{coq}{Bit#(1)}; the \mintinline{coq}{else} branch is optional and defaults to a no-op.
+The result of calling an action-method can be captured with \mintinline{coq}{let x <- `mod`met(args)}.
+Conditional branching uses \mintinline{coq}{if (c) { ... } else { ... }}, where \mintinline{coq}{c} is an expression of type \mintinline{coq}{Bit#(1)}; the \mintinline{coq}{else} branch is optional and defaults to a no-op.
 A statement may be terminated early by \mintinline{coq}{abort}, which causes the entire method to fail and appear as if it never exited.
-No special synthesis is needed to implement \mintinline{coq}{abort}, but it induces a precondition on the method that must be proved to hold during verification.
+No special synthesis is needed to implement \mintinline{coq}{abort}, but it induces a precondition on the method.
+The method only will be called in states where execution cannot reach the \mintinline{coq}{abort}.
+During verification, callers must prove that this precondition holds.
 Statements are sequenced by separating them with semicolons inside a \mintinline{coq}{begin} ... \mintinline{coq}{end} block.
-A block may end with a \mintinline{coq}{return e} expression that specifies the method's output value; methods of type \mintinline{coq}{Action} whose return type is \mintinline{coq}{unit} may omit the \mintinline{coq}{return} and close with \mintinline{coq}{end} directly.
+A block may end with a \mintinline{coq}{return e} expression that specifies the method's output value; methods of type \mintinline{coq}{Action} whose return type are \mintinline{coq}{unit} may omit \mintinline{coq}{return} and close with \mintinline{coq}{end} directly.
 
-\section{Extending GoLemma with typeclasses} \label{sec:golemma-synth}
+\section{Extending Golemma with type classes} \label{sec:Golemma-synth}
 
-This section discusses a language extension that enables the reflection of finite Gallina types and terms into GoLemma (\Cref{sec:golemma-synthesizable}).
-It also discusses how this extension enables other language features such as structs (\Cref{sec:golemma-struct}), enums (\Cref{sec:golemma-enum}), bitflags (\Cref{sec:golemma-bitflag}), and for loops (\Cref{sec:golemma-for}).
+This section discusses a language extension that enables the reification of finite Gallina types and terms into Golemma (\Cref{sec:Golemma-synthesizable}).
+It also discusses how this extension enables other language features such as structs (\Cref{sec:Golemma-struct}), enums (\Cref{sec:Golemma-enum}), bitflags (\Cref{sec:Golemma-bitflag}), and for loops (\Cref{sec:Golemma-for}).
 
-\subsection{Synthesizable types} \label{sec:golemma-synthesizable}
+\subsection{Synthesizable types} \label{sec:Golemma-synthesizable}
 
-GoLemma programs cannot directly use standard Rocq types such as plain records and inductive types; instead, they must use the types provided by GoLemma's type system.
-Writing functional specifications and invariants that reason directly over GoLemma types is possible but cumbersome.
+Golemma programs cannot directly use standard Rocq types such as plain records and inductive types; instead, they must use the types provided by Golemma's type system.
+Writing functional specifications and invariants that reason directly over Golemma types is possible but cumbersome.
 Proofs would need to reason about raw bitvectors rather than natural Gallina types, which are the easiest to work with and the most performant with the type checker in proofs.
-A better approach is to allow the developer to use familiar Gallina types directly in GoLemma circuits, so that specifications and proofs can be stated at the Gallina level and then connected to the hardware representation transparently.
+A better approach is to allow the developer to use familiar Gallina types directly in Golemma circuits, so that specifications and proofs can be stated at the Gallina level and then connected to the hardware representation transparently.
 
-The Synthesizable typeclass formalizes this connection.
-Instances of the \mintinline{coq}{Synthesizable} typeclass witness that a Gallina type $\alpha$ has a corresponding GoLemma hardware type $\tau$ and provide the two functions that convert between them:
+The Synthesizable type class formalizes this connection.
+Instances of the \mintinline{coq}{Synthesizable} type-class witness that a Gallina type $\alpha$ has a corresponding Golemma hardware type $\tau$ and provide the two functions that convert between them:
 \begin{minted}[mathescape=true,escapeinside=||]{coq}
 Class Synthesizable (|$\alpha$| : Type) := {
-  (* [type] is the type of embedded GoLemma types *)
+  (* [type] is the type of embedded Golemma types *)
   |$\tau$|           : type;
   pack        : |$\alpha$| -> type_denote |$\tau$|;
   unpack      : type_denote |$\tau$| -> |$\alpha$|;
   pack_unpack : forall x, unpack (pack x) = x;
 }.
 \end{minted}
-The field $\tau$ is the GoLemma type representing $\alpha$ in hardware.
+The field $\tau$ is the Golemma type representing $\alpha$ in hardware.
 The function \mintinline{coq}{pack} is an injection from $\alpha$ into the hardware representation: \mintinline{coq}{unpack} is its left inverse, recovering the original Gallina value from the encoding, and \mintinline{coq}{pack_unpack} proves that \mintinline{coq}{pack} is indeed an injection.
-Every native GoLemma type is trivially synthesizable with \mintinline{coq}{pack = unpack = id}.
-Beyond that, several finite Gallina types have built-in instances: bitvectors \mintinline{coq}{bv n}, bounded naturals \mintinline{coq}{fin n}, Booleans \mintinline{coq}{bool}, and \mintinline{coq}{unit}.
-Three additional typeclasses extend \mintinline{coq}{Synthesizable} to structured Gallina types: Struct, Enum, and Bitflags.
-Each provides a Synthesizable instance automatically during typeclass resolution.
+Every native Golemma type is trivially synthesizable with \mintinline{coq}{pack = unpack = id}.
+Beyond Golemma types, several finite Gallina types have built-in instances: bitvectors \mintinline{coq}{bv n}, bounded naturals \mintinline{coq}{fin n}, Booleans \mintinline{coq}{bool}, and \mintinline{coq}{unit}.
+Three additional type classes extend \mintinline{coq}{Synthesizable} to structured Gallina types: Struct, Enum, and Bitflags.
+Each provides a Synthesizable instance automatically during type-class resolution.
 
-\subsection{Structure types} \label{sec:golemma-struct}
-The Struct typeclass handles Gallina records whose fields are all synthesizable.
-An instance maps the record to a GoLemma deeply-embedded struct type, with each field packed and unpacked field-by-field.
+\subsection{Structure types} \label{sec:Golemma-struct}
+The Struct type class handles Gallina records whose fields are all synthesizable.
+An instance maps the record to a Golemma deeply embedded struct type, with each field packed and unpacked field-by-field.
 \Cref{fig:synth-struct} shows a simple example.
 The tactic \mintinline{coq}{derive_struct} inspects the definition of the record using Ltac2 metaprogramming (\Cref{par:ltac2}), extracts the field names and types, constructs the packing and unpacking mechanism, and discharges all proof obligations automatically.
 
 \begin{figure}[H]
 \begin{minted}{coq}
-Record MyConfig := {
-  enabled : bool;
-  id      : bv 8;
+Record DecodedInstr := {
+  opcode : bv 7;
+  funct3 : bv 3;
+  funct7 : bv 7;
+  funct5 : bv 5;
+  rd     : bv 5;
+  rs1    : bv 5;
+  rs2    : bv 5;
 }.
 
-Instance myconfig_struct : Struct MyConfig. derive_struct. Defined.
+Instance decoded_instr_struct : Struct DecodedInstr. derive_struct. Defined.
 \end{minted}
-\caption[Struct instance]{Deriving a \mintinline{coq}{Struct} instance for a Rocq record.}
+\caption[Struct instance]{Deriving a \mintinline{coq}{Struct} instance for the fields of a decoded RISC-V instruction.}
 \label{fig:synth-struct}
 \end{figure}
 
-\subsection{Enumerable types} \label{sec:golemma-enum}
-The Enum typeclass handles Gallina inductive types with only nullary constructors, that is, simple variant types with no associated data.
-An instance maps each constructor to a distinct element of a GoLemma \mintinline{coq}{enum_t}, with the representation width chosen as $\lceil \log_2 n \rceil$ bits for a type with $n$ constructors.
+\subsection{Enumerable types} \label{sec:Golemma-enum}
+The Enum type class handles Gallina inductive types with only nullary constructors, that is, simple variant types with no associated data.
+An instance maps each constructor to a distinct element of a Golemma \mintinline{coq}{enum_t}, with the representation width chosen as $\lceil \log_2 n \rceil$ bits for a type with $n$ constructors.
 \Cref{fig:synth-enum} shows a three-constructor color type.
 The tactic \mintinline{coq}{derive_enum} automatically computes the constructor names, bitvector representations, and all proof obligations.
 
@@ -900,8 +921,8 @@ Instance color_enum : Enum Color. derive_enum. Defined.
 \label{fig:synth-enum}
 \end{figure}
 
-\subsection{Bitflag types} \label{sec:golemma-bitflag}
-The Bitflags typeclass handles Gallina variant types where each constructor represents an independent flag in a bitset.
+\subsection{Bitflag types} \label{sec:Golemma-bitflag}
+The Bitflags type class handles Gallina variant types where each constructor represents an independent flag in a bitset.
 Each constructor is mapped to a distinct bit position in a fixed-width bitvector, and the associated \mintinline{coq}{Bitset} type, which is formalized as a finite set using set-algebra instances from stdpp.
 Proofs over bitsets can therefore use the \mintinline{coq}{set_solver} tactic and the full stdpp set lemma library.
 \Cref{fig:synth-bitflags} shows a hardware-flag example with five variants.
@@ -923,28 +944,25 @@ Example user_rx_has_read : elem_of Read user_rx. Proof. set_solver. Qed.
 
 \subsection{Metaprogramming} \label{par:ltac2}
 Deriving instances for \mintinline{coq}{Struct}, \mintinline{coq}{Enum}, and \mintinline{coq}{Bitflags} requires inspecting inductive type definitions at elaboration time.
-Rather than requiring these typeclass instances to be derived by hand, the framework uses Ltac2 to perform this metaprogramming.
-The derivation tactics (\mintinline{coq}{derive_struct}, \mintinline{coq}{derive_enum}, \mintinline{coq}{derive_bitflags}) each reflect a Rocq inductive into a GoLemma type signature and discharge any resulting proof obligations using Ltac1.
+Rather than requiring these type-class instances to be derived by hand, the framework uses Ltac2 to perform this metaprogramming.
+Ltac1 is Rocq's original and most commonly used tactic language; tactics are used as scripts to construct proof terms in Rocq.
+Ltac2 is a newer, typed tactic language with better support for inspecting and constructing Rocq terms programmatically, making it a better fit for deriving type-class instances from syntax.
+The derivation tactics (\mintinline{coq}{derive_struct}, \mintinline{coq}{derive_enum}, \mintinline{coq}{derive_bitflags}) each reflect a Rocq inductive into a Golemma type signature and discharge any resulting proof obligations using Ltac1.
 
-When a GoLemma expression contains an identifier, the language front-end uses a sophisticated typeclass resolution mechanism to decide if it refers to a local method parameter, a local let binding, or a submodule.
+When a Golemma expression contains an identifier, the language front-end uses a sophisticated type-class-resolution mechanism to decide if it refers to a local method parameter, a local let binding, or a submodule.
 To add support for referring to record projections or Gallina constructors, this system was extended to recognize identifiers related to synthesizable types.
-This resolution is handled by a hint in the typeclass resolution database that fires whenever the elaborator encounters a particular typeclass goal that resolves identifiers.
-The hint, written in Ltac2, recovers the identifier name as a Rocq string, searches first among local hypotheses and then the global environment for a binding with that name, and, if found, wraps the value in \mintinline[escapeinside=||]{coq}{Cst (pack |$\cdot$|)}: the syntax tree for a constant node in GoLemma.
-The result is that any Gallina constant or local variable of a synthesizable type can be dropped into a GoLemma expression directly by name, without any explicit coercion syntax.
+This resolution is handled by a hint in the type-class resolution database that fires whenever the elaborator encounters a particular type-class goal that resolves identifiers.
+The hint, written in Ltac2, recovers the identifier name as a Rocq string, searches first among local hypotheses and then the global environment for a binding with that name, and, if found, wraps the value in \mintinline[escapeinside=||]{coq}{Cst (pack |$\cdot$|)}: the syntax tree for a constant node in Golemma.
+The result is that any Gallina constant or local variable of a synthesizable type can be dropped into a Golemma expression directly by name, without any explicit coercion syntax.
 
-\subsection{For loops} \label{sec:golemma-for}
+\subsection{For loops} \label{sec:Golemma-for}
 
 Hardware circuits commonly need to operate over fixed-size arrays of registers, for example, to implement content-addressable memories (CAMs).
-GoLemma did not provide native syntax for for-loop iteration at the time this thesis was written.  The for constructor in the syntax tree takes a bound $m$ and a body function from \mintinline{coq}{Fin m} to a block of actions, executing the body once for each index in \(0, 1, \ldots, m-1\).
-The library wraps this in a small definition:
-\begin{minted}{coq}
-Definition for_loop (m : N)
-    (body : bv m -> actions' ...) : action sig sig :=
-  For (fun i => body (Z_to_bv m (Z.of_N i.(fin_value)))).
-\end{minted}
-The key step is converting the index \mintinline{coq}{i : Fin m} into a bitvector of size $\lceil \log_2{m} \rceil$ so that the body can use it in GoLemma expressions directly.
-This conversion process happens automatically via the typeclass resolution procedure described in \cref{sec:golemma-synthesizable,par:ltac2}.
-A custom notation then exposes this as a familiar loop syntax as a GoLemma statement:
+Golemma did not provide native syntax for for-loop iteration at the time this thesis was written.  The for constructor in the syntax tree takes a bound $m$ and a body function from \mintinline{coq}{Fin m} to a block of actions, executing the body once for each index in \(0, 1, \ldots, m-1\).
+
+The key step is converting the index \mintinline{coq}{i : Fin m} into a bitvector of size $\lceil \log_2{m} \rceil$ so that the body can use it in Golemma expressions directly.
+This conversion process happens automatically via the type-class-resolution procedure described in \cref{sec:Golemma-synthesizable,par:ltac2}.
+A custom notation then exposes a familiar loop syntax as a Golemma statement:
 \begin{minted}{coq}
 for (let i = 0 to hi) begin
   (* body, i : bv hi *)
@@ -952,108 +970,112 @@ end
 \end{minted}
 The loop bound \mintinline{coq}{hi} must be a natural number fixed at elaboration time, so the loop always runs a statically known number of iterations, as required for synthesizability. During verification, for-loop semantics reduce to a loop rule that requires an explicit loop invariant.
 
-\section{Specifying and proving functional correctness} \label{sec:golemma-spec}
+\section{Specifying and proving functional correctness} \label{sec:Golemma-spec}
 
-Proving that a GoLemma module is correct requires a way to express what the module is supposed to do and a way to connect that description to the module's behavior.
+Proving that a Golemma module is correct requires a way to express what the module is supposed to do and a way to connect that description to the module's behavior.
 This section describes both.
-It first introduces how to write relational specifications for GoLemma methods and rules which are then composed into a modular specification (\Cref{sec:golemma-spec-framework}).
-Finally, it discusses the proof strategy needed to show that the implementation refines the specification (\Cref{sec:golemma-spec-refinement}).
+It first introduces how to write relational specifications for Golemma methods and rules that are then composed into a modular specification (\Cref{sec:Golemma-spec-framework}).
+Finally, it discusses the proof strategy needed to show that the implementation refines the specification (\Cref{sec:Golemma-spec-refinement}).
 
-\subsection{Writing specifications} \label{sec:golemma-spec-framework}
+\subsection{Writing specifications} \label{sec:Golemma-spec-framework}
 
 A specification describes the set of valid behaviors a module may exhibit.
-Specifications do not need to be executable; they are relational, and it is reasonable for them to use existential quantifiers which are expressive and enable nondeterminism naturally.
+Specifications do not need to be executable; they are relational, and it is reasonable for them to use existential quantifiers, which are expressive and enable nondeterminism naturally.
 The only constraint is that a specification must cover the same interface as the implementation it is meant to describe: the interface acts as the specification boundary, and both the concrete module and its specification provide an implementation of every method declared there, with matching argument and return types.
-The rest of this subsection develops a specification for the greatest common divisor module from \Cref{fig:golemma-gcd-intf}, using it to illustrate the key features of this specification style.
+The rest of this subsection develops a specification for the greatest-common-divisor module from \Cref{fig:Golemma-gcd-intf}, using it to illustrate the key features of this specification style.
 
 \paragraph{Abstract state.}
 Every specification module has an associated \emph{abstract state}, which is an ordinary Gallina type chosen to model the module's behavior at the desired level of abstraction.
-For the GCD module, the natural abstract state is a pair of natural numbers alongside a \emph{representation invariant} (\mintinline{coq}{wf}) stating that the greatest common divisor of $a$ and $b$ equals the greatest common divisor of $b$ and $a \bmod b$.
+For the GCD module, the abstract state records both the original inputs and the current state of the Euclidean algorithm.
+The fields \mintinline{coq}{a} and \mintinline{coq}{b} are the original operands loaded into the module, while \mintinline{coq}{a'} and \mintinline{coq}{b'} are the current operands after some number of \mintinline{coq}{step} calls.
+The \emph{representation invariant} (\mintinline{coq}{wf}) states that the current operands still have the same greatest common divisor as the original inputs.
 
 \begin{minted}{coq}
 Record GcdState := mkState {
   a  : nat;
   b  : nat;
-  wf : gcd a b = gcd b (a `mod` b)
+  a' : nat;
+  b' : nat;
+  wf : gcd a b = gcd a' b';
 }.
-
-Definition rst : State := mkState 0 0.
 \end{minted}
 
-The abstract state lives entirely in Gallina; it is only the implementation that requires the use of the hardware embedding language.
-This specification style is a benefit: proofs, invariants, and lemmas about the specification are stated in terms of natural-number arithmetic rather than in terms of bitvectors.
+The abstract state lives entirely in Gallina; it is only the implementation that requires the use of the hardware-description language.
+This specification style is a benefit: proofs, invariants, and lemmas about the specification are stated in terms of natural-number arithmetic and the standard GCD function rather than in terms of bitvectors.
 
 \paragraph{Predicate-transformer semantics.}
 Each method specification is written in a continuation-passing style.
 Rather than producing an output value directly, a specification takes a postcondition $P$ and is responsible for establishing that $P$ holds of its outputs.
 This continuation-passing convention gives a uniform way to state both what the method requires of its inputs (preconditions) and what it guarantees about its outputs (postconditions).
-GoLemma provides two specification types.
-Value method specifications have the following type:
+Golemma provides two specification types.
+Value-method specifications have the following type:
 \[
   (\mathit{args} \times \mathit{State}) \to (\mathit{ret} \to \mathsf{Prop}) \to \mathsf{Prop}
 \]
-Action method specifications have the following type, where the postcondition additionally receives the next state:
+Action-method specifications have the following type, where the postcondition additionally receives the next state:
 \[
   (\mathit{args} \times \mathit{State}) \to ((\mathit{ret} \times \mathit{State}) \to \mathsf{Prop}) \to \mathsf{Prop}
 \]
 In both cases the outermost proposition is the body of the specification.
 
 \paragraph{Value methods.}
-The \mintinline{coq}{result} method returns the current first operand, and \mintinline{coq}{done} returns whether the second operand is zero.
+The \mintinline{coq}{result} method returns the current first operand \mintinline{coq}{a'}, and \mintinline{coq}{done} returns whether the current second operand \mintinline{coq}{b'} is zero.
 Each specification simply calls $P$ on the appropriate return value:
 \begin{minted}{coq}
 Definition result : MRVSpec State (mkMetSig <> Bit#(16)) :=
-  fun '(_, st) P => P (st.(a)).
+  fun '(_, st) P => P (nat_to_bv st.(a')).
 
 Definition done : MRVSpec State (mkMetSig <> Bit#(1)) :=
   fun '(_, st) P =>
-    P (if (st.(b) == 0) then 1%bv else 0%bv).
+    P (if (st.(b') == 0) then 1%bv else 0%bv).
 \end{minted}
 The postcondition is stated by choosing what term to apply $P$ to.
 Different terms produce stronger or weaker guarantees; the specification's job is to apply $P$ to exactly the value the method is guaranteed to return.
 
 \paragraph{Action methods and preconditions.}
-Action method specifications additionally describe how the abstract state evolves.
+Action-method specifications additionally describe how the abstract state evolves.
 The \mintinline{coq}{load} method sets the two operands to the supplied arguments:
 \begin{minted}{coq}
 Definition load : MRASpec State (mkMetSig <Bit#(16) a, Bit#(16) b> Bit#(0)) :=
   fun '(args, _) P =>
-    let a := args[[@@0]] in
-    let b := args[[@@1]] in
-    exists st', st' = mkState a b _ /\ P (0%bv, st').
+    let a := bv_to_nat args[[@@0]] in
+    let b := bv_to_nat args[[@@1]] in
+      P (0%bv, mkState a b a b _).
 \end{minted}
-The successor state \mintinline{coq}{st'} is introduced existentially and constrained to satisfy the postcondition \mintinline{coq}{P}.
+The successor state stores the loaded operands twice: once as the fixed original inputs and once as the current operands.
+The proof witness \mintinline{coq}{pf} establishes \mintinline{coq}{gcd a b = gcd a b}, so the invariant holds immediately after loading.
 
-The \mintinline{coq}{step} method is more interesting because the implementation aborts when the second operand is zero.
-A \emph{precondition} on the method is expressed as a conjunct placed \emph{outside} of $P$, before any existential quantification:
+The \mintinline{coq}{step} method is more interesting because the implementation aborts when the current second operand is zero.
+A \emph{precondition} on the method is expressed as a conjunct placed \emph{outside} of $P$, before any existential quantification.
 \begin{minted}{coq}
 Definition step' : MRASpec State (mkMetSig <> Bit#(0)) :=
   fun '(_, st) P =>
-    st.(b) <> 0%bv /\
-    exists st',
-      st' = (if decide (st.(a) > st.(b))
-             then mkState (st.(a) - st.(b)) st.(b) _
-             else mkState st.(a) (st.(b) - st.(a))) _ /\
-      P (bv_0 _, st').
+    st.(b') <> 0 /\
+    let next :=
+      if decide (st.(a') >= st.(b')) then
+        mkState st.(a) st.(b) (st.(a') - st.(b')) st.(b') _
+      else
+        mkState st.(a) st.(b) st.(a') (st.(b') - st.(a')) _ in
+      P (0%bv, next).
 \end{minted}
-Because \mintinline{coq}{st.(b) <> 0%bv} sits outside $P$, it is a delegated obligation that callers of this submodule must discharge.
+Since \mintinline{coq}{st.(b') <> 0} sits outside $P$, it is a delegated obligation that callers of this submodule must discharge.
 The refinement proof must show that the implementation never invokes \mintinline{coq}{step} in a state where the abort path can be reached.
-Postconditions, by contrast, are captured by choosing which \mintinline{coq}{st'} to quantify over and what constraint on it to conjoin with \mintinline{coq}{P (0%bv, st')}.
+Postconditions, by contrast, are captured by constructing the next abstract state passed to \mintinline{coq}{P}; here that state preserves the original \mintinline{coq}{a} and \mintinline{coq}{b} fields while updating only \mintinline{coq}{a'} and \mintinline{coq}{b'}.
 
 \paragraph{Representation invariants.}
-Not every pair of natural numbers is a valid intermediate state for a GCD computation.
-The \mintinline{coq}{GcdState} record shown earlier encodes this constraint through the \mintinline{coq}{wf} field: a Rocq proof that the pair \mintinline{coq}{(a, b)} satisfies the algebraic property underlying the Euclidean algorithm.
+Not every tuple of natural numbers is a valid intermediate state for a GCD computation.
+The \mintinline{coq}{GcdState} record shown earlier encodes this constraint through the \mintinline{coq}{wf} field: a Rocq proof that the current pair \mintinline{coq}{(a', b')} has the same GCD as the original pair \mintinline{coq}{(a, b)}.
 This proof field is a \emph{representation invariant} that every abstract state must carry.
 
-Because \mintinline{coq}{wf} is a field of the record, Rocq's type system ensures it is present in every \mintinline{coq}{GcdState} value---there is no way to construct an abstract state that violates it.
-This means that specifications and lemmas can rely on the invariant without stating it as an explicit hypothesis: any bound abstract state already carries the \emph{well-foundedness} condition as a proof term.
-Action method specifications that modify the state have a proof obligation to discharge the invariant.
-For example, the \mintinline{coq}{step} specification must supply a proof that the reduced pair still satisfies \mintinline{coq}{wf} whenever it quantifies over \mintinline{coq}{st'}.
+Since \mintinline{coq}{wf} is a field of the record, Rocq's type system ensures it is present in every \mintinline{coq}{GcdState} value. The type system disallows constructing an abstract state that violates it.
+Since the invariant is part of the \mintinline{coq}{GcdState} type, specifications and lemmas can rely on it without taking a separate hypothesis: any variable \mintinline{coq}{st : GcdState} already provides the proof term \mintinline{coq}{st.(wf)}.
+Action-method specifications that modify the state have a proof obligation to discharge the invariant.
+For example, the \mintinline{coq}{step} specification must supply a proof that the updated current pair still has GCD \mintinline{coq}{gcd st.(a) st.(b)} whenever it constructs the next \mintinline{coq}{GcdState}.
 
 \paragraph{Discussion: connection to abstract data types.}
 This specification style is directly analogous to the theory of \emph{abstract data types} (ADTs).
 In an ADT, an abstraction function (AF) maps concrete states to abstract values, and each operation is specified by its effect on that abstract model.
-The same structure appears here: the \mintinline{coq}{GcdState} record is the abstract model and each method specification describes the contract that any correct implementation must satisfy.
+The same structure appears here: the \mintinline{coq}{GcdState} record is the abstract model, and each method specification describes the contract that any correct implementation must satisfy.
 The predicate-transformer style mirrors Hoare-logic-style method contracts.
 A precondition is a proposition outside $P$ that constrains what the method requires of its inputs; a postcondition is a proposition inside $P$ that describes what the method guarantees about its outputs.
 Similar to ADT specifications, these contracts are \emph{relational}. Specifications are allowed to use arbitrary Gallina propositions, including existential quantification, so they can express nondeterminism cleanly.
@@ -1061,8 +1083,147 @@ An implementation that can nondeterministically return any element of a set sati
 This feature is particularly useful when specifying the issue logic of an out-of-order processor scheduler (\Cref{sec:reorder-buffer}), where the choice of which ready instruction to issue is left unspecified.
 The abstraction function appears explicitly as the simulation relation between the concrete register state of the implementation and the abstract state, when establishing refinement.
 
-\subsection{Proof strategy} \label{sec:golemma-spec-refinement}
-\comment{TODO(kosinw): Write section}
+\subsection{Writing proofs} \label{sec:Golemma-spec-refinement}
+
+A functional-correctness proof in Golemma establishes that the implementation module \emph{refines} the specification module.
+The proof has three interconnected components.
+First, one defines a simulation relation $R$ that connects implementation states to specification states.
+Second, one discharges each method and rule obligation by reasoning separately about each one.
+Finally, the semantics of Golemma is provided by the weakest-precondition interpreter, which must reasoned about during proof writing.
+
+\paragraph{Refinement.}
+A simulation relation $R : I \to S \to \text{Prop}$ relates each implementation state $i \in I$ to an abstract specification state $s \in S$.
+Throughout the definitions below, $\varphi$ denotes a predicate transformer for the implementation and $\psi$ denotes the corresponding predicate transformer for the specification, where each is a predicate transformer of the appropriate type from \Cref{sec:Golemma-spec-framework}.
+Given such a relation, refinement comes in three variants: for value methods, for action methods, and for rules.
+
+\begin{definition}[Value-method refinement] \label{def:refines-value}
+Let $R : I \to S \to \text{Prop}$, and let $\varphi$ and $\psi$ be value-method-predicate transformers over states $I$ and $S$, respectively.
+$\varphi$ \emph{refines} $\psi$ under $R$ when, for every related pair $(i, s) \in R$, every argument $\alpha$, and every postcondition $P$,
+\[
+  \psi(\alpha,\, s,\, P) \;\Rightarrow\; \varphi(\alpha,\, i,\, P).
+\]
+\end{definition}
+
+Value-method refinement is straightforward: if the specification establishes postcondition $P$, so must the implementation.
+Action methods will update state, so their refinement condition must also account for how the two states evolve:
+
+\begin{definition}[Action-method refinement] \label{def:refines-action}
+$\varphi$ \emph{refines} $\psi$ under $R : I \to S \to \text{Prop}$ when, for every $(i, s) \in R$, every argument $\alpha$, and every postcondition $P$,
+\[
+  \psi(\alpha,\, s)(P)
+  \;\Rightarrow\;
+  \varphi(\alpha,\, i)\!\left(\lambda\,(r,\,i').\;
+    \exists\, s'.\; P(r,\, s') \land R(i',\, s')\right).
+\]
+\end{definition}
+
+Rather than demanding a unique successor state, the existential allows the implementation to reach any state $i'$ for which there exists a specification successor $s'$ still in $R$ and satisfying $P$.
+Rules carry no arguments and produce no return value, but they do update state.
+Rule refinement therefore follows the same shape as action-method refinement, with the added flexibility of a possibly different post-relation $R'$ for relating successor states:
+
+\begin{definition}[Rule refinement] \label{def:refines-rules}
+$\varphi$ \emph{refines} $\psi$ under $(R, R' : I \to S \to \text{Prop})$ when, for every $(i, s) \in R$ and every postcondition $P$,
+\[
+  \psi(s)(P)
+  \;\Rightarrow\;
+  \varphi(i)\!\left(\lambda\, i'.\;
+    \exists\, s'.\; P(s') \land R'(i',\, s')\right).
+\]
+\end{definition}
+
+The use of $R'$ as the post-relation separates the invariant needed to fire a rule from the invariant that holds once it has fired, which is useful when rules have side-conditions that are established by other rules in the same module.
+\Cref{fig:refines-diagram} illustrates action-method refinement as a commutative diagram.
+A pair of related states $(i, s) \in R$ fires synchronously; the diagram commutes when there exists $s'$ such that the specification makes the same step and $(i', s') \in R$ holds.
+
+\begin{figure}[H]
+\centering
+\begin{tikzcd}[column sep=8em, row sep=huge]
+  i \arrow[r, "\delta_{\mathit{impl}}(\mathit{arg})"]
+    \arrow[d, "R"', leftrightarrow]
+  &
+  i' \arrow[d, "R", leftrightarrow]
+  \\
+  s \arrow[r, "\delta_{\mathit{spec}}(\mathit{arg})"']
+  &
+  s'
+\end{tikzcd}
+\caption{Action-method refinement as a commutative diagram. Starting from related states $(i, s) \in R$, the implementation and specification both fire on the same argument; refinement holds when the resulting states $(i', s')$ are again related under $R$.}
+\label{fig:refines-diagram}
+\end{figure}
+
+Module refinement packages all of the method-level and rule-level obligations together with a proof that the reset states are related:
+
+\begin{definition}[Module refinement] \label{def:refines-module}
+A module $\mathcal{M}_I$ \emph{refines} a module $\mathcal{M}_S$ when there exist simulation relations $R, R' : I \to S \to \text{Prop}$ and initial states $i_0 \in I$, $s_0 \in S$ such that:
+\begin{enumerate}
+  \item $R(i_0, s_0)$ (the reset states are related);
+  \item every external method of $\mathcal{M}_I$ refines the corresponding method of $\mathcal{M}_S$ under $R$; and
+  \item every rule of $\mathcal{M}_I$ refines the corresponding rule of $\mathcal{M}_S$ under $(R, R')$.
+\end{enumerate}
+\end{definition}
+
+\paragraph{Proof structure.}
+With the refinement conditions in hand, a module proof reduces to a collection of per-method and per-rule lemmas, each following the same template.
+The first and most consequential decision is the choice of simulation relation $R$.
+For the GCD module, $R$ relates a concrete implementation state (a record of hardware register values) to an abstract \mintinline{coq}{GcdState}.
+The relation asserts that each register value, converted from a bitvector to a natural number, agrees with the corresponding \mintinline{coq}{GcdState} field.
+\Cref{fig:gcd-R} shows a Rocq definition capturing this relation.
+
+\begin{figure}[H]
+\begin{minted}{coq}
+Definition R (ist : ImplState) (sst : GcdState) : Prop :=
+  bv_to_nat ist.(reg_a')  = sst.(a') /\
+  bv_to_nat ist.(reg_b')  = sst.(b') /\
+  bv_to_nat ist.(reg_a)   = sst.(a)  /\
+  bv_to_nat ist.(reg_b)   = sst.(b).
+\end{minted}
+\caption{The simulation relation for the GCD module. The representation invariant \mintinline{coq}{gcd a b = gcd a' b'} is carried by the \mintinline{coq}{GcdState} type itself, so it need not be stated separately in $R$.}
+\label{fig:gcd-R}
+\end{figure}
+
+With $R$ fixed, each method proof decomposes into two sides.
+On the \emph{specification side}, reasoning is straightforward because the specification is written against the abstract \mintinline{coq}{GcdState} type and each piece of information is available as a named field.
+Auxiliary lemmas, such as that \mintinline{coq}{step} preserves the invariant \mintinline{coq}{gcd a b = gcd a' b'}, are stated and proved directly in terms of natural-number arithmetic, without destructing the abstract state.
+Because the invariant is part of the record type, any hypothesis \mintinline{coq}{st : GcdState} already supplies the proof term \mintinline{coq}{st.(wf)}, so preservation proofs reduce to arithmetic facts about the GCD function.
+
+On the \emph{implementation side}, more work is required because the concrete state is a flat record of bitvector register contents.
+Proofs must explicitly destruct this record and then relate each bitvector value to its natural-number counterpart using conversion lemmas.
+The meaning of each register read and write in the method body is provided by the weakest-precondition interpreter, which is unfolded as part of this reasoning.
+
+\paragraph{Weakest-precondition semantics.}
+The weakest-precondition (WPC) interpreter assigns formal meaning to Golemma statements.
+It is what makes the implementation-side reasoning in the previous paragraph precise: unfolding the interpreter replaces a method body with the logical condition that the body establishes, making each register read and write visible as a hypothesis or obligation in the proof goal.
+Given a postcondition $P$ over the output state and a statement $s$, the interpreter computes the weakest proposition over the input state that guarantees $P$ after $s$ executes.
+The interpreter operates over pairs $(\gamma, \sigma)$ of a \emph{variable context} $\gamma$ (a typed environment mapping local variable names to values) and a \emph{submodule state} $\sigma$ (the collective state of all submodules visible to the current method body).
+
+Two representative rules are given below.
+The assignment rule evaluates expression $e$ in context $\gamma$, binds the result to $x$, and passes the extended context to the continuation $P$:
+
+\begin{mathpar}
+\inferrule[WPC-Assign]{
+  \llbracket e \rrbracket_\gamma = v
+}{
+  \mathit{wp}(\texttt{let}\ x = e,\ P)(\gamma,\, \sigma)
+  \;\iff\;
+  P\!\left(\gamma[x \mapsto v],\; \sigma\right)
+}
+\end{mathpar}
+
+The submodule-call rule evaluates the argument list, then delegates to the submodule's action specification to determine the semantics of the call.
+The return value and updated submodule state are threaded into the continuation:
+
+\begin{mathpar}
+\inferrule[WPC-Call]{
+  \llbracket \mathit{args} \rrbracket_\gamma = v
+  \\
+  \mathit{Spec}_m\!\left(v,\; \sigma\right)\!\left(\lambda\,(r,\, \sigma').\; P\!\left(\gamma[x \mapsto r],\; \sigma'\right)\right)
+}{
+  \mathit{wp}(x \leftarrow m(\mathit{args}),\ P)(\gamma,\, \sigma)
+}
+\end{mathpar}
+
+Here $\mathit{Spec}_m$ is the predicate-transformer specification of submodule method $m$, as described in \Cref{sec:Golemma-spec-framework}.
+The two levels are therefore mutually reinforcing: the specification framework defines what the submodule is supposed to do, and the WPC interpreter connects that specification to the concrete syntax of the implementation, closing the loop between the abstract contract and its hardware realization.
 
 \chapter{Case studies} \label{chap:cases}
 
@@ -1078,7 +1239,7 @@ The abstraction function appears explicitly as the simulation relation between t
 \chapter{Conclusion}
 \comment{TODO(kosinw): Write chapter}
 
-\bibliographystyle{plain}
+\bibliographystyle{unsrt}
 \bibliography{refs}
 
 \end{document}
