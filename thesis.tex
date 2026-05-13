@@ -1464,42 +1464,42 @@ The proof uses self-simulation (\Cref{lem:self-sim-hct}): the implementation is 
 It suffices to show that $R$ is preserved by each operation.
 
 \begin{lemma} \label{lem:mult-enq}
-$\mathsf{enq}$ self-simulates under $(R, \mathcal{E})$.
+\mintinline{coq}{enq} self-simulates under $(R, \mathcal{E})$.
 \end{lemma}
 
 \begin{proof}[Proof sketch]
 Assume $R(s_1, s_2)$.
-Both actions guard on \mintinline{coq}{phase == Empty}; since the phases are equal, both guards take the same branch.
+Both actions guard on \mintinline{coq}{phase == Empty}; since the phases are equal, both machines take the same branch.
 When the guard succeeds, both actions write \mintinline{coq}{src1 := a}, \mintinline{coq}{dst := 0}, \mintinline{coq}{count := 0}, and \mintinline{coq}{phase := Busy}.
 The first action additionally writes \mintinline{coq}{src2 := b} and the second writes \mintinline{coq}{src2 := 0}; since \mintinline{coq}{src2} is not tracked by $R$, the relation holds for the successor states.
-Both actions return the same result, so we can successfully conclude the simulation.
+Both actions return the same result (void), so we can successfully conclude the simulation.
 \end{proof}
 
 \begin{lemma} \label{lem:mult-deq}
-$\mathsf{deq}$ self-simulates under $(R, \mathcal{E})$.
+\mintinline{coq}{deq} self-simulates under $(R, \mathcal{E})$.
 \end{lemma}
 
 \begin{proof}[Proof sketch]
-Assume $R(s_1, s_2)$. Both actions guard on \mintinline{coq}{phase == Full}; the guard takes the same branch in both states since $R$ equates the phases.
+Assume $R(s_1, s_2)$. Both actions guard on \mintinline{coq}{phase == Full}; the machine takes the same branch in both states since $R$ equates the phases.
 When the guard succeeds, both write \mintinline{coq}{phase := Empty} and return \mintinline{coq}{dst}.
 The products \mintinline{coq}{dst} may differ between the two states, but \mintinline{coq}{erase_out} maps both to \mintinline{coq}{0}, so the observed outputs are equal.
 The successor states agree on \mintinline{coq}{phase}, \mintinline{coq}{count}, and \mintinline{coq}{src1}, so $R$ is preserved.
 \end{proof}
 
 \begin{lemma} \label{lem:mult-rule}
-$\mathsf{step}$ self-simulates under $(R, \mathcal E)$.
+\mintinline{coq}{step} self-simulates under $(R, \mathcal E)$.
 \end{lemma}
 
 \begin{proof}[Proof sketch]
-Assume $R(s_1, s_2)$. Both actions guard on \mintinline{coq}{phase == Busy}, which takes the same branch by $R$.
-Inside the guard, both actions check whether \mintinline{coq}{src1 == 0}; since $R$ equates \mintinline{coq}{src1}, the same branch is taken.
+Assume $R(s_1, s_2)$. Both actions guard on \mintinline{coq}{phase == Busy}, which causes the machines to take the same branch by $R$.
+Inside the guard, both machines check whether \mintinline{coq}{src1 == 0}; since $R$ equates \mintinline{coq}{src1}, the same branch is taken.
 If \mintinline{coq}{src1} is zero, both transition to \mintinline{coq}{Full}.
 Otherwise, both call \mintinline{coq}{shift_and_add}: the operations on \mintinline{coq}{src1} and \mintinline{coq}{count} are identical (right-shifting \mintinline{coq}{src1} by one, incrementing \mintinline{coq}{count}), so those registers remain equal.
-The accumulation into \mintinline{coq}{dst} may differ since \mintinline{coq}{src2} differs, but \mintinline{coq}{dst} is not tracked by $R$.
+The accumulation into \mintinline{coq}{dst} may differ since \mintinline{coq}{src2} differs, but \mintinline{coq}{dst} is not tracked by $R$, so $R$ is preserved.
 \end{proof}
 
 \begin{lemma} \label{lem:mult-status}
-$\mathsf{empty}$, $\mathsf{busy}$, and $\mathsf{full}$ each refine themselves under $(R, \mathcal E)$.
+\mintinline{coq}{empty}, \mintinline{coq}{busy}, and \mintinline{coq}{full} each refine themselves under $(R, \mathcal E)$.
 \end{lemma}
 
 \begin{proof}[Proof sketch]
@@ -1586,24 +1586,23 @@ The \mintinline{coq}{upd} and \mintinline{coq}{sub} operations perform a list up
 
 \subsection{Implementation}
 
-The implementation maintains a fixed-size vector of registers for entries and three control registers: \mintinline{coq}{head} and \mintinline{coq}{tail} as \mintinline{coq}{Width}-bit values and \mintinline{coq}{full} as a one-bit flag.
+The implementation maintains a fixed-size vector of registers for entries and three control registers: \mintinline{coq}{head} and \mintinline{coq}{tail} as $N$-bit values and \mintinline{coq}{full} as a one-bit flag.
 \Cref{fig:rb-impl} shows the module declaration.
 
 \begin{figure}[ht]
 \begin{minted}{coq}
-module mkRingBuffer#(RingBuffer#(Entry, Width));
-  Vector#(2 ^ Width, Reg#(Entry)) entries <- replicateM(mkCFReg());
-  Reg#(Bit#(Width))               head    <- mkCFReg();
-  Reg#(Bit#(Width))               tail    <- mkCFReg();
-  Reg#(Bit#(1))                   full    <- mkCFReg();
+module mkRingBuffer#(RingBuffer#(Entry, N));
+  Vector#(2 ^ N, Reg#(Entry))     entries <- replicateM(mkReg());
+  Reg#(Bit#(Width))               head    <- mkReg();
+  Reg#(Bit#(Width))               tail    <- mkReg();
+  Reg#(Bit#(1))                   full    <- mkReg();
 \end{minted}
 \caption{Module declaration for the ring buffer implementation.}
 \label{fig:rb-impl}
 \end{figure}
 
-The implementation methods use bitvector arithmetic on the \mintinline{coq}{head} and \mintinline{coq}{tail} registers.
-The \mintinline{coq}{enq} method writes the new element to \mintinline{coq}{entries[tail]}, advances \mintinline{coq}{tail} by one using fixed-width addition (which wraps naturally at $2^{\mathit{Width}}$), and updates \mintinline{coq}{full} by checking whether the new tail equals \mintinline{coq}{head}.
-The validity check for \mintinline{coq}{sub}, \mintinline{coq}{upd}, and \mintinline{coq}{squash} is computed as the bitvector comparison \mintinline{coq}{(idx - head) < (tail - head)}, which handles wrap-around correctly because bitvector subtraction is itself modular.
+The \mintinline{coq}{enq} method writes the new element to \mintinline{coq}{entries[tail]}, advances \mintinline{coq}{tail} by one using fixed-width addition (which wraps naturally at $2^N$), and updates \mintinline{coq}{full} by checking whether the new tail equals \mintinline{coq}{head}.
+The validity check for \mintinline{coq}{sub}, \mintinline{coq}{upd}, and \mintinline{coq}{squash} is computed as the comparison \mintinline{coq}{(idx - head) < (tail - head)}, which effectively checks if \mintinline{coq}{idx} is a valid index in the current list.
 Unlike the specification, which derives the \mintinline{coq}{full} condition from the size, the implementation must maintain the \mintinline{coq}{full} flag explicitly to disambiguate the case where head equals tail.
 
 \subsection{Verification}
