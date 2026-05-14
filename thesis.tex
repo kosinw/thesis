@@ -22,14 +22,6 @@
 \newcommand{\comment}[1]{\textcolor{blue}{\textbf{[#1]}}}
 \renewcommand{\bibname}{References}
 
-\hypersetup{
-    colorlinks=true,
-    linkcolor=green,    % Color for internal links (sections, pages, etc.)
-    citecolor=green,   % Color for bibliographical citations
-    filecolor=green, % Color for local files
-    urlcolor=green,     % Color for external web links
-}
-
 \theoremstyle{definition}
 \newtheorem{definition}{Definition}[section]
 \theoremstyle{plain}
@@ -49,7 +41,6 @@
   escapeinside=@@,
 }
 
-\AtBeginEnvironment{appendices}{\crefalias{chapter}{appendix}}
 \AtBeginEnvironment{theorem}{\Needspace{4\baselineskip}}
 \AtBeginEnvironment{definition}{\Needspace{4\baselineskip}}
 \AtBeginEnvironment{lemma}{\Needspace{4\baselineskip}}
@@ -87,20 +78,29 @@ To express hardware circuits in a proof-friendly style, the thesis introduces \e
 Slate provides an imperative-programming model to describe circuits compactly in Gallina.
 Since Slate circuits are Gallina functions, reasoning about them in proofs is simple.
 The timing-security framework is exercised on a case study of a variable-latency multiplier.
-The thesis also uses \emph{Golemma}, a deeply embedded hardware language in Rocq, to establish correctness results for key out-of-order processor submodules.
+The thesis also presents \emph{Golemma}, a deeply embedded hardware language in Rocq, to establish correctness results for key out-of-order processor submodules.
 Golemma provides facilities for modularity and exposes a sequential execution model which makes functional-correctness reasoning simple.
 Together, these contributions provide a foundation for progression towards integrated proofs of correctness and timing security for full out-of-order processors.
 \end{abstract}
 
 \chapter*{Acknowledgments}
-\addcontentsline{toc}{chapter}{Acknowledgments}
-\comment{TODO(kosinw): Write acknowledgements}
+I would like to thank the following people for their encouragement, support, and mentorship throughout the completion of my master's thesis.
+\begin{itemize}
+  \item \textbf{Adam and Mengjia}, my research advisors, for their guidance, insights, and support throughout this project.
+  Their expertise in both programming languages and computer architecture, respectively, made this work possible.
+
+  \item \textbf{Shixin}, for her mentorship throughout my time as a UROP and MEng student in the MATCHA lab.
+  I have learned an enormous amount about both computer architecture and programming languages from working alongside her over the past two years.
+
+  \item \textbf{Stella, Elvis, and Andres}, for their collaboration on this project and many valuable technical and design discussions over the past year. Without their guidance, this project would not be where it is today.
+
+  \item \textbf{Dad, Mom, Kamsi, Kamto, and Kobi}, my family, for their unconditional love and emotional encouragement throughout my time at MIT.
+\end{itemize}
 
 \tableofcontents
 \listoffigures
-\listoftables
 
-\chapter{Introduction}
+\chapter{Introduction} \label{chap:intro}
 This thesis contributes an approach for proving correctness and timing properties for hardware circuits described in the Rocq proof assistant.
 This work serves as the first step towards the mechanization of entire correctness and timing proofs for a realistic, modern computer system including a single out-of-order core complete with a memory hierarchy.
 
@@ -116,7 +116,7 @@ The algorithm is a modified design based on the MIPS R10000 (R10K) processor~\ci
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.75\textwidth]{figures/figure1.png}
-  \caption[Diagram of an out-of-order machine]{Diagram for an out-of-order machine based on the R10K processor. Arrows signify communication between submodules.}
+  \caption[Out-of-order machine diagram]{Diagram of an out-of-order machine based on the R10K processor. Arrows signify communication between submodules.}
   \label{fig:fig1}
 \end{figure}
 
@@ -157,14 +157,12 @@ Stella contributed security formalizations and proofs for a five-stage pipelined
 Shixin worked on a correctness proof for the out-of-order algorithm described in \Cref{sec:ooo}, for which a full mechanized proof is the end goal for a larger project.
 My personal contributions include specifications, implementations, correctness proofs, and timing proofs for individual submodules of the out-of-order machine, as discussed in \Cref{chap:cases}.
 
-\chapter{Related work}
+\chapter{Related work} \label{chap:related}
 
-This chapter first surveys prior work on formal correctness for hardware (\Cref{sec:related-correctness}), which informs the implementation, specification and proof methodologies used throughout the remainder of this thesis.
+This chapter first surveys prior work on proving functional correctness for hardware circuits (\Cref{sec:related-correctness}).
 Then it covers prior work on timing security, both the attacks that motivate this work and the hardware and software defenses that mitigate them (\Cref{sec:related-timing}).
 
 \section{Correctness} \label{sec:related-correctness}
-
-Several prior projects have tackled hardware correctness by embedding hardware-description languages directly into a proof assistant.
 
 Kami~\cite{choi2017} is a hardware-description language, embedded in Rocq, for specifying and verifying hardware circuits in the style of Bluespec SystemVerilog.
 Circuits are semantically treated as labeled transition systems composed of guarded atomic rules, and correctness arguments proceed by refinement between more-abstract and more-concrete specifications.
@@ -200,9 +198,8 @@ This thesis continues in the same tradition, carrying these timing-security proo
 \chapter{Verifying timing security for circuits} \label{chap:Slate}
 
 This chapter presents a framework for timing-security verification of hardware circuits.
-It begins by giving a formalism of state machines (\Cref{sec:timing-state-machine}) to model hardware circuits and then introduces \emph{Slate} (\textbf{s}urface \textbf{l}anguage for \textbf{a}ctions), a shallowly embedded language in Rocq for specifying hardware circuits (\Cref{sec:timing-monads}).
+It begins by giving a formalism of state machines (\Cref{sec:timing-state-machine}) to model hardware circuits and then introduces \emph{Slate}, a shallowly embedded language in Rocq for specifying hardware circuits (\Cref{sec:timing-monads}).
 Finally, it defines hardware timing security and develops the simulation-based proof structure used to establish it (\Cref{sec:timing-security}).
-The chapter's framework is exercised in a case study of a constant-time variable-latency multiplier (\Cref{sec:case-study-multiplier}).
 
 \section{State machines} \label{sec:timing-state-machine}
 
@@ -253,34 +250,19 @@ Concretely, the machine $\mathcal{M}$ produces a sequence of optional outputs by
 \[
   s_0 \xrightarrow{\iota_1 / o_1} s_1 \xrightarrow{\iota_2 / o_2} s_2 \;\cdots\; \xrightarrow{\iota_n / o_n} s_n, \qquad o_i \in O,\ s_i \in S.
 \]
-The \emph{observation trace} of the run is the list
+The \emph{observation trace} of the run is the list:
 \[
   \mathcal{T}\bigl( \mathcal{M}, \vec\iota \bigr) \;\triangleq\; \bigl(o_1,o_2,\ldots,o_n \bigr)
 .\]
 For timing security, an attacker interprets elements of $O$ (modulo erasure, described in \Cref{sec:timing-security}) as leaked information.
 Aborted transitions do not produce outputs in the observation trace.
 
-The state-machine model is mechanized in Rocq as a plain record (\Cref{fig:circuit-typeclass}), parameterized by a state type~$\mathit{s}$, an input type~$\mathit{i}$, and an output type~$\mathit{o}$.
-These parameters correspond directly to $S$, $I$, and $O$.
-
-\begin{figure}[H]
-\begin{minted}{coq}
-Record StateMachine (s i o : Type) := {
-  state_machine_rst  : s;
-  state_machine_call : i -> Action s o;
-}.
-\end{minted}
-\caption[State machine definition in Rocq.]{The $\mathit{StateMachine}$ record. The fields $\mathit{state\_machine\_rst}$
-  and $\mathit{state\_machine\_call}$ correspond to $s_0$ and to $\delta$ respectively.}
-\label{fig:circuit-typeclass}
-\end{figure}
-
 \section{Encoding circuits with Slate} \label{sec:timing-monads}
 
 This section introduces Slate, a language for describing hardware as executable descriptions in Rocq.
 It first compares shallow and deep embeddings and explains why Slate is implemented as a shallow embedding (\Cref{sec:timing-monads-shallow}).
-It then describes state monads and guarded state monads (actions) and motivates them as a way to model imperative programs shallowly in Rocq (\Cref{sec:timing-monads-state}).
-Finally, it presents the grammar of Slate and a small illustrative example (\Cref{sec:timing-monads-slate}).
+It then discusses guarded state monads as a way to model imperative programs shallowly in Rocq (\Cref{sec:timing-monads-state}).
+Finally, it presents a small illustrative example of using the Slate language (\Cref{sec:timing-monads-slate}).
 
 \subsection{Shallow and deep embeddings} \label{sec:timing-monads-shallow}
 A \emph{shallow embedding} encodes a source language directly as terms of the host language.
@@ -335,7 +317,7 @@ Definition get {s} : State s s :=
 Definition put {s} (x : s) : State s unit :=
   fun _ => (x, tt).
 \end{minted}
-\caption{State-monad definitions in Rocq.}
+\caption[State-monad definitions]{State-monad definitions in Rocq.}
 \label{fig:state-monad-core}
 \end{figure}
 
@@ -343,7 +325,7 @@ Definition put {s} (x : s) : State s unit :=
 % For a fixed state type $s$, the \emph{state monad} is the type family that maps each result type $t$ to
 For a fixed state type $s$, the \emph{guarded state monad} or \emph{action} is type family that maps each result type $t$ to
 \[
-  \mathsf{Action}_s\;(t) \;\triangleq\; s \to \texttt{option}\;(s * t)
+  \mathsf{Action}_s\;(t) \;\triangleq\; s \to \mathit{option}\;(s * t)
 ,\]
 that is, a function that takes an input state and either returns a new state together with a result or aborts.
 The framework uses actions to model method calls that are enabled only when their guards hold.
@@ -378,12 +360,12 @@ Definition modify {s} (f : s -> s) : Action s unit :=
 Definition fail {s t} : Action s t :=
   fun _ => None.
 \end{minted}
-\caption{Guarded state monad definitions in Rocq.}
+\caption[Guarded-state-monad definitions]{Guarded-state-monad definitions in Rocq.}
 \label{fig:guarded-state-monad-core}
 \end{figure}
 
 \paragraph{Modify}
-\mintinline{coq}{modify f} updates the state by applying a function $\mathit{f}$.
+$\mathit{modify}$ updates the state by applying a function $\mathit{f}$.
 It can be used as a derived write primitive: read the current state, transform it, then commit the result.
 In hardware, this operation is a natural fit for register updates where the next state is expressed as a pure function of the current state.
 Proof obligations involving $\mathit{modify}$ usually reduce to equalities between functions applied to the same input state.
@@ -413,35 +395,13 @@ Definition call {s a b}
       | None => None
       end.
 \end{minted}
-\caption[Call operator for actions.]{$\mathit{call}$ operator lifts the effects of a submodule action to a larger state.}
+\caption[Call operator for actions]{$\mathit{call}$ operator lifts the effects of a submodule action to a larger state.}
 \label{fig:action-call}
 \end{figure}
 
-\subsection{Slate by example} \label{sec:timing-monads-slate}
+\subsection{Syntax} \label{sec:timing-monads-slate}
 The syntax for Slate is implemented using the extensible parser in Rocq.
 Crucially, the parser elaborates Slate syntax directly into actions as described above; it does not introduce a syntax tree.
-An abstract syntax of the grammar is given in \Cref{fig:action-grammar}.
-The terminal $\mathit{term}$ in the grammar refers to arbitrary Gallina terms, which can be embedded directly in Slate.
-
-\begin{figure}[H]
-\begin{mdframed}
-\[
-\begin{array}{rcl}
-\text{Expressions} \quad e & ::= & \mathit{term} \mid \texttt{`}\mathit{reg}\texttt{`read()} \\
-\\
-\text{Statements} \quad s & ::= & \texttt{pass} \mid \texttt{abort} \mid \texttt{return}\ e \mid \texttt{`}\mathit{reg}\texttt{`write}(e) \\
-& & \mid \texttt{if}\ (e)\ s\ \texttt{else}\ s \mid \texttt{when}\ (e)\ s \\ & & \mid \texttt{let}\ \mathit{pat}\ \texttt{=}\ e \mid \texttt{begin}\ b\ \texttt{end} \mid \texttt{call}\ \texttt{`}\mathit{submodule}\texttt{`}(e) \\
-\\
-\text{Blocks} \quad b & ::= & s \mid s\ \texttt{;}\ b \\
-\\
-\text{Actions} \quad a & ::= & \texttt{begin}\ b\ \texttt{end}
-\end{array}
-\]
-\end{mdframed}
-\caption{Abstract syntax of the Slate surface language.}
-\label{fig:action-grammar}
-\end{figure}
-
 Consider \Cref{fig:slate-surface}, which implements the $\mathit{step}$ method of a GCD module.
 The state type $\mathit{GCDState}$ holds two registers $\mathit{x}$ and $\mathit{y}$.
 The method reads both registers into let bindings, aborts immediately when \mintinline{coq}{y = 0} (the computation is already finished), and otherwise subtracts the smaller value from the larger.
@@ -464,7 +424,7 @@ Definition step : Action GCDState unit :=
     end
   end.
 \end{minted}
-\caption{The $\mathit{step}$ method of a GCD module using Slate.}
+\caption[GCD step, Slate]{The $\mathit{step}$ method of a GCD module using Slate.}
 \label{fig:slate-surface}
 \end{figure}
 
@@ -484,7 +444,7 @@ Definition step : Action GCDState unit :=
     modify (fun s => {| x := s.(x); y := s.(y) - s.(x) |}) >>= fun _ =>
     ret tt.
 \end{minted}
-\caption{The $\mathit{step}$ method of a GCD module using inline monadic notation.}
+\caption[GCD step, monadic notation]{The $\mathit{step}$ method of a GCD module using inline monadic notation.}
 \label{fig:slate-bind}
 \end{figure}
 
@@ -493,7 +453,7 @@ Definition step : Action GCDState unit :=
 Establishing that a hardware circuit is free from timing side channels requires both a precise definition of what it means to be secure and a methodology for proving that a given circuit satisfies that definition.
 This section addresses both concerns.
 It first introduces cryptographic constant time (CCT) in the software setting and then extends the idea to hardware circuits as hardware constant time (HCT), stated in terms of erasure contracts that model the attacker's observational capabilities (\Cref{sec:cct,sec:hct}).
-It then develops the simulation-based proof strategy used to establish HCT: using lockstep simulation with trace-equivalence lemmas that connects simulations to the HCT definition (\Cref{sec:timing-proof-lockstep,sec:timing-proof-trace}).
+It then develops the simulation-based proof strategy used to establish HCT: using lockstep simulation with trace-equivalence lemmas that connects simulations to the HCT definition (\Cref{sec:timing-proof-lockstep}).
 
 \subsection{Cryptographic constant time} \label{sec:cct}
 Cryptographic software often cares about the \emph{cryptographic-constant-time} (CCT) property: attackers should not observe leakage events such as branch direction, memory-access patterns, or variable-latency instructions influenced by secret inputs.
@@ -530,7 +490,7 @@ uint32_t f_ct(x, y, secret) {
 }
 \end{minted}
 \end{minipage}
-\caption{Constant-time example: secret-dependent branch (left) versus branch-free masked selection (right).}
+\caption[Constant-time example]{Constant-time example: secret-dependent branch (left) versus branch-free masked selection (right).}
 \label{fig:cct-intuition}
 \end{figure}
 
@@ -615,7 +575,7 @@ Similarly, $\mathsf{erase_{out}}$ controls observability on output wires: it kee
 Under this interpretation, HCT says that varying secret (erased) inputs cannot change the attacker-visible output trace.
 
 \phantomsection\label{sec:timing-proof}
-\subsection{Lockstep simulation} \label{sec:timing-proof-lockstep}
+\subsection{Writing proofs} \label{sec:timing-proof-lockstep}
 The hardware-constant-time property (\Cref{def:hct-single}) reasons about entire runs of state machines rather than isolated steps.
 Entire-run reasoning affords flexibility in potential proof techniques that may not reason about each step in isolation, but in the future it could allow simulation-based proofs that rely on skipping steps or taking multiple steps.
 We will restrict ourselves to reason only about \emph{lockstep} simulations, which disallow skipping or multiple steps.
@@ -703,8 +663,7 @@ The self-simulation and cross-simulation instances of this definition are shown 
 \label{fig:sim-machines}
 \end{figure}
 
-\subsection{Trace-equivalence lemmas} \label{sec:timing-proof-trace}
-This subsection turns the stepwise lockstep obligations from~\Cref{fig:sim-action-square,fig:sim-machines} into trace consequences. We first define output-erased trace equivalence and show that machine simulation lifts to equality of erased traces. We then use these lemmas to derive the two proof patterns for hardware constant time: direct self-simulation and cross-simulation via a trace-equivalent specification.
+Next, we turn the stepwise lockstep obligations from~\Cref{fig:sim-action-square,fig:sim-machines} into trace consequences. We first define output-erased trace equivalence and show that machine simulation lifts to equality of erased traces. We then use these lemmas to derive the two proof patterns for hardware constant time: direct self-simulation and cross-simulation via a trace-equivalent specification.
 
 \begin{definition}[Erased-trace equivalence] \label{def:outputs-erased-bridge}
 Call~\(\mathcal M_2\) \emph{erased-trace equivalent} to~\(\mathcal M_1\) under~\(\mathcal E\) when, for every~\(\vec\iota\in I^*\), the erased-input histories~\(\vec\iota_{\mathcal E}\) induce the same erased observation trace:
@@ -725,7 +684,7 @@ If \(\mathcal{M}_1\) simulates \(\mathcal{M}_2\) under~\((R, \mathcal E)\) in th
 \]
 \end{lemma}
 
-\begin{proof}[Proof sketch]
+\begin{proof}[Proof]
 Induct on~\(\vec\iota\); the base case on the empty list is immediate. The inductive case first applies~\Cref{def:machine-refinement} to the head of the trace before appealing to the induction hypothesis on the tails.
 \end{proof}
 
@@ -734,7 +693,7 @@ Induct on~\(\vec\iota\); the base case on the empty list is immediate. The induc
 If~\(\mathcal M\) simulates itself under~\((R,\mathcal E)\) and \(R(s_0,s_0)\), then~\(\mathcal M\) satisfies hardware constant time (\Cref{def:hct-single}) with respect to~\(\mathcal E\).
 \end{lemma}
 
-\begin{proof}[Proof sketch]
+\begin{proof}[Proof]
 Instantiate~\Cref{lem:sim-lift-erased-traces} with the specification and implementation both taken to be~\(\mathcal M\); the resulting equation is~\Cref{def:hct-single}.
 \end{proof}
 
@@ -744,7 +703,7 @@ Suppose \(\mathcal{M}_{\mathsf I}\) simulates \(\mathcal{M}_{\mathsf S}\) under~
 Then \(\mathcal{M}_{\mathsf I}\) satisfies hardware constant time (\Cref{def:hct-single}) with respect to~\(\mathcal E\).
 \end{lemma}
 
-\begin{proof}[Proof sketch]
+\begin{proof}[Proof]
 Instantiate~\Cref{lem:sim-lift-erased-traces} with the implementation taken to be $\mathcal{M}_{\mathsf I}$ and the specification taken to be $\mathcal{M}_{\mathsf S}$. Proof obligations to show $\mathcal{M}_{\mathsf I}$ simulates $\mathcal{M}_{\mathsf S}$ under $(R, \mathcal{E})$ and that $R(s_{0,\mathsf I}, s_{0,\mathsf S})$ are provided as assumptions of the lemma.
 \end{proof}
 
@@ -753,7 +712,6 @@ Instantiate~\Cref{lem:sim-lift-erased-traces} with the implementation taken to b
 This chapter presents a framework for verifying functional correctness on synthesizable hardware circuits. It first introduces the deeply embedded Golemma language, which has similarities to Bluespec SystemVerilog (\Cref{sec:Golemma-intro}).
 Then, it covers language extensions that enable the synthesis of Gallina types and for loops into Golemma (\Cref{sec:Golemma-synth}).
 Finally, it discusses how functional specifications are written and develops the proof strategy used to show modular refinement (\Cref{sec:Golemma-spec}).
-This chapter's framework is exercised in a case study: a ring buffer (\Cref{sec:case-study-ring-buffer}).
 
 \section{Encoding circuits with Golemma} \label{sec:Golemma-intro}
 This section introduces the key constructs of Golemma through an example circuit: a module that computes the greatest common divisor (GCD) of two 16-bit numbers using the Euclidean algorithm.
@@ -776,7 +734,7 @@ interface GCD;
   method  Bit#(1)     finished  <>;
 endinterface.
 \end{minted}
-\caption[GCD interface]{The $\mathit{GCD}$ interface with two action methods and two value methods.}
+\caption[GCD interface]{The GCD interface with two action methods and two value methods.}
 \label{fig:Golemma-gcd-intf}
 \end{figure}
 
@@ -822,7 +780,7 @@ module mkGCD#(GCD);
   endmethod.
 endmodule.
 \end{minted}
-\caption[GCD module]{A GCD module implementing the $\mathit{GCD}$ interface using two 16-bit registers.}
+\caption[GCD module]{A GCD module written in Golemma.}
 \label{fig:Golemma-gcd}
 \end{figure}
 
@@ -834,8 +792,8 @@ This distinction is enforced syntactically: only action methods may contain writ
 
 \subsection{Expressions}
 Expressions are pure terms of a given type.
-The primitive types in Golemma are bitvectors (\mintinline{coq}{Bit\#($n$)} for an $n$-bit word), vectors (\mintinline{coq}{Vector\#($n$,$t$)} for a fixed-size array with $n$ items), structs, and enums.
-An expression can be a constant literal such as \mintinline{coq}{16'd0}, a local variable bound by a prior $\mathit{let}$ statement, a field access \mintinline{coq}{e`f}, a primitive operator such as addition or comparison, or a submodule \emph{value method call} \mintinline{coq}{`sub`met(args)}.
+The primitive types in Golemma are bitvectors ($\mathit{Bit\#(n)}$ for a $n$-bit word), fixed-size vectors of types ($\mathit{Vector\#(n,t)}$ for a fixed-size array of $t$ with $n$ items), structs, and enums.
+An expression can be a constant literal such as \mintinline{coq}{16'd0}, a local variable bound by a prior $\mathit{let}$ statement, a field access \mintinline{coq}{e`f}, a primitive operator such as addition or comparison, or a submodule call \mintinline{coq}{`sub`met(args)}.
 Value method calls read current register state inside a submodule and return a result without modifying it; they appear as expressions because their effect are purely observational.
 
 \subsection{Statements}
@@ -890,19 +848,14 @@ The tactic $\mathit{derive\_struct}$ inspects the definition of the record using
 
 \begin{figure}[H]
 \begin{minted}{coq}
-Record DecodedInstr := {
-  opcode : bv 7;
-  funct3 : bv 3;
-  funct7 : bv 7;
-  funct5 : bv 5;
-  rd     : bv 5;
-  rs1    : bv 5;
-  rs2    : bv 5;
+Record TwoBits := {
+  bit0 : bool;
+  bit1 : bool;
 }.
 
-Instance decoded_instr_struct : Struct DecodedInstr. derive_struct. Defined.
+Instance two_bits_struct : Struct TwoBits. derive_struct. Defined.
 \end{minted}
-\caption[Struct instance]{Deriving a $\mathit{Struct}$ instance for the fields of a decoded RISC-V instruction.}
+\caption[Struct instance]{Deriving a $\mathit{Struct}$ instance for a simple record.}
 \label{fig:synth-struct}
 \end{figure}
 
@@ -944,7 +897,8 @@ Example user_rx_has_read : elem_of Read user_rx. Proof. set_solver. Qed.
 \end{figure}
 
 \subsection{Metaprogramming} \label{par:ltac2}
-Ltac1 is Rocq's original and most commonly used tactic language; tactics are used as scripts to construct proof terms in Rocq.
+In proof assistants with foundations in type theory, such as Rocq, tactics are scripts that used to concisely construct proof terms.
+Ltac1 is Rocq's original and most commonly used tactic language.
 Ltac2 is a newer, typed tactic language with better support for inspecting and constructing Rocq terms programmatically, making it a better fit for metaprogramming purposes.
 
 Deriving instances for $\mathit{Struct}$, $\mathit{Enum}$, and $\mathit{Bitflags}$ requires inspecting inductive type definitions at elaboration time.
@@ -972,7 +926,7 @@ end
 \end{minted}
 The loop bound $\mathit{hi}$ must be a natural number fixed at elaboration time, so the loop always runs a statically known number of iterations, as required for synthesizability. During verification, for-loop semantics reduce to a loop rule that requires an explicit loop invariant.
 
-\section{Specifying and proving functional correctness} \label{sec:Golemma-spec}
+\section{Specifying and proving correctness} \label{sec:Golemma-spec}
 
 Proving that a Golemma module is correct requires a way to express what the module is supposed to do and a way to connect that description to the module's behavior.
 This section describes both.
@@ -1073,11 +1027,10 @@ The $\mathit{SpecState}$ record shown earlier encodes this constraint through th
 This proof field is a \emph{representation invariant} that every abstract state must carry.
 
 Since $\mathit{wf}$ is a field of the record, Rocq's type system ensures it is present in every $\mathit{SpecState}$ value. The type system disallows constructing an abstract state that violates it.
-Since the invariant is part of the $\mathit{SpecState}$ type, specifications and lemmas can rely on it without taking a separate hypothesis: any variable \mintinline{coq}{st : SpecState} already provides the proof term \mintinline{coq}{st.(wf)}.
 Action-method specifications that modify the state have a proof obligation to discharge the invariant.
 For example, the $\mathit{step}$ specification must supply a proof that the updated current pair still has GCD \mintinline{coq}{gcd st.(a) st.(b)} whenever it constructs the next $\mathit{SpecState}$.
 
-\paragraph{Discussion: connection to abstract data types.}
+\paragraph{Connection to abstract data types.}
 This specification style is directly analogous to the theory of \emph{abstract data types} (ADTs).
 In an ADT, an abstraction function (AF) maps concrete states to abstract values, and each operation is specified by its effect on that abstract model.
 The same structure appears here: the $\mathit{SpecState}$ record is the abstract model, and each method specification describes the contract that any correct implementation must satisfy.
@@ -1159,7 +1112,7 @@ The relation asserts that each register value, converted from a bitvector to a n
 Definition R (ist : ImplState) (sst : SpecState) : Prop :=
   bv_to_nat ist.(reg_a) = sst.(a') /\ bv_to_nat ist.(reg_b) = sst.(b').
 \end{minted}
-\caption{Simulation relation for the GCD module.}
+\caption[GCD simulation relation]{Simulation relation for the GCD module.}
 \label{fig:gcd-R}
 \end{figure}
 With $R$ fixed, each method proof follows the same pattern: use the equalities in $R$ to rewrite the implementation's register values as their abstract counterparts, then show the resulting expression matches the postcondition $P$ of the specification.
@@ -1179,31 +1132,31 @@ For all $a$, $b$, $\gcd(a, b) = \gcd(b, a)$.
 \end{lemma}
 
 \begin{lemma}\label{lem:gcd-finished-refines}
-The implementation of $\mathit{finished}$ refines its value-method specification under $R$.
+$\mathit{finished}$ refines its method specification under $R$.
 \end{lemma}
 
-\begin{proof}[Proof sketch]
+\begin{proof}[Proof]
 Assume $(i, s) \in R$.
 The implementation checks whether $i.b$ is zero; the specification checks whether the abstract field $s.b'$ is zero.
 Since $R$ equates the two (modulo type conversion), both checks yield the same Boolean, so the implementation returns exactly the value the specification prescribes.
 \end{proof}
 
 \begin{lemma} \label{lem:gcd-result-refines}
-The implementation of $\mathit{result}$ refines its value-method specification under $R$, provided $s.b' = 0$.
+ $\mathit{result}$ refines its specification under $R$, provided $s.b' = 0$.
 Moreover, the value returned by $\mathit{result}$ equals $\gcd(s.a, s.b)$.
 \end{lemma}
 
-\begin{proof}[Proof sketch]
+\begin{proof}[Proof]
 Assume $(i, s) \in R$.
 The specification gives the bitvector encoding of $s.a'$. Since $R$ equates $i.a$ with $s.a'$, the implementation's return value is equal to what the specification states.
 The representation invariant gives $\gcd(s.a, s.b) = \gcd(s.a', 0)$, and \Cref{lem:gcd-zero} then concludes $i.a = s.a' = \gcd(s.a, s.b)$.
 \end{proof}
 
 \begin{lemma} \label{lem:gcd-load-refines}
-The implementation of $\mathit{load}$ refines its action-method specification under $R$.
+$\mathit{load}$ refines its specification under $R$.
 \end{lemma}
 
-\begin{proof}[Proof sketch]
+\begin{proof}[Proof]
 Assume $(i, s) \in R$ and arguments $a_{\mathit{val}}$, $b_{\mathit{val}}$.
 The specification produces a successor state in which all four fields are set to those argument values (the original inputs $a$ and $b$ and the current operands $a'$ and $b'$ are all initialized simultaneously).
 The implementation writes the same two values into the corresponding registers.
@@ -1211,16 +1164,16 @@ Taking the successor abstract state to be the one the specification constructs, 
 \end{proof}
 
 \begin{lemma} \label{lem:gcd-step-refines}
-The implementation of $\mathit{step}$ refines its action-method specification under $R$, provided $s.b' \neq 0$.
+$\mathit{step}$ refines its specification under $R$, provided $s.b' \neq 0$.
 \end{lemma}
 
-\begin{proof}[Proof sketch]
+\begin{proof}[Proof]
 Assume $(i, s) \in R$.
 Since $R$ equates $s.b'$ with $i.b$, $i.b$ is also nonzero, so the implementation does not reach the $\mathit{abort}$ path.
 Both the specification and the implementation perform the same conditional subtraction, and since the register values equal the abstract fields by $R$, the two conditionals take the same branch.
 After the update, the new register values equal the new abstract fields, so $R$ is restored.
 
-It remains to show the representation invariant $\gcd(a, b) = \gcd(a'', b'')$ holds for the successor state $(a'', b'')$.
+Now we must show that $\gcd(a, b) = \gcd(a'', b'')$ holds for the successor state $(a'', b'')$.
 In the first branch, $s.a' \geq s.b'$, so $(a'', b'') = (s.a' - s.b',\; s.b')$.
 The invariant $\gcd(a,b) = \gcd(s.a', s.b')$ and \Cref{lem:gcd-subtract} give $\gcd(s.a', s.b') = \gcd(s.a' - s.b', s.b')$, establishing the invariant.
 In the second branch, $s.a' < s.b'$, so $(a'', b'') = (s.a',\; s.b' - s.a')$.
@@ -1231,7 +1184,7 @@ Applying \Cref{lem:gcd-swap} gives $\gcd(s.a', s.b') = \gcd(s.b', s.a')$, then \
 The GCD implementation module refines the GCD specification module.
 \end{theorem}
 
-\begin{proof}[Proof sketch]
+\begin{proof}[Proof]
 Apply \Cref{def:refines-module}: the reset states are related by construction, and \Cref{lem:gcd-finished-refines,lem:gcd-result-refines,lem:gcd-load-refines,lem:gcd-step-refines} discharge the per-method obligations.
 \end{proof}
 
@@ -1240,9 +1193,9 @@ This chapter demonstrates the expressivity of the two verification frameworks co
 
 \section{Timing security: Variable-latency multiplier} \label{sec:case-study-multiplier}
 
-This section presents the hardware-constant-time verification of a variable-latency integer multiplier using Slate.
+This section presents the timing-security verification of a variable-latency integer multiplier using Slate.
 The multiplier computes the product of two 8-bit operands using a shift-and-add algorithm.
-Because the number of cycles depends on the first operand and not the second, the second operand can be treated as a secret without affecting the timing behavior.
+Since the number of cycles depends on the first operand and not the second, the second operand can be treated as a secret without affecting the timing behavior.
 The goal is to establish hardware constant time with respect to an erasure contract that hides the second operand and the final product.
 
 \subsection{Interface}
@@ -1263,15 +1216,14 @@ Definition Multiplier : ModSig :=
     method  Bit#(16)  deq;
   endinterface.
 \end{minted}
-\caption{Interface definition for the multiplier.
-Action methods ($\mathit{enq}$, $\mathit{step}$) mutate state; value methods return a result without modifying state.}
+\caption[Multiplier interface]{Interface definition for the multiplier. Action methods ($\mathit{enq}$, $\mathit{step}$) mutate state; value methods return a result without modifying state.}
 \label{fig:mult-intf}
 \end{figure}
 
 \Cref{fig:mult-block-diagram} shows the port-level signals of the multiplier.
 Each method is represented as a group of signals: an enable input, driven by the caller to invoke the method, and a ready output, driven by the module to indicate that the method's guard holds and the call will succeed.
 These signals form a handshaking protocol which ensures that the method will only execute if both signals are latched high on the same cycle.
-Stateful methods may also carry data signals: $\mathit{enq}$ takes the two operands \texttt{a[7:0]} and \texttt{b[7:0]} as inputs, while $\mathit{deq}$ produces the 16-bit product \texttt{c[15:0]} as an output.
+Stateful methods may also carry data signals: $\mathit{enq}$ takes the two operands $\mathit{a}$ and $\mathit{b}$ as inputs, while $\mathit{deq}$ produces the 16-bit product $\mathit{c}$ as an output.
 The observational methods ($\mathit{empty}$, $\mathit{busy}$, $\mathit{full}$) each return a single boolean result and do not require handshaking.
 
 \begin{figure}[H]
@@ -1297,14 +1249,14 @@ The observational methods ($\mathit{empty}$, $\mathit{busy}$, $\mathit{full}$) e
 
 % enq
 \draw[->,sig] (-\sw,8.1) -- (0,8.1) node[sig,pos=0,left] {enq\_en};
-\draw[->,sig] (-\sw,7.5) -- (0,7.5) node[sig,pos=0,left] {a[7:0]};
-\draw[->,sig] (-\sw,6.7) -- (0,6.7) node[sig,pos=0,left] {b[7:0]};
+\draw[->,sig] (-\sw,7.5) -- (0,7.5) node[sig,pos=0,left] {a};
+\draw[->,sig] (-\sw,6.7) -- (0,6.7) node[sig,pos=0,left] {b};
 \draw[->,sig] (\bw,7.5) -- (\bw+\sw,7.5) node[sig,pos=1,right] {enq\_rdy};
 
 % deq
 \draw[->,sig] (-\sw,5.1) -- (0,5.1) node[sig,pos=0,left] {deq\_en};
 \draw[->,sig] (\bw,5.5) -- (\bw+\sw,5.5) node[sig,pos=1,right] {deq\_rdy};
-\draw[->,sig] (\bw,4.7) -- (\bw+\sw,4.7) node[sig,pos=1,right] {c[15:0]};
+\draw[->,sig] (\bw,4.7) -- (\bw+\sw,4.7) node[sig,pos=1,right] {c};
 
 % rule
 \draw[->,sig] (-\sw,3.45) -- (0,3.45) node[sig,pos=0,left] {step\_en};
@@ -1319,14 +1271,13 @@ The observational methods ($\mathit{empty}$, $\mathit{busy}$, $\mathit{full}$) e
 \draw[->,sig] (\bw,0.7) -- (\bw+\sw,0.7) node[sig,pos=1,right] {full\_r};
 
 \end{tikzpicture}
-\caption[Port-level block diagram of multiplier]{Port-level block diagram of a variable-latency multiplier.
-Each method exposes a enable input (asserted by the caller) and a ready output (asserted by the module when the guard holds).}
+\caption[Multiplier port diagram]{Port-level block diagram of the variable-latency multiplier. Each method exposes an enable input (asserted by the caller) and a ready output (asserted by the module when the guard holds).}
 \label{fig:mult-block-diagram}
 \end{figure}
 
 \subsection{Erasure contract}
-The secrets are the second operand \mintinline{coq}{b[7:0]} and the product \mintinline{coq}{c[15:0]} it gives rise to.
-The attacker's observation model is as follows: the attacker can see \emph{when} any method is called, but not the values of \mintinline{coq}{b[7:0]} or \mintinline{coq}{c[15:0]} being transferred.
+The secrets are the second operand $\mathit{b}$ of $\mathit{enq}$ and the product $\mathit{c}$ of $\mathit{deq}$.
+The attacker's observation model is as follows: the attacker can see when any method is called, but not the values of $\mathit{b}$ or $\mathit{c}$ being transferred.
 \Cref{fig:mult-attacker-diagram} highlights the attacker-visible signals under this threat model.
 
 \begin{figure}[H]
@@ -1354,9 +1305,9 @@ The attacker's observation model is as follows: the attacker can see \emph{when}
 
 % enq -- en and a are visible; b is hidden
 \draw[->,sig] (-\sw,8.1) -- (0,8.1) node[sig,pos=0,left] {enq\_en};
-\draw[->,sig] (-\sw,7.5) -- (0,7.5) node[sig,pos=0,left] {a[7:0]};
+\draw[->,sig] (-\sw,7.5) -- (0,7.5) node[sig,pos=0,left] {a};
 \begin{scope}[hid]
-  \draw[->,sig] (-\sw,6.7) -- (0,6.7) node[sig,pos=0,left] {b[7:0]};
+  \draw[->,sig] (-\sw,6.7) -- (0,6.7) node[sig,pos=0,left] {b};
 \end{scope}
 \draw[->,sig] (\bw,7.5) -- (\bw+\sw,7.5) node[sig,pos=1,right] {enq\_rdy};
 
@@ -1364,7 +1315,7 @@ The attacker's observation model is as follows: the attacker can see \emph{when}
 \draw[->,sig] (-\sw,5.1) -- (0,5.1) node[sig,pos=0,left] {deq\_en};
 \draw[->,sig] (\bw,5.5) -- (\bw+\sw,5.5) node[sig,pos=1,right] {deq\_rdy};
 \begin{scope}[hid]
-  \draw[->,sig] (\bw,4.7) -- (\bw+\sw,4.7) node[sig,pos=1,right] {c[15:0]};
+  \draw[->,sig] (\bw,4.7) -- (\bw+\sw,4.7) node[sig,pos=1,right] {c};
 \end{scope}
 
 % rule -- output erased to None; both signals hidden
@@ -1380,9 +1331,7 @@ The attacker's observation model is as follows: the attacker can see \emph{when}
 \draw[->,sig] (\bw,0.7) -- (\bw+\sw,0.7) node[sig,pos=1,right] {full\_r};
 
 \end{tikzpicture}
-\caption{Attacker-visible signals of the multiplier under the erasure contract.
-Faded signals are erased: \texttt{b[7:0]} is replaced by zero in \texttt{erase\_inp},
-the product \texttt{c[15:0]} is mapped to \texttt{None} in \texttt{erase\_out}.}
+\caption[Multiplier attacker view]{Attacker-visible signals of the multiplier under the erasure contract. Faded signals are erased: $\mathit{b}$ is replaced by zero and the product $\mathit{c}$ is mapped to $\mathit{None}$.}
 \label{fig:mult-attacker-diagram}
 \end{figure}
 
@@ -1404,13 +1353,13 @@ Definition erase_out (out : option O) : option O :=
   | other            => other
   end.
 \end{minted}
-\caption{Erasure functions for the multiplier. The second operand and the product are both hidden.}
+\caption[Multiplier erasure functions]{Erasure functions for the multiplier. The second operand and the product are both hidden.}
 \label{fig:mult-erasure}
 \end{figure}
 
 \subsection{Implementation}
 
-The multiplier holds five registers: $\mathit{src1}$ and $\mathit{src2}$ (the two 8-bit operands), $\mathit{dst}$ (the 16-bit accumulator), $\mathit{count}$ (a 3-bit iteration counter), and $\mathit{phase}$ (the pipeline stage).
+The multiplier holds five registers: $\mathit{src1}$ and $\mathit{src2}$ (the two 8-bit operands), $\mathit{dst}$ (the 16-bit accumulator), $\mathit{count}$ (a 3-bit iteration counter), and $\mathit{phase}$.
 \Cref{fig:mult-state} shows the state record.
 
 \begin{figure}[ht]
@@ -1425,12 +1374,12 @@ Record State := {
   phase : Phase;
 }.
 \end{minted}
-\caption{State type and pipeline phases of the multiplier.}
+\caption[Multiplier state type]{State type and phases of the multiplier.}
 \label{fig:mult-state}
 \end{figure}
 
-Each method call to $\mathit{step}$ invokes the $\mathit{shift\_and\_add}$ subroutine shown in \Cref{fig:mult-shift-add}.
-If $\mathit{src1}$ is already zero the step is a no-op; otherwise, if the least significant bit of $\mathit{src1}$ is one, the subroutine adds $\mathit{src2}$ shifted left by $\mathit{count}$ to $\mathit{dst}$.
+Each method call to $\mathit{step}$ invokes the $\mathit{shift\_and\_add}$ subroutine defined in \Cref{fig:mult-shift-add}.
+If $\mathit{src1}$ is already zero then $\mathit{shift\_and\_add}$ is a no-op. If the least significant bit of $\mathit{src1}$ is one, the subroutine adds $\mathit{src2}$ shifted left by $\mathit{count}$ to $\mathit{dst}$. If the least significant bit is instead zero, nothing is added to $\mathit{dst}$.
 In both cases, $\mathit{src1}$ is right-shifted by one and $\mathit{count}$ is incremented.
 Once $\mathit{src1}$ reaches zero, the outer $\mathit{step}$ transitions the phase to $\mathit{Full}$, making the result available for dequeue.
 
@@ -1456,14 +1405,14 @@ Definition shift_and_add :=
     end
   end.
 \end{minted}
-\caption{The $\mathit{shift\_and\_add}$ subroutine. On each call it processes one bit of $\mathit{src1}$, conditionally adding a shifted copy of $\mathit{src2}$ to the accumulator.}
+\caption[Shift-and-add subroutine]{The $\mathit{shift\_and\_add}$ subroutine. On each call it processes one bit of $\mathit{src1}$, conditionally adding a shifted copy of $\mathit{src2}$ to the accumulator.}
 \label{fig:mult-shift-add}
 \end{figure}
 
 \subsection{Verification}
 
 The central observation is that the timing of the multiplier depends entirely on $\mathit{src1}$: the number of steps before the phase transitions to $\mathit{Full}$ is exactly the position of the most significant set bit of $\mathit{src1}$.
-The value of $\mathit{src2}$ affects only the accumulator $\mathit{dst}$ and therefore does not influence any externally observable timing signal.
+The value of $\mathit{src2}$ affects only the accumulator $\mathit{dst}$ and therefore does not influence any externally observable signal.
 This observation is captured by the simulation relation in \Cref{fig:mult-rel}, which equates the $\mathit{phase}$, $\mathit{count}$, and $\mathit{src1}$ registers of two states but makes no requirement on $\mathit{src2}$ or $\mathit{dst}$.
 
 \begin{figure}[ht]
@@ -1473,7 +1422,7 @@ Definition R (st st' : State) : Prop :=
   st.(count) = st'.(count) /\
   st.(src1)  = st'.(src1).
 \end{minted}
-\caption{Simulation relation for the multiplier. Two states are related when they agree on the timing-relevant registers.}
+\caption[Multiplier simulation relation]{Simulation relation for the multiplier. Two states are related when they agree on the timing-relevant registers.}
 \label{fig:mult-rel}
 \end{figure}
 
@@ -1484,7 +1433,7 @@ It suffices to show that $R$ is preserved by each operation.
 $\mathit{enq}$ self-simulates under $(R, \mathcal{E})$.
 \end{lemma}
 
-\begin{proof}[Proof sketch]
+\begin{proof}[Proof]
 Assume $(s_1, s_2) \in R$.
 The guard checks $s_1.\mathit{phase} = \mathit{Empty}$; since $R$ equates the phases, $s_2.\mathit{phase} = \mathit{Empty}$ as well, so both copies take the same branch.
 When the guard succeeds, both copies set $\mathit{src1} := a$, $\mathit{dst} := 0$, $\mathit{count} := 0$, and $\mathit{phase} := \mathit{Busy}$.
@@ -1496,7 +1445,7 @@ Both copies return void, and $\mathcal{E}$ erases void to void, so the observed 
 $\mathit{deq}$ self-simulates under $(R, \mathcal{E})$.
 \end{lemma}
 
-\begin{proof}[Proof sketch]
+\begin{proof}[Proof]
 Assume $(s_1, s_2) \in R$.
 The guard checks $s_1.\mathit{phase} = \mathit{Full}$; since $R$ equates the phases, both copies take the same branch.
 Both copies set $\mathit{phase} := \mathit{Empty}$ and return $\mathit{dst}$.
@@ -1508,7 +1457,7 @@ In the successor states, $\mathit{phase}$, $\mathit{count}$, and $\mathit{src1}$
 $\mathit{step}$ self-simulates under $(R, \mathcal E)$.
 \end{lemma}
 
-\begin{proof}[Proof sketch]
+\begin{proof}[Proof]
 Assume $(s_1, s_2) \in R$.
 The guard checks $s_1.\mathit{phase} = \mathit{Busy}$; since $R$ equates the phases, both copies take the same branch.
 Inside the guard, both copies check whether $\mathit{src1}$ is zero; since $R$ equates $\mathit{src1}$, both take the same inner branch.
@@ -1521,7 +1470,7 @@ The accumulation into $\mathit{dst}$ may differ since $s_1.\mathit{src2}$ and $s
 $\mathit{empty}$, $\mathit{busy}$, and $\mathit{full}$ each self-simulate under $(R, \mathcal E)$.
 \end{lemma}
 
-\begin{proof}[Proof sketch]
+\begin{proof}[Proof]
 Assume $(s_1, s_2) \in R$.
 Each status query reads only $\mathit{phase}$, compares it against a fixed constant, and returns a Boolean.
 Since $R$ equates the two phases, both copies return the same Boolean, leave the state unchanged, and produce equal outputs.
@@ -1531,7 +1480,7 @@ Since $R$ equates the two phases, both copies return the same Boolean, leave the
 The multiplier satisfies hardware constant time with respect to the erasure contract $\mathcal E$.
 \end{theorem}
 
-\begin{proof}[Proof sketch]
+\begin{proof}[Proof]
 Apply \Cref{lem:self-sim-hct} using simultion relation $R$.
 \Cref{lem:mult-enq,lem:mult-deq,lem:mult-rule,lem:mult-status} discharge the resulting proof obligations.
 The reset state satisfies $R$ trivially since both copies of the reset record are identical.
@@ -1566,8 +1515,7 @@ Definition RingBuffer (@$\varepsilon$@ : type) (N : nat) : ModSig :=
     method  Action         upd     <Bit#(N) idx, Entry e>;
   endinterface.
 \end{minted}
-\caption{Interface definition for the ring buffer, parameterized by entry type and address width.
-Value methods return a result without modifying state; action methods mutate state and abort if their precondition does not hold.}
+\caption[Ring-buffer interface]{Interface definition for the ring buffer, parameterized by entry type and address width.}
 \label{fig:rb-intf}
 \end{figure}
 
@@ -1585,7 +1533,7 @@ Definition x @$\otimes$@ y := (x * y) mod 2 ^ N.
 Definition @$\ominus$@ x := (2 ^ N - x mod 2 ^ N) mod 2 ^ N.
 Definition x @$\equiv$@ y := nat_wrap x = nat_wrap y.
 \end{minted}
-\caption{Modular natural-number arithmetic.}
+\caption[Modular arithmetic over naturals]{Modular arithmetic definitions over natural numbers.}
 \label{fig:rb-nat-ring}
 \end{figure}
 
@@ -1605,13 +1553,13 @@ Record State := mkState {
   wf            : tail < 2 ^ N /\ size <= 2 ^ N;
 }.
 \end{minted}
-\caption{Abstract state for the ring buffer specification.}
+\caption[Ring-buffer abstract state]{Abstract state for the ring buffer specification.}
 \label{fig:rb-spec-state}
 \end{figure}
 
 The abstract model stores the logical contents of the buffer as the list $\mathit{entries}$, ordered from head to tail, along with a $\mathit{tail}$ index.
 The $\mathit{head}$ index is derived as $\mathit{tail} \ominus \mathit{size}$, the ring slot that is $\mathit{size}$ positions behind the tail.
-A \emph{logical index} is a ring address $j$ that falls within the live portion of the buffer: one satisfying $\mathit{valid\_index}(s, j)$, meaning the forward distance $j \ominus \mathit{head}(s)$ is strictly less than $\mathit{size}(s)$.
+A \emph{logical index} is a ring address $j$ that falls within the live portion of the buffer: one satisfying $s.\mathit{valid\_index}(j)$, meaning the forward distance $j \ominus \mathit{head}(s)$ is strictly less than $\mathit{size}(s)$.
 The $\mathit{sub}$ and $\mathit{upd}$ operations access elements by logical index, and $\mathit{squash}$ accepts a new tail that must itself be a logical index.
 The representation invariant $\mathit{wf}$ bounds $\mathit{tail}$ and $\mathit{size}$ to stay within $2^{N}$.
 When the head equals the tail, the buffer may be full or empty; the size disambiguates the two cases, so no explicit full flag appears in the abstract state.
@@ -1630,14 +1578,13 @@ Definition deq' : MRASpec State (mkMetSig <> Void) :=
     exists Hempty : ~ empty st,
       P (tt, deq st Hempty).
 \end{minted}
-\caption{Predicate-transformer specifications for $\mathit{enq}$ and $\mathit{deq}$.
-The existential witness encodes the precondition as a proof term that is passed directly to the abstract operation.}
+\caption[Ring-buffer specifications]{Predicate-transformer specifications for $\mathit{enq}$ and $\mathit{deq}$. The existential witness encodes the precondition as a proof term passed directly to the abstract operation.}
 \label{fig:rb-spec-methods}
 \end{figure}
 
 The $\mathit{enq}$ operation on the abstract state appends the new element to $\mathit{entries}$ and increments $\mathit{tail}$ by one modulo $2^{N}$.
 The $\mathit{deq}$ operation drops the head of $\mathit{entries}$ and leaves $\mathit{tail}$ unchanged, so that subsequent indices shift down by one.
-The $\mathit{squash}$ operation truncates $\mathit{entries}$ to the first \mintinline{coq}{index st tail'} elements and sets \mintinline{coq}{tail := tail'}.
+The $\mathit{squash}$ operation truncates $\mathit{entries}$ to the first $\mathit{(index\;st\;tail')}$ elements and sets $\mathit{tail\;:=\;tail'}$.
 The $\mathit{upd}$ and $\mathit{sub}$ operations perform a list update and a list lookup, respectively, at the physical offset computed by $\mathit{index}$.
 
 \subsection{Implementation}
@@ -1653,20 +1600,19 @@ module mkRingBuffer#(RingBuffer#(@$\varepsilon$@, N));
   Reg#(Bit#(N)) tail <- mkReg();
   Reg#(Bit#(1)) full <- mkReg();
 \end{minted}
-\caption{Module declaration for the ring buffer implementation.}
+\caption[Ring-buffer implementation]{Module declaration for the ring buffer implementation.}
 \label{fig:rb-impl}
 \end{figure}
 
-The $\mathit{enq}$ method writes the new element to \mintinline{coq}{entries[tail]}, advances $\mathit{tail}$ by one using bitvector addition (which wraps naturally at $2^N$), and updates $\mathit{full}$ by checking whether the new tail equals $\mathit{head}$.
-The validity check for $\mathit{sub}$, $\mathit{upd}$, and $\mathit{squash}$ is computed as the comparison \mintinline{coq}{(idx - head) < (tail - head)}, which effectively checks if \mintinline{coq}{entries[idx]} is a valid element.
+The $\mathit{enq}$ method writes the new element to $\mathit{entries[tail]}$, advances $\mathit{tail}$ by one using bitvector addition (which wraps naturally at $2^N$), and updates $\mathit{full}$ by checking whether the new tail equals $\mathit{head}$.
+The validity check for $\mathit{sub}$, $\mathit{upd}$, and $\mathit{squash}$ is computed as the comparison $\mathit{(idx - head) < (tail - head)}$, which effectively checks if $\mathit{entries[idx]}$ is a valid element.
 Unlike the specification, which derives the $\mathit{full}$ condition from the size, the implementation must maintain the $\mathit{full}$ flag explicitly to disambiguate whether the queue is empty or full when the head equals the tail.
 
 \subsection{Verification}
 
-\paragraph{Refinement relation.}
 The refinement relation $R$ connects implementation states to specification states as shown in \Cref{fig:rb-rel}.
 The relation has four components.
-First, for every valid logical index $i$ in the specification's ring buffer, the corresponding entry in the implementation's ring buffer matches. The notation \mintinline{coq}{xs !!! i} denotes a lookup into a list $\mathit{xs}$ at position $\mathit{i}$, returning a default value if the index is out of bounds.
+First, for every valid logical index $i$ in the specification's ring buffer, the corresponding entry in the implementation's ring buffer matches. The notation $\mathit{xs !!! i}$ denotes a lookup into a list $\mathit{xs}$ at position $\mathit{i}$, returning a default value if the index is out of bounds.
 Second, the implementation $\mathit{head}$ and $\mathit{tail}$ registers equal the bitvector representations of the specification's head and tail.
 Third, the implementation $\mathit{full}$ bit matches with the specification's full predicate.
 Notably, $R$ imposes no constraint on vector slots at indices that are not valid in the specification, so the implementation is allowed to hold arbitrary data in those positions.
@@ -1680,8 +1626,7 @@ Definition R (ist : ImplState) (sst : SpecState) :=
   Impl.tail ist = nat_to_bv (Spec.tail sst) /\
   Impl.full ist = Spec.full sst.
 \end{minted}
-\caption{Refinement relation for the ring buffer.
-The relation requires that the implementation vector agrees with the specification list at every valid index, and that the control registers match the specification's derived values under bitvector conversion.}
+\caption[Ring-buffer refinement relation]{Refinement relation for the ring buffer. Implementation entries must agree with the specification list at every valid index, with control registers matching under bitvector conversion.}
 \label{fig:rb-rel}
 \end{figure}
 
@@ -1694,7 +1639,7 @@ Reasoning about the implementation requires destructing the state and combining 
 The $\mathit{full}$, $\mathit{head}$ and $\mathit{tail}$ methods each refine their specifications under $R$.
 \end{lemma}
 
-\begin{proof}[Proof sketch]
+\begin{proof}[Proof]
 Each follows immediately from $R$, which directly relates the registers in the implementation with their counterparts in the specification.
 \end{proof}
 
@@ -1702,100 +1647,144 @@ Each follows immediately from $R$, which directly relates the registers in the i
 The $\mathit{empty}$ method refines its specification under $R$.
 \end{lemma}
 
-\begin{proof}[Proof sketch]
+\begin{proof}[Proof]
 Assume $(i, s) \in R$.
 The implementation checks $\neg i.\mathit{full} \wedge (i.\mathit{head} = i.\mathit{tail})$.
-By $R$, the full flag agrees with $\mathit{full}(s)$ and both pointers agree with $\mathit{head}(s)$ and $\mathit{tail}(s)$.
-A helper lemma establishes that $\mathit{head}(s) = \mathit{tail}(s)$ if and only if the buffer is full or empty in the specification.
-Therefore the implementation's conjunction reduces to $\neg\mathit{full}(s) \wedge (\mathit{head}(s) = \mathit{tail}(s))$, which holds exactly when $\mathit{empty}(s)$.
+By $R$, we are given the following:
+\[
+(i.\mathit{full} = s.\mathit{full}) \land (i.\mathit{head} = s.\mathit{full}) \land (i.\mathit{tail} = s.\mathit{tail}).
+\]
+A helper lemma establishes that $s.\mathit{head} = s.\mathit{tail} \iff s.\mathit{full} \lor s.\mathit{empty}$.
+Therefore the implementation's conjunction reduces to $\neg s.\mathit{full} \wedge (s.\mathit{head} = s.\mathit{tail})$, which holds exactly when $s.\mathit{empty}$.
 \end{proof}
 
 \begin{lemma} \label{lem:rb-first}
 The $\mathit{first}$ method refines its specification under $R$.
 \end{lemma}
 
-\begin{proof}[Proof sketch]
+\begin{proof}[Proof]
 Assume $(i, s) \in R$.
 The non-empty guard agrees with the specification's precondition by the same reasoning as \Cref{lem:rb-empty}.
-A helper lemma shows that when $s$ is non-empty, $\mathit{head}(s)$ is a valid index.
-The array-agreement component of $R$ at $\mathit{head}(s)$ then gives $i.\mathit{entries}[\mathit{head}(s)] = \mathit{sub}(s,\, \mathit{head}(s)) = \mathit{first}(s)$.
+A helper lemma shows that when $s$ is non-empty, $s.\mathit{head}$ is a valid index.
+By $R$, we get $i.\mathit{entries}[s.\mathit{head}] = s.\mathit{sub}(s.\mathit{head}) = s.\mathit{first}$.
 \end{proof}
 
 \begin{lemma} \label{lem:rb-sub}
 The $\mathit{sub}$ method refines its specification under $R$.
 \end{lemma}
 
-\begin{proof}[Proof sketch]
+\begin{proof}[Proof]
 Assume $(i, s) \in R$ and logical index $j$.
-The implementation's range check computes $(j - i.\mathit{head}) < (i.\mathit{tail} - i.\mathit{head})$ using bitvector subtraction.
-By the nat-ring correspondence, this bitvector comparison is equivalent to $(j \ominus \mathit{head}(s)) < \mathit{size}(s)$, which is the specification's $\mathit{valid\_index}(s,\, j)$ condition.
-Once validity is established, the array-agreement component of $R$ gives $i.\mathit{entries}[j] = \mathit{sub}(s,\, j)$ directly.
+The implementation's range check computes $(j - i.\mathit{head}) < (i.\mathit{tail} - i.\mathit{head})$ using bitvector arithmetic.
+This formula is equivalent to $(j \ominus s.\mathit{head}) < s.\mathit{size}$, which is the definition of $s.\mathit{valid\_index}(j)$.
+By $R$, we get $i.\mathit{entries}[j] = s.\mathit{sub}(j)$ given $s.\mathit{valid\_index}(j)$.
 \end{proof}
 
 \begin{lemma} \label{lem:rb-enq}
 The $\mathit{enq}$ method refines its specification under $R$.
 \end{lemma}
 
-\begin{proof}[Proof sketch]
+\begin{proof}[Proof]
 Assume $(i, s) \in R$ and entry $e$.
-The full check agrees by the full-flag component of $R$.
-After writing $i.\mathit{entries}[i.\mathit{tail}] := e$ and advancing $i.\mathit{tail}$ by one, let $i'$ and $s' = \mathit{enq}(s, e)$ be the successor states.
-For array agreement in $R$: if $j$ is valid in $s'$, either $j$ was already valid in $s$, in which case $i'.\mathit{entries}[j] = i.\mathit{entries}[j] = \mathit{sub}(s, j) = \mathit{sub}(s', j)$ by a helper lemma, or $j = \mathit{tail}(s)$, in which case $i'.\mathit{entries}[j] = e = \mathit{sub}(s', j)$ by another.
-For the full flag: the implementation sets full when the new tail equals the head, and the ring tactic shows this bitvector condition corresponds to $\mathit{size}(s) + 1 = 2^{\mathit{Width}}$, i.e., $\mathit{full}(s')$.
+The fullness check agrees by \Cref{lem:rb-full-tail}.
+After writing $i.\mathit{entries}[i.\mathit{tail}] := e$ and advancing $i.\mathit{tail}$ by one, let $i'$ and $s' = s.\mathit{enq}(e)$ be the successor states.
+We must show $(i', s') \in R$.
+For array agreement, fix a valid index $j$ of $s'$.
+If $j$ was already a valid index of $s$, then $i'.\mathit{entries}[j] = i.\mathit{entries}[j]$ and by $R$ we get $i.\mathit{entries}[j] = s.\mathit{sub}(j) = s'.\mathit{sub}(j)$.
+Otherwise $j = s.\mathit{tail}$, the newly occupied slot, and $i'.\mathit{entries}[j] = e = s'.\mathit{sub}(j)$.
+For the remaining conjuncts, $s'$ updates $\mathit{head}$, $\mathit{tail}$, and $\mathit{full}$ in the same way as $i'$, so those components of $R$ are reestablished.
 \end{proof}
 
 \begin{lemma} \label{lem:rb-deq}
 The $\mathit{deq}$ method refines its specification under $R$.
 \end{lemma}
 
-\begin{proof}[Proof sketch]
+\begin{proof}[Proof]
 Assume $(i, s) \in R$.
 The empty check agrees by \Cref{lem:rb-empty}.
-After advancing $i.\mathit{head}$ by one and clearing $i.\mathit{full}$, let $i'$ and $s' = \mathit{deq}(s)$ be the successor states.
-For array agreement: if $j$ is valid in $s'$ then $j$ was valid in $s$ and a helper lemma gives $\mathit{sub}(s', j) = \mathit{sub}(s, j)$, while the entry vector is unchanged.
-For the head pointer: $\mathit{head}(s') = \mathit{head}(s) \oplus 1$, and by the nat-to-bv successor correspondence, $\mathit{nat\_to\_bv}(\mathit{head}(s') ) = i.\mathit{head} + 1 = i'.\mathit{head}$.
-Dequeue always produces a non-full state, so $i'.\mathit{full} = 0$ matches $\mathit{full}(s')$.
+After advancing $i.\mathit{head}$ by one and clearing $i.\mathit{full}$, let $i'$ and $s' = s.\mathit{deq}()$ be the successor states.
+We must show $(i', s') \in R$.
+For array agreement, if $j$ is valid in $s'$ then $j$ was valid in $s$ and $s'.\mathit{sub}(j) = s.\mathit{sub}(j)$; by $R$ we get $i'.\mathit{entries}[j] = i.\mathit{entries}[j] = s'.\mathit{sub}(j)$.
+For the head pointer, $s'.\mathit{head} = s.\mathit{head} \oplus 1$, so by $R$ we get $\mathit{nat\_to\_bv}(s'.\mathit{head}) = i.\mathit{head} + 1 = i'.\mathit{head}$.
+Dequeue always produces a non-full state, so $i'.\mathit{full} = 0 = s'.\mathit{full}$.
 \end{proof}
 
 \begin{lemma} \label{lem:rb-squash}
 The $\mathit{squash}$ method refines its specification under $R$.
 \end{lemma}
 
-\begin{proof}[Proof sketch]
+\begin{proof}[Proof]
 Assume $(i, s) \in R$ and new tail index $\mathit{tail}'$.
-The range check on $\mathit{tail}'$ translates to $\mathit{valid\_index}(s,\, \mathit{tail}')$ by the same bitvector-to-nat correspondence as \Cref{lem:rb-sub}.
-After setting $i.\mathit{tail} := \mathit{tail}'$ and $i.\mathit{full} := 0$, let $i'$ and $s' = \mathit{squash}(s, \mathit{tail}')$ be the successor states.
-For array agreement: if $j$ is valid in $s'$ then $j$ was valid in $s$ and a helper lemma gives $\mathit{sub}(s', j) = \mathit{sub}(s, j)$, while the entry vector is unchanged.
-The new tail pointer and cleared full flag match the specification by construction.
+The range check on $\mathit{tail}'$ translates to $s.\mathit{valid\_index}(\mathit{tail}')$ by similar logic to \Cref{lem:rb-sub}.
+After setting $i.\mathit{tail} := \mathit{tail}'$ and $i.\mathit{full} := 0$, let $i'$ and $s' = s.\mathit{squash}(\mathit{tail}')$ be the successor states.
+We must show $(i', s') \in R$.
+For array agreement, if $j$ is valid in $s'$ then $j$ was valid in $s$ and $s'.\mathit{sub}(j) = s.\mathit{sub}(j)$; by $R$ we get $i'.\mathit{entries}[j] = i.\mathit{entries}[j] = s'.\mathit{sub}(j)$.
+By construction, $i'.\mathit{tail} = \mathit{tail}'$ and $i'.\mathit{full} = 0$ match $s'$.
 \end{proof}
 
 \begin{lemma} \label{lem:rb-upd}
 The $\mathit{upd}$ method refines its specification under $R$.
 \end{lemma}
 
-\begin{proof}[Proof sketch]
+\begin{proof}[Proof]
 Assume $(i, s) \in R$, logical index $j$, and entry $e$.
 The range check translates as in \Cref{lem:rb-sub}.
-After writing $i.\mathit{entries}[j] := e$, let $i'$ and $s' = \mathit{upd}(s, j, e)$ be the successor states.
-For array agreement: if $k$ is valid in $s'$ (equivalently, in $s$, since update preserves size), then if $k = j$, $i'.\mathit{entries}[k] = e = \mathit{sub}(s', j)$ by a helper lemma; if $k \neq j$, $i'.\mathit{entries}[k] = i.\mathit{entries}[k] = \mathit{sub}(s, k) = \mathit{sub}(s', k)$ by another, using that distinct valid indices map to distinct physical offsets.
-The head, tail, and full registers are unaffected.
+After writing $i.\mathit{entries}[j] := e$, let $i'$ and $s' = s.\mathit{upd}(j, e)$ be the successor states.
+We must show $(i', s') \in R$.
+For array agreement, fix a valid index $k$ of $s'$ (equivalently, of $s$, since $\mathit{upd}$ preserves size).
+If $k = j$, then $i'.\mathit{entries}[k] = e = s'.\mathit{sub}(j)$.
+If $k \neq j$, then $i'.\mathit{entries}[k] = i.\mathit{entries}[k]$ and by $R$ we get $i.\mathit{entries}[k] = s.\mathit{sub}(k) = s'.\mathit{sub}(k)$, since distinct valid indices map to distinct physical slots.
+The $\mathit{head}$, $\mathit{tail}$, and $\mathit{full}$ registers are unaffected, so those components of $R$ are preserved.
 \end{proof}
 
-\begin{theorem}[Ring buffer correctness] \label{thm:rb-correct}
+\begin{theorem} \label{thm:rb-correct}
 The ring buffer implementation refines the ring buffer specification.
 \end{theorem}
 
-\begin{proof}[Proof sketch]
+\begin{proof}[Proof]
 Apply \Cref{def:refines-module}.
 \Cref{lem:rb-full-tail,lem:rb-empty,lem:rb-first,lem:rb-sub,lem:rb-enq,lem:rb-deq,lem:rb-squash,lem:rb-upd} discharge the per-method obligations.
 The reset state satisfies $R$ trivially since both the implementation and specification reset to an empty buffer with $\mathit{head}$, $\mathit{tail}$, and $\mathit{full}$ all equal to zero.
 \end{proof}
 
-\chapter{Conclusion}
+\chapter{Evaluation} \label{chap:evaluation}
 \section{Developer effort}
-\section{Evaluation}
-\section{Discussion}
+\section{Resource utilization}
+
+\chapter{Conclusion}
+
+This thesis presented two frameworks for mechanized verification of hardware circuits in Rocq. These frameworks target correctness and timing-security properties needed for a full proof of an out-of-order processor.
+\Cref{chap:intro,chap:related} introduced the background and motivation behind this thesis.
+\Cref{chap:Slate} introduced Slate and the hardware-constant-time property for timing security; \Cref{chap:Golemma} introduced Golemma and the modular-refinement property for functional correctness; and \Cref{chap:cases} applied both to case studies.
+\Cref{chap:evaluation} analyzed the amount of developer effort required to write proofs using these frameworks and compared the resource utilization between Golemma and Bluespec circuits.
+
+\section{Summary}
+
+The first framework, Slate, is a shallowly embedded language based on guarded state monads that models hardware circuits as deterministic state machines.
+Slate supports a proof strategy for hardware constant time, in which security reduces to a per-method simulation argument. Erasure contracts makes the attacker's observation model explicit.
+This approach was exercised on a variable-latency multiplier, establishing that its timing behavior is independent of the secret second operand.
+
+The second framework, Golemma, is a deeply embedded hardware-description language whose syntax is inspired by Bluespec SystemVerilog.
+Golemma provides a module system, typed interfaces, and a weakest-precondition semantics that supports compositional, per-method correctness proofs via modular refinement.
+Extensions to the language include type classes for synthesizing structs, enums, and bitflags and a for-loop construct, allowing specifications to be stated directly over familiar Gallina types.
+Functional correctness was demonstrated on a ring buffer whose specification is written using modular arithmetic over naturals.
+
+Together, these contributions provide a solid foundation for scaling towards integrated proofs of correctness and timing security for a full out-of-order processor.
+
 \section{Future work}
+
+The immediate next step is to complete the correctness proofs for the remaining submodules of the out-of-order processor.
+The reorder buffer specification and implementation are already complete; the remaining work is to finish its correctness proof.
+After that, the renaming logic, the functional units, the physical register file, and the register alias tables each require specifications and correctness proofs.
+
+Given those correctness proofs and specifications, the natural target for a conference paper is a composed correctness and timing-security result for a complete out-of-order processor backend without speculation on memory operations.
+Looking further ahead, a natural extension is to augment the processor with a hardware defense against transient-execution attacks and to verify that the defense is sufficient.
+Speculative taint tracking (STT)~\cite{yu2019} is a promising candidate, as it delays secret-dependent memory accesses until they are known to be non-speculative; adding STT to the Golemma model and proving that the resulting processor satisfies the same erasure-contract obligations would close the gap between the abstract security arguments from prior work and a concrete, synthesizable design.
+
+Finally, a proof for an end-to-end theorem that involevs the source code level would be another target for a conference paper.
+Similar end-to-end theorems have been explored for proofs of correctness for a pipelined RISC-V processor in Kami and the Bedrock2 compiler~\cite{erbsen2021}.
+This proposed work would compose together prior work on retrofitting the Bedrock2 compiler with constant-time preservation~\cite{conoly2025} and a proof of correctness of a complex out-of-order machine in Golemma.
+Connecting those results would yield an end-to-end guarantee that a secret-free source program running on the verified out-of-order processor cannot leak information through timing side channels.
 
 \bibliographystyle{IEEEtran}
 \bibliography{refs}
