@@ -260,7 +260,7 @@ The \emph{observation trace} of the run is the list
 For timing security, an attacker interprets elements of $O$ (modulo erasure, described in \Cref{sec:timing-security}) as leaked information.
 Aborted transitions do not produce outputs in the observation trace.
 
-The state-machine model is mechanized in Rocq as a plain record (\Cref{fig:circuit-typeclass}), parameterized by a state type~\mintinline{coq}{s}, an input type~\mintinline{coq}{i}, and an output type~\mintinline{coq}{o}.
+The state-machine model is mechanized in Rocq as a plain record (\Cref{fig:circuit-typeclass}), parameterized by a state type~$\mathit{s}$, an input type~$\mathit{i}$, and an output type~$\mathit{o}$.
 These parameters correspond directly to $S$, $I$, and $O$.
 
 \begin{figure}[H]
@@ -270,8 +270,8 @@ Record StateMachine (s i o : Type) := {
   state_machine_call : i -> Action s o;
 }.
 \end{minted}
-\caption[State machine definition in Rocq.]{The \mintinline{coq}{StateMachine} record. The fields \mintinline{coq}{state_machine_rst}
-  and \mintinline{coq}{state_machine_call} correspond to $s_0$ and to $\delta$ respectively.}
+\caption[State machine definition in Rocq.]{The $\mathit{StateMachine}$ record. The fields $\mathit{state\_machine\_rst}$
+  and $\mathit{state\_machine\_call}$ correspond to $s_0$ and to $\delta$ respectively.}
 \label{fig:circuit-typeclass}
 \end{figure}
 
@@ -313,9 +313,9 @@ Mutable references do not need to be primitively supported by the metalanguage (
 As a consequence, one can describe sequential hardware behavior in a pure functional setting and still recover the usual intuition of sequential logic, by reading registers at the start of the cycle, performing some combinational function on those values, and updating the registers at the end of the cycle.
 
 \Cref{fig:state-monad-core} shows the state monad encoded in Rocq together with its basic operations.
-The constructor \mintinline{coq}{ret} lifts a pure value into the monad without changing the state, while \mintinline{coq}{bind} sequences two computations by feeding the result and resulting state of the first computation into the second.
-The infix operator \mintinline{coq}{>>=} is another way to express \mintinline{coq}{bind}.
-State monads also provide state-specific primitives, notably \mintinline{coq}{get} and \mintinline{coq}{put}: \mintinline{coq}{get} returns the current state as a value, and \mintinline{coq}{put} replaces the current state with a new one.
+The constructor $\mathit{ret}$ lifts a pure value into the monad without changing the state, while $\mathit{bind}$ sequences two computations by feeding the result and resulting state of the first computation into the second.
+The infix operator \mintinline{coq}{>>=} is another way to express $\mathit{bind}$.
+State monads also provide state-specific primitives, notably $\mathit{get}$ and $\mathit{put}$: $\mathit{get}$ returns the current state as a value, and $\mathit{put}$ replaces the current state with a new one.
 
 \begin{figure}[H]
 \begin{minted}{coq}
@@ -347,10 +347,10 @@ For a fixed state type $s$, the \emph{guarded state monad} or \emph{action} is t
 ,\]
 that is, a function that takes an input state and either returns a new state together with a result or aborts.
 The framework uses actions to model method calls that are enabled only when their guards hold.
-The \mintinline{coq}{Some} case represents a successful step that returns an updated state and a value.
-The \mintinline{coq}{None} case represents an aborted step (for example, when a guard is false).
+The $\mathit{Some}$ case represents a successful step that returns an updated state and a value.
+The $\mathit{None}$ case represents an aborted step (for example, when a guard is false).
 \Cref{fig:guarded-state-monad-core} shows the guarded state monad encoded in Rocq together with its basic operations.
-\mintinline{coq}{ret}, \mintinline{coq}{bind}, \mintinline{coq}{get}, and \mintinline{coq}{put} work similarly to their state-monad analogues.
+$\mathit{ret}$, $\mathit{bind}$, $\mathit{get}$, and $\mathit{put}$ work similarly to their state-monad analogues.
 
 \begin{figure}[H]
 \begin{minted}{coq}
@@ -383,20 +383,20 @@ Definition fail {s t} : Action s t :=
 \end{figure}
 
 \paragraph{Modify}
-\mintinline{coq}{modify f} updates the state by applying a function \mintinline{coq}{f}.
+\mintinline{coq}{modify f} updates the state by applying a function $\mathit{f}$.
 It can be used as a derived write primitive: read the current state, transform it, then commit the result.
 In hardware, this operation is a natural fit for register updates where the next state is expressed as a pure function of the current state.
-Proof obligations involving \mintinline{coq}{modify} usually reduce to equalities between functions applied to the same input state.
+Proof obligations involving $\mathit{modify}$ usually reduce to equalities between functions applied to the same input state.
 
 \paragraph{Guard failure}
-\mintinline{coq}{fail} returns \mintinline{coq}{None} for any input state.
-In hardware-description semantics, a \mintinline{coq}{None} result represents an aborted method call (for example, violating a ready condition).
+$\mathit{fail}$ returns $\mathit{None}$ for any input state.
+In hardware-description semantics, a $\mathit{None}$ result represents an aborted method call (for example, violating a ready condition).
 At the state-machine level, guard failure is normalized into a step with no observable output and no state changes.
 Introducing failure in the monad itself keeps reasoning about guards local to method definitions.
 
 \paragraph{Submodule calls}
-The operator \mintinline{coq}{call} implements modular method calls over nested state.
-It uses \mintinline{coq}{getter} to project a substate, runs an \mintinline{coq}{Action} on that substate, and then reintegrates the updated substate using \mintinline{coq}{setter} as shown in \Cref{fig:action-call}.
+The operator $\mathit{call}$ implements modular method calls over nested state.
+It uses $\mathit{getter}$ to project a substate, runs an $\mathit{Action}$ on that substate, and then reintegrates the updated substate using $\mathit{setter}$ as shown in \Cref{fig:action-call}.
 If the callee action fails, the caller fails.
 Submodule calls with guarded state monads calling semantics in Bluespec SystemVerilog, where a method call that fails to fire causes the caller to fail to fire.
 
@@ -413,7 +413,7 @@ Definition call {s a b}
       | None => None
       end.
 \end{minted}
-\caption[Call operator for actions.]{\mintinline{coq}{call} operator lifts the effects of a submodule action to a larger state.}
+\caption[Call operator for actions.]{$\mathit{call}$ operator lifts the effects of a submodule action to a larger state.}
 \label{fig:action-call}
 \end{figure}
 
@@ -421,7 +421,7 @@ Definition call {s a b}
 The syntax for Slate is implemented using the extensible parser in Rocq.
 Crucially, the parser elaborates Slate syntax directly into actions as described above; it does not introduce a syntax tree.
 An abstract syntax of the grammar is given in \Cref{fig:action-grammar}.
-The terminal \mintinline{coq}{term} in the grammar refers to arbitrary Gallina terms, which can be embedded directly in Slate.
+The terminal $\mathit{term}$ in the grammar refers to arbitrary Gallina terms, which can be embedded directly in Slate.
 
 \begin{figure}[H]
 \begin{mdframed}
@@ -442,8 +442,8 @@ The terminal \mintinline{coq}{term} in the grammar refers to arbitrary Gallina t
 \label{fig:action-grammar}
 \end{figure}
 
-Consider \Cref{fig:slate-surface}, which implements the \mintinline{coq}{step} method of a GCD module.
-The state type \mintinline{coq}{GCDState} holds two registers \mintinline{coq}{x} and \mintinline{coq}{y}.
+Consider \Cref{fig:slate-surface}, which implements the $\mathit{step}$ method of a GCD module.
+The state type $\mathit{GCDState}$ holds two registers $\mathit{x}$ and $\mathit{y}$.
 The method reads both registers into let bindings, aborts immediately when \mintinline{coq}{y = 0} (the computation is already finished), and otherwise subtracts the smaller value from the larger.
 This style reads like imperative code while denoting a Gallina term.
 
@@ -464,7 +464,7 @@ Definition step : Action GCDState unit :=
     end
   end.
 \end{minted}
-\caption{The \mintinline{coq}{step} method of a GCD module using Slate.}
+\caption{The $\mathit{step}$ method of a GCD module using Slate.}
 \label{fig:slate-surface}
 \end{figure}
 
@@ -484,7 +484,7 @@ Definition step : Action GCDState unit :=
     modify (fun s => {| x := s.(x); y := s.(y) - s.(x) |}) >>= fun _ =>
     ret tt.
 \end{minted}
-\caption{The \mintinline{coq}{step} method of a GCD module using inline monadic notation.}
+\caption{The $\mathit{step}$ method of a GCD module using inline monadic notation.}
 \label{fig:slate-bind}
 \end{figure}
 
@@ -753,7 +753,7 @@ Instantiate~\Cref{lem:sim-lift-erased-traces} with the implementation taken to b
 This chapter presents a framework for verifying functional correctness on synthesizable hardware circuits. It first introduces the deeply embedded Golemma language, which has similarities to Bluespec SystemVerilog (\Cref{sec:Golemma-intro}).
 Then, it covers language extensions that enable the synthesis of Gallina types and for loops into Golemma (\Cref{sec:Golemma-synth}).
 Finally, it discusses how functional specifications are written and develops the proof strategy used to show modular refinement (\Cref{sec:Golemma-spec}).
-This chapter's framework is exercised in two case studies: a ring buffer (\Cref{sec:case-study-ring-buffer}) and a reorder buffer (\Cref{sec:case-study-reorder-buffer}).
+This chapter's framework is exercised in a case study: a ring buffer (\Cref{sec:case-study-ring-buffer}).
 
 \section{Encoding circuits with Golemma} \label{sec:Golemma-intro}
 This section introduces the key constructs of Golemma through an example circuit: a module that computes the greatest common divisor (GCD) of two 16-bit numbers using the Euclidean algorithm.
@@ -764,8 +764,8 @@ An \emph{interface} in Golemma is a typed list of method signatures that a modul
 Interfaces serve as contracts in two complementary senses. First, interfaces defines the compositional boundary between a module and its environment, playing the same role as the port list of a Verilog module. Second, it constrains what can be verified, since any specification must be stated in terms of the same method signatures that the implementation exposes.
 
 The interface for the GCD module (\Cref{fig:Golemma-gcd-intf}) declares four methods.
-Two are \emph{action methods}: \mintinline{coq}{load} and \mintinline{coq}{step}, which can write registers and may abort if their guards are not met; their return type is \mintinline{coq}{Action}.
-Two are \emph{value methods}: \mintinline{coq}{result} and \mintinline{coq}{finished}, which are purely observational  and cannot modify registers.
+Two are \emph{action methods}: $\mathit{load}$ and $\mathit{step}$, which can write registers and may abort if their guards are not met; their return type is $\mathit{Action}$.
+Two are \emph{value methods}: $\mathit{result}$ and $\mathit{finished}$, which are purely observational  and cannot modify registers.
 
 \begin{figure}[H]
 \begin{minted}{coq}
@@ -776,7 +776,7 @@ interface GCD;
   method  Bit#(1)     finished  <>;
 endinterface.
 \end{minted}
-\caption[GCD interface]{The \mintinline{coq}{GCD} interface with two action methods and two value methods.}
+\caption[GCD interface]{The $\mathit{GCD}$ interface with two action methods and two value methods.}
 \label{fig:Golemma-gcd-intf}
 \end{figure}
 
@@ -785,7 +785,7 @@ A \emph{module} instantiates an interface.
 Modules contain \emph{submodules} with which they interact through method invocations defined in interfaces.
 Registers are implemented as submodules: a register submodule holds state across clock cycles and exposes methods for reading and updating that state.
 \Cref{fig:Golemma-gcd} shows the implementation of the GCD module.
-The header declares that the module implements the \mintinline{coq}{GCD} interface.
+The header declares that the module implements the $\mathit{GCD}$ interface.
 The two register declarations \mintinline{coq}{Reg#(Bit#(16)) x <- mkReg()} and \mintinline{coq}{Reg#(Bit#(16)) y <- mkReg()} create the persistent state.
 Submodule interactions, including register reads and writes, use backtick notation, as in \mintinline{coq}{`x`read()} and \mintinline{coq}{`x`write(v)}.
 Unlike most register-transfer-level languages, Golemma does not have the restriction that every read within a method body sees the value the register held at the start of the method call; it sees the last write that occurred.
@@ -822,35 +822,35 @@ module mkGCD#(GCD);
   endmethod.
 endmodule.
 \end{minted}
-\caption[GCD module]{A GCD module implementing the \mintinline{coq}{GCD} interface using two 16-bit registers.}
+\caption[GCD module]{A GCD module implementing the $\mathit{GCD}$ interface using two 16-bit registers.}
 \label{fig:Golemma-gcd}
 \end{figure}
 
 \subsection{Methods}
 Every module method is declared with a return type, a name, and an optional parameter list enclosed in angle brackets.
-Methods whose return type are \mintinline{coq}{Action} or \mintinline{coq}{ActionValue\#(t)} may call submodule action methods; they can also abort, leaving state unchanged.
+Methods whose return type are $\mathit{Action}$ or \mintinline{coq}{ActionValue\#(t)} may call submodule action methods; they can also abort, leaving state unchanged.
 Methods with any other return types are \emph{value methods}: they may only read state and return pure values, and they never abort.
 This distinction is enforced syntactically: only action methods may contain write or abort statements, so the separation between observation and mutation is visible directly in the interface signature.
 
 \subsection{Expressions}
 Expressions are pure terms of a given type.
 The primitive types in Golemma are bitvectors (\mintinline{coq}{Bit\#($n$)} for an $n$-bit word), vectors (\mintinline{coq}{Vector\#($n$,$t$)} for a fixed-size array with $n$ items), structs, and enums.
-An expression can be a constant literal such as \mintinline{coq}{16'd0}, a local variable bound by a prior \mintinline{coq}{let} statement, a field access \mintinline{coq}{e`f}, a primitive operator such as addition or comparison, or a submodule \emph{value method call} \mintinline{coq}{`sub`met(args)}.
+An expression can be a constant literal such as \mintinline{coq}{16'd0}, a local variable bound by a prior $\mathit{let}$ statement, a field access \mintinline{coq}{e`f}, a primitive operator such as addition or comparison, or a submodule \emph{value method call} \mintinline{coq}{`sub`met(args)}.
 Value method calls read current register state inside a submodule and return a result without modifying it; they appear as expressions because their effect are purely observational.
 
 \subsection{Statements}
 Statements sequence effects inside a method body.
-The \mintinline{coq}{let x = e} form binds a fresh variable \mintinline{coq}{x} to the value of expression \mintinline{coq}{e} in the rest of the block.
-A typed form \mintinline{coq}{T\#($t$) x = e} binds \mintinline{coq}{x} with an explicit type annotation.
-Register state is updated via submodule action method calls: \mintinline{coq}{`reg`write(e)} calls the \mintinline{coq}{write} action on register \mintinline{coq}{reg} with argument \mintinline{coq}{e}.
+The \mintinline{coq}{let x = e} form binds a fresh variable $\mathit{x}$ to the value of expression $\mathit{e}$ in the rest of the block.
+A typed form \mintinline{coq}{T\#($t$) x = e} binds $\mathit{x}$ with an explicit type annotation.
+Register state is updated via submodule action method calls: \mintinline{coq}{`reg`write(e)} calls the $\mathit{write}$ action on register $\mathit{reg}$ with argument $\mathit{e}$.
 The result of calling an action-method can be captured with \mintinline{coq}{let x <- `mod`met(args)}.
-Conditional branching uses \mintinline{coq}{if (c) { ... } else { ... }}, where \mintinline{coq}{c} is an expression of type \mintinline{coq}{Bit#(1)}; the \mintinline{coq}{else} branch is optional and defaults to a no-op.
-A statement may be terminated early by \mintinline{coq}{abort}, which causes the entire method to fail and appear as if it never exited.
-No special synthesis is needed to implement \mintinline{coq}{abort}, but it induces a precondition on the method.
-The method only will be called in states where execution cannot reach the \mintinline{coq}{abort}.
+Conditional branching uses \mintinline{coq}{if (c) { ... } else { ... }}, where $\mathit{c}$ is an expression of type \mintinline{coq}{Bit#(1)}; the $\mathit{else}$ branch is optional and defaults to a no-op.
+A statement may be terminated early by $\mathit{abort}$, which causes the entire method to fail and appear as if it never exited.
+No special synthesis is needed to implement $\mathit{abort}$, but it induces a precondition on the method.
+The method only will be called in states where execution cannot reach the $\mathit{abort}$.
 During verification, callers must prove that this precondition holds.
-Statements are sequenced by separating them with semicolons inside a \mintinline{coq}{begin} ... \mintinline{coq}{end} block.
-A block may end with a \mintinline{coq}{return e} expression that specifies the method's output value; methods of type \mintinline{coq}{Action} whose return type are \mintinline{coq}{unit} may omit \mintinline{coq}{return} and close with \mintinline{coq}{end} directly.
+Statements are sequenced by separating them with semicolons inside a $\mathit{begin}$ ... $\mathit{end}$ block.
+A block may end with a \mintinline{coq}{return e} expression that specifies the method's output value; methods of type $\mathit{Action}$ whose return type are $\mathit{unit}$ may omit $\mathit{return}$ and close with $\mathit{end}$ directly.
 
 \section{Extending Golemma with type classes} \label{sec:Golemma-synth}
 
@@ -865,7 +865,7 @@ Proofs would need to reason about raw bitvectors rather than natural Gallina typ
 A better approach is to allow the developer to use familiar Gallina types directly in Golemma circuits, so that specifications and proofs can be stated at the Gallina level and then connected to the hardware representation transparently.
 
 The Synthesizable type class formalizes this connection.
-Instances of the \mintinline{coq}{Synthesizable} type-class witness that a Gallina type $\alpha$ has a corresponding Golemma hardware type $\tau$ and provide the two functions that convert between them:
+Instances of the $\mathit{Synthesizable}$ type-class witness that a Gallina type $\alpha$ has a corresponding Golemma hardware type $\tau$ and provide the two functions that convert between them:
 \begin{minted}[mathescape=true,escapeinside=||]{coq}
 Class Synthesizable (|$\alpha$| : Type) := {
   (* [type] is the type of embedded Golemma types *)
@@ -876,17 +876,17 @@ Class Synthesizable (|$\alpha$| : Type) := {
 }.
 \end{minted}
 The field $\tau$ is the Golemma type representing $\alpha$ in hardware.
-The function \mintinline{coq}{pack} is an injection from $\alpha$ into the hardware representation: \mintinline{coq}{unpack} is its left inverse, recovering the original Gallina value from the encoding, and \mintinline{coq}{pack_unpack} proves that \mintinline{coq}{pack} is indeed an injection.
+The function $\mathit{pack}$ is an injection from $\alpha$ into the hardware representation: $\mathit{unpack}$ is its left inverse, recovering the original Gallina value from the encoding, and $\mathit{pack\_unpack}$ proves that $\mathit{pack}$ is indeed an injection.
 Every native Golemma type is trivially synthesizable with \mintinline{coq}{pack = unpack = id}.
-Beyond Golemma types, several finite Gallina types have built-in instances: bitvectors \mintinline{coq}{bv n}, bounded naturals \mintinline{coq}{fin n}, Booleans \mintinline{coq}{bool}, and \mintinline{coq}{unit}.
-Three additional type classes extend \mintinline{coq}{Synthesizable} to structured Gallina types: Struct, Enum, and Bitflags.
+Beyond Golemma types, several finite Gallina types have built-in instances: bitvectors \mintinline{coq}{bv n}, bounded naturals \mintinline{coq}{fin n}, Booleans $\mathit{bool}$, and $\mathit{unit}$.
+Three additional type classes extend $\mathit{Synthesizable}$ to structured Gallina types: Struct, Enum, and Bitflags.
 Each provides a Synthesizable instance automatically during type-class resolution.
 
 \subsection{Structures} \label{sec:Golemma-struct}
 The Struct type class handles Gallina records whose fields are all synthesizable.
 An instance maps the record to a Golemma deeply embedded struct type, with each field packed and unpacked field-by-field.
 \Cref{fig:synth-struct} shows a simple example.
-The tactic \mintinline{coq}{derive_struct} inspects the definition of the record using Ltac2 metaprogramming (\Cref{par:ltac2}), extracts the field names and types, constructs the packing and unpacking mechanism, and discharges all proof obligations automatically.
+The tactic $\mathit{derive\_struct}$ inspects the definition of the record using Ltac2 metaprogramming (\Cref{par:ltac2}), extracts the field names and types, constructs the packing and unpacking mechanism, and discharges all proof obligations automatically.
 
 \begin{figure}[H]
 \begin{minted}{coq}
@@ -902,15 +902,15 @@ Record DecodedInstr := {
 
 Instance decoded_instr_struct : Struct DecodedInstr. derive_struct. Defined.
 \end{minted}
-\caption[Struct instance]{Deriving a \mintinline{coq}{Struct} instance for the fields of a decoded RISC-V instruction.}
+\caption[Struct instance]{Deriving a $\mathit{Struct}$ instance for the fields of a decoded RISC-V instruction.}
 \label{fig:synth-struct}
 \end{figure}
 
 \subsection{Enumerables} \label{sec:Golemma-enum}
 The Enum type class handles Gallina inductive types with only nullary constructors, that is, simple variant types with no associated data.
-An instance maps each constructor to a distinct element of a Golemma \mintinline{coq}{enum_t}, with the representation width chosen as $\lceil \log_2 n \rceil$ bits for a type with $n$ constructors.
+An instance maps each constructor to a distinct element of a Golemma $\mathit{enum\_t}$, with the representation width chosen as $\lceil \log_2 n \rceil$ bits for a type with $n$ constructors.
 \Cref{fig:synth-enum} shows a three-constructor color type.
-The tactic \mintinline{coq}{derive_enum} automatically computes the constructor names, bitvector representations, and all proof obligations.
+The tactic $\mathit{derive\_enum}$ automatically computes the constructor names, bitvector representations, and all proof obligations.
 
 \begin{figure}[H]
 \begin{minted}{coq}
@@ -918,16 +918,16 @@ Variant Color : Set := Red | Green | Blue.
 
 Instance color_enum : Enum Color. derive_enum. Defined.
 \end{minted}
-\caption[Enum instance]{Deriving an \mintinline{coq}{Enum} instance for a Rocq variant type.}
+\caption[Enum instance]{Deriving an $\mathit{Enum}$ instance for a Rocq variant type.}
 \label{fig:synth-enum}
 \end{figure}
 
 \subsection{Bitflags} \label{sec:Golemma-bitflag}
 The Bitflags type class handles Gallina variant types where each constructor represents an independent flag in a bitset.
-Each constructor is mapped to a distinct bit position in a fixed-width bitvector, and the associated \mintinline{coq}{Bitset} type, which is formalized as a finite set using set-algebra instances from stdpp.
-Proofs over bitsets can therefore use the \mintinline{coq}{set_solver} tactic and the full stdpp set lemma library.
+Each constructor is mapped to a distinct bit position in a fixed-width bitvector, and the associated $\mathit{Bitset}$ type, which is formalized as a finite set using set-algebra instances from stdpp.
+Proofs over bitsets can therefore use the $\mathit{set\_solver}$ tactic and the full stdpp set lemma library.
 \Cref{fig:synth-bitflags} shows a hardware-flag example with five variants.
-The \mintinline{coq}{Bitset} type synthesizes to a \mintinline{coq}{Bit#(n)} for a type with $n$ constructors.
+The $\mathit{Bitset}$ type synthesizes to a \mintinline{coq}{Bit#(n)} for a type with $n$ constructors.
 
 \begin{figure}[H]
 \begin{minted}{coq}
@@ -939,7 +939,7 @@ Definition user_rx : Bitset Permission := {[Valid; Read; Execute; User]}.
 
 Example user_rx_has_read : elem_of Read user_rx. Proof. set_solver. Qed.
 \end{minted}
-\caption[Bitflags instance]{Deriving a \mintinline{coq}{Bitflags} instance and using stdpp set reasoning.}
+\caption[Bitflags instance]{Deriving a $\mathit{Bitflags}$ instance and using stdpp set reasoning.}
 \label{fig:synth-bitflags}
 \end{figure}
 
@@ -947,9 +947,9 @@ Example user_rx_has_read : elem_of Read user_rx. Proof. set_solver. Qed.
 Ltac1 is Rocq's original and most commonly used tactic language; tactics are used as scripts to construct proof terms in Rocq.
 Ltac2 is a newer, typed tactic language with better support for inspecting and constructing Rocq terms programmatically, making it a better fit for metaprogramming purposes.
 
-Deriving instances for \mintinline{coq}{Struct}, \mintinline{coq}{Enum}, and \mintinline{coq}{Bitflags} requires inspecting inductive type definitions at elaboration time.
+Deriving instances for $\mathit{Struct}$, $\mathit{Enum}$, and $\mathit{Bitflags}$ requires inspecting inductive type definitions at elaboration time.
 Rather than requiring these type-class instances to be derived by hand, the framework uses Ltac2 to perform this metaprogramming.
-The derivation tactics (\mintinline{coq}{derive_struct}, \mintinline{coq}{derive_enum}, \mintinline{coq}{derive_bitflags}) each reflect a Rocq inductive into a Golemma type signature and discharge any resulting proof obligations using Ltac1.
+The derivation tactics ($\mathit{derive\_struct}$, $\mathit{derive\_enum}$, $\mathit{derive\_bitflags}$) each reflect a Rocq inductive into a Golemma type signature and discharge any resulting proof obligations using Ltac1.
 
 When a Golemma expression contains an identifier, the language front-end uses a sophisticated type-class-resolution mechanism to decide if it refers to a local method parameter, a local let binding, or a submodule.
 To add support for referring to record projections or Gallina constructors, this system was extended to recognize identifiers related to synthesizable types.
@@ -970,7 +970,7 @@ for (let i = 0 to hi) begin
   (* body, i : bv hi *)
 end
 \end{minted}
-The loop bound \mintinline{coq}{hi} must be a natural number fixed at elaboration time, so the loop always runs a statically known number of iterations, as required for synthesizability. During verification, for-loop semantics reduce to a loop rule that requires an explicit loop invariant.
+The loop bound $\mathit{hi}$ must be a natural number fixed at elaboration time, so the loop always runs a statically known number of iterations, as required for synthesizability. During verification, for-loop semantics reduce to a loop rule that requires an explicit loop invariant.
 
 \section{Specifying and proving functional correctness} \label{sec:Golemma-spec}
 
@@ -989,11 +989,11 @@ The rest of this subsection develops a specification for the greatest-common-div
 \paragraph{Abstract state.}
 Every specification module has an associated \emph{abstract state}, which is an ordinary Gallina type chosen to model the module's behavior at the desired level of abstraction.
 For the GCD module, the abstract state records both the original inputs and the current state of the Euclidean algorithm.
-The fields \mintinline{coq}{a} and \mintinline{coq}{b} are the original operands loaded into the module, while \mintinline{coq}{a'} and \mintinline{coq}{b'} are the current operands after some number of \mintinline{coq}{step} calls.
-The \emph{representation invariant} (\mintinline{coq}{wf}) states that the current operands still have the same greatest common divisor as the original inputs.
+The fields $\mathit{a}$ and $\mathit{b}$ are the original operands loaded into the module, while $\mathit{a'}$ and $\mathit{b'}$ are the current operands after some number of $\mathit{step}$ calls.
+The \emph{representation invariant} ($\mathit{wf}$) states that the current operands still have the same greatest common divisor as the original inputs.
 
 \begin{minted}{coq}
-Record GcdState := mkState {
+Record SpecState := mkState {
   a  : nat;
   b  : nat;
   a' : nat;
@@ -1021,7 +1021,7 @@ Action-method specifications have the following type, where the postcondition ad
 In both cases the outermost proposition is the body of the specification.
 
 \paragraph{Value methods.}
-The \mintinline{coq}{result} method returns the correct result from the GCD computation and \mintinline{coq}{finished} returns whether the current second operand \mintinline{coq}{b'} is zero.
+The $\mathit{result}$ method returns the correct result from the GCD computation and $\mathit{finished}$ returns whether the current second operand $\mathit{b'}$ is zero.
 Each specification simply calls $P$ on the appropriate return value:
 \begin{minted}{coq}
 Definition result : MRVSpec State (mkMetSig <> Bit#(16)) :=
@@ -1037,7 +1037,7 @@ Different terms produce stronger or weaker guarantees; the specification's job i
 
 \paragraph{Action methods and preconditions.}
 Action-method specifications additionally describe how the abstract state evolves.
-The \mintinline{coq}{load} method sets the two operands to the supplied arguments:
+The $\mathit{load}$ method sets the two operands to the supplied arguments:
 \begin{listing}[H] % [H] forces it to stay "Here"
 \begin{minted}[escapeinside=||]{coq}
 Definition load : MRASpec State (mkMetSig <Bit#(16) a, Bit#(16) b> Bit#(0)) :=
@@ -1048,9 +1048,9 @@ Definition load : MRASpec State (mkMetSig <Bit#(16) a, Bit#(16) b> Bit#(0)) :=
 \end{minted}
 \end{listing}
 The successor state stores the loaded operands twice: once as the fixed original inputs and once as the current operands.
-The proof witness \mintinline{coq}{pf} establishes \mintinline{coq}{gcd a b = gcd a b}, so the invariant holds immediately after loading.
+The proof witness $\mathit{pf}$ establishes \mintinline{coq}{gcd a b = gcd a b}, so the invariant holds immediately after loading.
 
-The \mintinline{coq}{step} method is more interesting because the implementation aborts when the current second operand is zero.
+The $\mathit{step}$ method is more interesting because the implementation aborts when the current second operand is zero.
 A \emph{precondition} on the method is expressed as a conjunct placed \emph{outside} of $P$, before any existential quantification.
 \begin{minted}{coq}
 Definition step : MRASpec State (mkMetSig <> Bit#(0)) :=
@@ -1064,28 +1064,28 @@ Definition step : MRASpec State (mkMetSig <> Bit#(0)) :=
       P (0%bv, next).
 \end{minted}
 Since \mintinline{coq}{st.(b') <> 0} sits outside $P$, it is a delegated obligation that callers of this submodule must discharge.
-The refinement proof must show that the implementation never invokes \mintinline{coq}{step} in a state where the abort path can be reached.
-Postconditions, by contrast, are captured by constructing the next abstract state passed to \mintinline{coq}{P}; here that state preserves the original \mintinline{coq}{a} and \mintinline{coq}{b} fields while updating only \mintinline{coq}{a'} and \mintinline{coq}{b'}.
+The refinement proof must show that the implementation never invokes $\mathit{step}$ in a state where the abort path can be reached.
+Postconditions, by contrast, are captured by constructing the next abstract state passed to $\mathit{P}$; here that state preserves the original $\mathit{a}$ and $\mathit{b}$ fields while updating only $\mathit{a'}$ and $\mathit{b'}$.
 
 \paragraph{Representation invariants.}
 Not every tuple of natural numbers is a valid intermediate state for a GCD computation.
-The \mintinline{coq}{GcdState} record shown earlier encodes this constraint through the \mintinline{coq}{wf} field: a Rocq proof that the current pair \mintinline{coq}{(a', b')} has the same GCD as the original pair \mintinline{coq}{(a, b)}.
+The $\mathit{SpecState}$ record shown earlier encodes this constraint through the $\mathit{wf}$ field: a Rocq proof that the current pair \mintinline{coq}{(a', b')} has the same GCD as the original pair \mintinline{coq}{(a, b)}.
 This proof field is a \emph{representation invariant} that every abstract state must carry.
 
-Since \mintinline{coq}{wf} is a field of the record, Rocq's type system ensures it is present in every \mintinline{coq}{GcdState} value. The type system disallows constructing an abstract state that violates it.
-Since the invariant is part of the \mintinline{coq}{GcdState} type, specifications and lemmas can rely on it without taking a separate hypothesis: any variable \mintinline{coq}{st : GcdState} already provides the proof term \mintinline{coq}{st.(wf)}.
+Since $\mathit{wf}$ is a field of the record, Rocq's type system ensures it is present in every $\mathit{SpecState}$ value. The type system disallows constructing an abstract state that violates it.
+Since the invariant is part of the $\mathit{SpecState}$ type, specifications and lemmas can rely on it without taking a separate hypothesis: any variable \mintinline{coq}{st : SpecState} already provides the proof term \mintinline{coq}{st.(wf)}.
 Action-method specifications that modify the state have a proof obligation to discharge the invariant.
-For example, the \mintinline{coq}{step} specification must supply a proof that the updated current pair still has GCD \mintinline{coq}{gcd st.(a) st.(b)} whenever it constructs the next \mintinline{coq}{GcdState}.
+For example, the $\mathit{step}$ specification must supply a proof that the updated current pair still has GCD \mintinline{coq}{gcd st.(a) st.(b)} whenever it constructs the next $\mathit{SpecState}$.
 
 \paragraph{Discussion: connection to abstract data types.}
 This specification style is directly analogous to the theory of \emph{abstract data types} (ADTs).
 In an ADT, an abstraction function (AF) maps concrete states to abstract values, and each operation is specified by its effect on that abstract model.
-The same structure appears here: the \mintinline{coq}{GcdState} record is the abstract model, and each method specification describes the contract that any correct implementation must satisfy.
+The same structure appears here: the $\mathit{SpecState}$ record is the abstract model, and each method specification describes the contract that any correct implementation must satisfy.
 The predicate-transformer style mirrors Hoare-logic-style method contracts.
 A precondition is a proposition outside $P$ that constrains what the method requires of its inputs; a postcondition is a proposition inside $P$ that describes what the method guarantees about its outputs.
 Similar to ADT specifications, these contracts are \emph{relational}. Specifications are allowed to use arbitrary Gallina propositions, including existential quantification, so they can express nondeterminism cleanly.
 An implementation that can nondeterministically return any element of a set satisfying some predicate is expressed by quantifying existentially over the return value. The specification makes no commitment about which element is chosen.
-This feature is particularly useful when specifying the issue logic of an out-of-order processor scheduler (\Cref{sec:case-study-reorder-buffer}), where the choice of which ready instruction to issue is left unspecified.
+This feature is particularly useful when specifying the issue logic of an out-of-order processor scheduler, where the choice of which ready instruction to issue is left unspecified.
 The abstraction function appears explicitly as the simulation relation between the concrete register state of the implementation and the abstract state, when establishing refinement.
 
 \subsection{Writing proofs} \label{sec:Golemma-spec-refinement}
@@ -1156,7 +1156,7 @@ The relation asserts that each register value, converted from a bitvector to a n
 \Cref{fig:gcd-R} shows the Rocq definition.
 \begin{figure}[H]
 \begin{minted}{coq}
-Definition R (ist : ImplState) (sst : GcdState) : Prop :=
+Definition R (ist : ImplState) (sst : SpecState) : Prop :=
   bv_to_nat ist.(reg_a) = sst.(a') /\ bv_to_nat ist.(reg_b) = sst.(b').
 \end{minted}
 \caption{Simulation relation for the GCD module.}
@@ -1179,7 +1179,7 @@ For all $a$, $b$, $\gcd(a, b) = \gcd(b, a)$.
 \end{lemma}
 
 \begin{lemma}\label{lem:gcd-finished-refines}
-The implementation of \mintinline{coq}{finished} refines its value-method specification under $R$.
+The implementation of $\mathit{finished}$ refines its value-method specification under $R$.
 \end{lemma}
 
 \begin{proof}[Proof sketch]
@@ -1189,8 +1189,8 @@ Since $R$ equates the two (modulo type conversion), both checks yield the same B
 \end{proof}
 
 \begin{lemma} \label{lem:gcd-result-refines}
-The implementation of \mintinline{coq}{result} refines its value-method specification under $R$, provided $s.b' = 0$.
-Moreover, the value returned by \mintinline{coq}{result} equals $\gcd(s.a, s.b)$.
+The implementation of $\mathit{result}$ refines its value-method specification under $R$, provided $s.b' = 0$.
+Moreover, the value returned by $\mathit{result}$ equals $\gcd(s.a, s.b)$.
 \end{lemma}
 
 \begin{proof}[Proof sketch]
@@ -1200,7 +1200,7 @@ The representation invariant gives $\gcd(s.a, s.b) = \gcd(s.a', 0)$, and \Cref{l
 \end{proof}
 
 \begin{lemma} \label{lem:gcd-load-refines}
-The implementation of \mintinline{coq}{load} refines its action-method specification under $R$.
+The implementation of $\mathit{load}$ refines its action-method specification under $R$.
 \end{lemma}
 
 \begin{proof}[Proof sketch]
@@ -1211,12 +1211,12 @@ Taking the successor abstract state to be the one the specification constructs, 
 \end{proof}
 
 \begin{lemma} \label{lem:gcd-step-refines}
-The implementation of \mintinline{coq}{step} refines its action-method specification under $R$, provided $s.b' \neq 0$.
+The implementation of $\mathit{step}$ refines its action-method specification under $R$, provided $s.b' \neq 0$.
 \end{lemma}
 
 \begin{proof}[Proof sketch]
 Assume $(i, s) \in R$.
-Since $R$ equates $s.b'$ with $i.b$, $i.b$ is also nonzero, so the implementation does not reach the \mintinline{coq}{abort} path.
+Since $R$ equates $s.b'$ with $i.b$, $i.b$ is also nonzero, so the implementation does not reach the $\mathit{abort}$ path.
 Both the specification and the implementation perform the same conditional subtraction, and since the register values equal the abstract fields by $R$, the two conditionals take the same branch.
 After the update, the new register values equal the new abstract fields, so $R$ is restored.
 
@@ -1236,7 +1236,7 @@ Apply \Cref{def:refines-module}: the reset states are related by construction, a
 \end{proof}
 
 \chapter{Case studies} \label{chap:cases}
-This chapter demonstrates the expressivity of the two verification frameworks covered in~\Cref{chap:Slate,chap:Golemma} by presenting a series of case studies. First, it discusses a proof of timing security for a variable-latency multiplier using the Slate framework (\Cref{sec:case-study-multiplier}). Then, it uses the Golemma framework to present functional-correctness proofs for a ring buffer and a reorder buffer (\Cref{sec:case-study-ring-buffer,sec:case-study-reorder-buffer}).
+This chapter demonstrates the expressivity of the two verification frameworks covered in~\Cref{chap:Slate,chap:Golemma} by presenting case studies. First, it discusses a proof of timing security for a variable-latency multiplier using the Slate framework (\Cref{sec:case-study-multiplier}). Then, it uses the Golemma framework to present a correctness proof for a ring buffer (\Cref{sec:case-study-ring-buffer}).
 
 \section{Timing security: Variable-latency multiplier} \label{sec:case-study-multiplier}
 
@@ -1248,8 +1248,8 @@ The goal is to establish hardware constant time with respect to an erasure contr
 \subsection{Interface}
 
 The multiplier exposes six methods which are summarized in \Cref{fig:mult-intf} as a Golemma interface.
-Three operations are stateful: \mintinline{coq}{enq} loads a pair of operands and starts the computation, \mintinline{coq}{step} advances the shift-and-add algorithm by one step, and \mintinline{coq}{deq} retrieves the 16-bit product once it is ready.
-Three additional operations are observational: \mintinline{coq}{empty}, \mintinline{coq}{busy}, and \mintinline{coq}{full}.
+Three operations are stateful: $\mathit{enq}$ loads a pair of operands and starts the computation, $\mathit{step}$ advances the shift-and-add algorithm by one step, and $\mathit{deq}$ retrieves the 16-bit product once it is ready.
+Three additional operations are observational: $\mathit{empty}$, $\mathit{busy}$, and $\mathit{full}$.
 
 \begin{figure}[H]
 \begin{minted}{coq}
@@ -1264,15 +1264,15 @@ Definition Multiplier : ModSig :=
   endinterface.
 \end{minted}
 \caption{Interface definition for the multiplier.
-Action methods (\mintinline{coq}{enq}, \mintinline{coq}{step}) mutate state; value methods return a result without modifying state.}
+Action methods ($\mathit{enq}$, $\mathit{step}$) mutate state; value methods return a result without modifying state.}
 \label{fig:mult-intf}
 \end{figure}
 
 \Cref{fig:mult-block-diagram} shows the port-level signals of the multiplier.
 Each method is represented as a group of signals: an enable input, driven by the caller to invoke the method, and a ready output, driven by the module to indicate that the method's guard holds and the call will succeed.
 These signals form a handshaking protocol which ensures that the method will only execute if both signals are latched high on the same cycle.
-Stateful methods may also carry data signals: \mintinline{coq}{enq} takes the two operands \texttt{a[7:0]} and \texttt{b[7:0]} as inputs, while \mintinline{coq}{deq} produces the 16-bit product \texttt{c[15:0]} as an output.
-The observational methods (\mintinline{coq}{empty}, \mintinline{coq}{busy}, \mintinline{coq}{full}) each return a single boolean result and do not require handshaking.
+Stateful methods may also carry data signals: $\mathit{enq}$ takes the two operands \texttt{a[7:0]} and \texttt{b[7:0]} as inputs, while $\mathit{deq}$ produces the 16-bit product \texttt{c[15:0]} as an output.
+The observational methods ($\mathit{empty}$, $\mathit{busy}$, $\mathit{full}$) each return a single boolean result and do not require handshaking.
 
 \begin{figure}[H]
 \centering
@@ -1386,9 +1386,9 @@ the product \texttt{c[15:0]} is mapped to \texttt{None} in \texttt{erase\_out}.}
 \label{fig:mult-attacker-diagram}
 \end{figure}
 
-The erasure contract $\mathcal{E} =$ (\mintinline{coq}{erase_inp}, \mintinline{coq}{erase_out}) formalizes this model in two functions shown in \Cref{fig:mult-erasure}.
-\mintinline{coq}{erase_inp} replaces the second operand with zero on every \mintinline{coq}{enq} and leaves all other inputs unchanged.
-\mintinline{coq}{erase_out} replaces the product in \mintinline{coq}{deq} with zero, and maps all remaining outputs to observable.
+The erasure contract $\mathcal{E} =$ ($\mathit{erase\_inp}$, $\mathit{erase\_out}$) formalizes this model in two functions shown in \Cref{fig:mult-erasure}.
+$\mathit{erase\_inp}$ replaces the second operand with zero on every $\mathit{enq}$ and leaves all other inputs unchanged.
+$\mathit{erase\_out}$ replaces the product in $\mathit{deq}$ with zero, and maps all remaining outputs to observable.
 
 \begin{figure}[ht]
 \begin{minted}{coq}
@@ -1410,7 +1410,7 @@ Definition erase_out (out : option O) : option O :=
 
 \subsection{Implementation}
 
-The multiplier holds five registers: \mintinline{coq}{src1} and \mintinline{coq}{src2} (the two 8-bit operands), \mintinline{coq}{dst} (the 16-bit accumulator), \mintinline{coq}{count} (a 3-bit iteration counter), and \mintinline{coq}{phase} (the pipeline stage).
+The multiplier holds five registers: $\mathit{src1}$ and $\mathit{src2}$ (the two 8-bit operands), $\mathit{dst}$ (the 16-bit accumulator), $\mathit{count}$ (a 3-bit iteration counter), and $\mathit{phase}$ (the pipeline stage).
 \Cref{fig:mult-state} shows the state record.
 
 \begin{figure}[ht]
@@ -1429,10 +1429,10 @@ Record State := {
 \label{fig:mult-state}
 \end{figure}
 
-Each method call to \mintinline{coq}{step} invokes the \mintinline{coq}{shift_and_add} subroutine shown in \Cref{fig:mult-shift-add}.
-If \mintinline{coq}{src1} is already zero the step is a no-op; otherwise, if the least significant bit of \mintinline{coq}{src1} is one, the subroutine adds \mintinline{coq}{src2} shifted left by \mintinline{coq}{count} to \mintinline{coq}{dst}.
-In both cases, \mintinline{coq}{src1} is right-shifted by one and \mintinline{coq}{count} is incremented.
-Once \mintinline{coq}{src1} reaches zero, the outer \mintinline{coq}{step} transitions the phase to \mintinline{coq}{Full}, making the result available for dequeue.
+Each method call to $\mathit{step}$ invokes the $\mathit{shift\_and\_add}$ subroutine shown in \Cref{fig:mult-shift-add}.
+If $\mathit{src1}$ is already zero the step is a no-op; otherwise, if the least significant bit of $\mathit{src1}$ is one, the subroutine adds $\mathit{src2}$ shifted left by $\mathit{count}$ to $\mathit{dst}$.
+In both cases, $\mathit{src1}$ is right-shifted by one and $\mathit{count}$ is incremented.
+Once $\mathit{src1}$ reaches zero, the outer $\mathit{step}$ transitions the phase to $\mathit{Full}$, making the result available for dequeue.
 
 \begin{figure}[ht]
 \begin{minted}{coq}
@@ -1456,15 +1456,15 @@ Definition shift_and_add :=
     end
   end.
 \end{minted}
-\caption{The \mintinline{coq}{shift_and_add} subroutine. On each call it processes one bit of \mintinline{coq}{src1}, conditionally adding a shifted copy of \mintinline{coq}{src2} to the accumulator.}
+\caption{The $\mathit{shift\_and\_add}$ subroutine. On each call it processes one bit of $\mathit{src1}$, conditionally adding a shifted copy of $\mathit{src2}$ to the accumulator.}
 \label{fig:mult-shift-add}
 \end{figure}
 
 \subsection{Verification}
 
-The central observation is that the timing of the multiplier depends entirely on \mintinline{coq}{src1}: the number of steps before the phase transitions to \mintinline{coq}{Full} is exactly the position of the most significant set bit of \mintinline{coq}{src1}.
-The value of \mintinline{coq}{src2} affects only the accumulator \mintinline{coq}{dst} and therefore does not influence any externally observable timing signal.
-This observation is captured by the simulation relation in \Cref{fig:mult-rel}, which equates the \mintinline{coq}{phase}, \mintinline{coq}{count}, and \mintinline{coq}{src1} registers of two states but makes no requirement on \mintinline{coq}{src2} or \mintinline{coq}{dst}.
+The central observation is that the timing of the multiplier depends entirely on $\mathit{src1}$: the number of steps before the phase transitions to $\mathit{Full}$ is exactly the position of the most significant set bit of $\mathit{src1}$.
+The value of $\mathit{src2}$ affects only the accumulator $\mathit{dst}$ and therefore does not influence any externally observable timing signal.
+This observation is captured by the simulation relation in \Cref{fig:mult-rel}, which equates the $\mathit{phase}$, $\mathit{count}$, and $\mathit{src1}$ registers of two states but makes no requirement on $\mathit{src2}$ or $\mathit{dst}$.
 
 \begin{figure}[ht]
 \begin{minted}{coq}
@@ -1481,47 +1481,50 @@ The proof uses self-simulation (\Cref{lem:self-sim-hct}): the implementation is 
 It suffices to show that $R$ is preserved by each operation.
 
 \begin{lemma} \label{lem:mult-enq}
-\mintinline{coq}{enq} self-simulates under $(R, \mathcal{E})$.
+$\mathit{enq}$ self-simulates under $(R, \mathcal{E})$.
 \end{lemma}
 
 \begin{proof}[Proof sketch]
-Assume $R(s_1, s_2)$.
-Both actions guard on \mintinline{coq}{phase == Empty}; since the phases are equal, both machines take the same branch.
-When the guard succeeds, both actions write \mintinline{coq}{src1 := a}, \mintinline{coq}{dst := 0}, \mintinline{coq}{count := 0}, and \mintinline{coq}{phase := Busy}.
-The first action additionally writes \mintinline{coq}{src2 := b} and the second writes \mintinline{coq}{src2 := 0}; since \mintinline{coq}{src2} is not tracked by $R$, the relation holds for the successor states.
-Both actions return the same result (void), so we can successfully conclude the simulation.
+Assume $(s_1, s_2) \in R$.
+The guard checks $s_1.\mathit{phase} = \mathit{Empty}$; since $R$ equates the phases, $s_2.\mathit{phase} = \mathit{Empty}$ as well, so both copies take the same branch.
+When the guard succeeds, both copies set $\mathit{src1} := a$, $\mathit{dst} := 0$, $\mathit{count} := 0$, and $\mathit{phase} := \mathit{Busy}$.
+The first copy additionally sets $\mathit{src2} := b$ while the erased copy sets $\mathit{src2} := 0$; since $R$ imposes no constraint on $\mathit{src2}$ or $\mathit{dst}$, the successor states remain related.
+Both copies return void, and $\mathcal{E}$ erases void to void, so the observed outputs agree.
 \end{proof}
 
 \begin{lemma} \label{lem:mult-deq}
-\mintinline{coq}{deq} self-simulates under $(R, \mathcal{E})$.
+$\mathit{deq}$ self-simulates under $(R, \mathcal{E})$.
 \end{lemma}
 
 \begin{proof}[Proof sketch]
-Assume $R(s_1, s_2)$. Both actions guard on \mintinline{coq}{phase == Full}; the machine takes the same branch in both states since $R$ equates the phases.
-When the guard succeeds, both write \mintinline{coq}{phase := Empty} and return \mintinline{coq}{dst}.
-The products \mintinline{coq}{dst} may differ between the two states, but \mintinline{coq}{erase_out} maps both to \mintinline{coq}{0}, so the observed outputs are equal.
-The successor states agree on \mintinline{coq}{phase}, \mintinline{coq}{count}, and \mintinline{coq}{src1}, so $R$ is preserved.
+Assume $(s_1, s_2) \in R$.
+The guard checks $s_1.\mathit{phase} = \mathit{Full}$; since $R$ equates the phases, both copies take the same branch.
+Both copies set $\mathit{phase} := \mathit{Empty}$ and return $\mathit{dst}$.
+The products $s_1.\mathit{dst}$ and $s_2.\mathit{dst}$ may differ, but $\mathcal{E}$ erases the output by replacing the product with zero, so the observed outputs are equal.
+In the successor states, $\mathit{phase}$, $\mathit{count}$, and $\mathit{src1}$ are unchanged, so $R$ is preserved.
 \end{proof}
 
 \begin{lemma} \label{lem:mult-rule}
-\mintinline{coq}{step} self-simulates under $(R, \mathcal E)$.
+$\mathit{step}$ self-simulates under $(R, \mathcal E)$.
 \end{lemma}
 
 \begin{proof}[Proof sketch]
-Assume $R(s_1, s_2)$. Both actions guard on \mintinline{coq}{phase == Busy}, which causes the machines to take the same branch by $R$.
-Inside the guard, both machines check whether \mintinline{coq}{src1 == 0}; since $R$ equates \mintinline{coq}{src1}, the same branch is taken.
-If \mintinline{coq}{src1} is zero, both transition to \mintinline{coq}{Full}.
-Otherwise, both call \mintinline{coq}{shift_and_add}: the operations on \mintinline{coq}{src1} and \mintinline{coq}{count} are identical (right-shifting \mintinline{coq}{src1} by one, incrementing \mintinline{coq}{count}), so those registers remain equal.
-The accumulation into \mintinline{coq}{dst} may differ since \mintinline{coq}{src2} differs, but \mintinline{coq}{dst} is not tracked by $R$, so $R$ is preserved.
+Assume $(s_1, s_2) \in R$.
+The guard checks $s_1.\mathit{phase} = \mathit{Busy}$; since $R$ equates the phases, both copies take the same branch.
+Inside the guard, both copies check whether $\mathit{src1}$ is zero; since $R$ equates $\mathit{src1}$, both take the same inner branch.
+If $s_1.\mathit{src1} = 0$, both copies set $\mathit{phase} := \mathit{Full}$ and leave the remaining registers unchanged, so $R$ holds for the successor states.
+Otherwise, both right-shift $\mathit{src1}$ by one and increment $\mathit{count}$ identically, preserving the $\mathit{src1}$ and $\mathit{count}$ components of $R$.
+The accumulation into $\mathit{dst}$ may differ since $s_1.\mathit{src2}$ and $s_2.\mathit{src2}$ may differ, but $\mathit{dst}$ is not tracked by $R$, so $R$ is preserved in both branches.
 \end{proof}
 
 \begin{lemma} \label{lem:mult-status}
-\mintinline{coq}{empty}, \mintinline{coq}{busy}, and \mintinline{coq}{full} each self-simulate themselves under $(R, \mathcal E)$.
+$\mathit{empty}$, $\mathit{busy}$, and $\mathit{full}$ each self-simulate under $(R, \mathcal E)$.
 \end{lemma}
 
 \begin{proof}[Proof sketch]
-Each status query reads only \mintinline{coq}{phase}, compares it against a constant, and returns a Boolean.
-Since $R$ equates the two phases, both calls produce the same Boolean, leaving both states unchanged with equal observed outputs.
+Assume $(s_1, s_2) \in R$.
+Each status query reads only $\mathit{phase}$, compares it against a fixed constant, and returns a Boolean.
+Since $R$ equates the two phases, both copies return the same Boolean, leave the state unchanged, and produce equal outputs.
 \end{proof}
 
 \begin{theorem} \label{thm:mult-hct}
@@ -1544,23 +1547,23 @@ These extra operations are motivated by their use in an out-of-order processor's
 \subsection{Interface}
 
 The ring buffer exposes nine methods, shown in \Cref{fig:rb-intf}.
-Five are value methods: \mintinline{coq}{empty} and \mintinline{coq}{full} return the status of the buffer; \mintinline{coq}{first} returns the element at the head; \mintinline{coq}{tail} returns the current tail index; and \mintinline{coq}{sub} returns the element at a given logical index.
-Four are action methods: \mintinline{coq}{enq} inserts an entry at the tail and advances the tail, \mintinline{coq}{deq} removes the element at the head, \mintinline{coq}{squash} retracts the tail to a given earlier position discarding pending entries, and \mintinline{coq}{upd} overwrites an existing entry in place.
-Each action method guards against invalid calls: \mintinline{coq}{enq} aborts when the buffer is full; \mintinline{coq}{deq} and \mintinline{coq}{first} abort when it is empty; and \mintinline{coq}{sub}, \mintinline{coq}{upd}, and \mintinline{coq}{squash} abort when the provided index does not have a valid element there.
+Five are value methods: $\mathit{empty}$ and $\mathit{full}$ return the status of the buffer; $\mathit{first}$ returns the element at the head; $\mathit{tail}$ returns the current tail index; and $\mathit{sub}$ returns the element at a given logical index.
+Four are action methods: $\mathit{enq}$ inserts an entry at the tail and advances the tail, $\mathit{deq}$ removes the element at the head, $\mathit{squash}$ retracts the tail to a given earlier position discarding pending entries, and $\mathit{upd}$ overwrites an existing entry in place.
+Each action method guards against invalid calls: $\mathit{enq}$ aborts when the buffer is full; $\mathit{deq}$ and $\mathit{first}$ abort when it is empty; and $\mathit{sub}$, $\mathit{upd}$, and $\mathit{squash}$ abort when the provided index does not have a valid element there.
 
 \begin{figure}[H]
 \begin{minted}{coq}
-Definition RingBuffer (Entry : type) (Width : nat) : ModSig :=
+Definition RingBuffer (@$\varepsilon$@ : type) (N : nat) : ModSig :=
   interface
     method  Bit#(1)        empty;
     method  Bit#(1)        full;
-    method  Entry          first;
-    method  Bit#(Width)    tail;
-    method  Entry          sub     <Bit#(Width) idx>;
+    method  @$\varepsilon$@              first;
+    method  Bit#(N)        tail;
+    method  Entry          sub     <Bit#(N) idx>;
     method  Action         deq;
-    method  Action         enq     <Entry e>;
-    method  Action         squash  <Bit#(Width) tail'>;
-    method  Action         upd     <Bit#(Width) idx, Entry e>;
+    method  Action         enq     <@$\varepsilon$@ e>;
+    method  Action         squash  <Bit#(N) tail'>;
+    method  Action         upd     <Bit#(N) idx, Entry e>;
   endinterface.
 \end{minted}
 \caption{Interface definition for the ring buffer, parameterized by entry type and address width.
@@ -1570,6 +1573,25 @@ Value methods return a result without modifying state; action methods mutate sta
 
 \subsection{Specification}
 
+Since specifying the behavior of pointers requires modular arithmetic, both the specification and the implementation rely on a library of modular arithmetic on natural numbers.
+\Cref{fig:rb-nat-ring} summarizes the key definitions.
+
+\begin{figure}[ht]
+\begin{minted}[mathescape]{coq}
+Definition nat_wrap x  := x mod 2 ^ N.
+Definition x @$\oplus$@ y := (x + y) mod 2 ^ N.
+Definition x @$\ominus$@ y := (x + 2 ^ N - y mod 2 ^ N) mod 2 ^ N.
+Definition x @$\otimes$@ y := (x * y) mod 2 ^ N.
+Definition @$\ominus$@ x := (2 ^ N - x mod 2 ^ N) mod 2 ^ N.
+Definition x @$\equiv$@ y := nat_wrap x = nat_wrap y.
+\end{minted}
+\caption{Modular natural-number arithmetic.}
+\label{fig:rb-nat-ring}
+\end{figure}
+
+These operations form a commutative ring under the equivalence $x \equiv y$, registered with Rocq's $\mathit{ring}$ tactic, so that goals such as $(x \oplus y) \ominus y \equiv x$ close automatically.
+The library also proves that each operation corresponds to its bitvector counterpart under the conversion $\mathit{nat\_to\_bv}$, enabling implementation-level bitvector goals to be translated into specification-level modular-arithmetic goals during refinement proofs.
+
 The specification represents the ring buffer abstractly as an ordered list of entries together with a physical tail index.
 \Cref{fig:rb-spec-state} shows the abstract state record.
 
@@ -1578,25 +1600,21 @@ The specification represents the ring buffer abstractly as an ordered list of en
 Record State := mkState {
   entries       : list @$\varepsilon$@;
   tail          : nat;
-  wf            : tail < 2 ^ N /\ size <= 2 ^ N;
-  (* The definitions below are methods on [State]. *)
   size          := length entries;
   head          := tail @$\ominus$@ size;
-  full          := size = 2 ^ N;
-  empty         := size = 0;
-  index i       := i @$\ominus$@ head;
-  valid_index i := index i < size;
+  wf            : tail < 2 ^ N /\ size <= 2 ^ N;
 }.
 \end{minted}
 \caption{Abstract state for the ring buffer specification.}
 \label{fig:rb-spec-state}
 \end{figure}
 
-The abstract model stores the logical contents of the buffer as the list \mintinline{coq}{entries}, ordered from head to tail, along with a \mintinline{coq}{tail} index.
-The \mintinline{coq}{head} index is derived as \mintinline{coq}{tail @$\ominus$@ size}, the slot that is \mintinline{coq}{size} positions before the tail in the ring.
-The \mintinline{coq}{index} function maps a logical index $i$ to its physical offset from the head as \mintinline{coq}{i @$\ominus$@ head}.
-The representation invariant \mintinline{coq}{wf} bounds \mintinline{coq}{tail} and \mintinline{coq}{size} to stay within $2^{N}$.
-When both the head and tail match, the buffer is either full or empty, a dedicated \mintinline{coq}{full} flag is not stored in the abstract state; the size serves as the disambiguating quantity.
+The abstract model stores the logical contents of the buffer as the list $\mathit{entries}$, ordered from head to tail, along with a $\mathit{tail}$ index.
+The $\mathit{head}$ index is derived as $\mathit{tail} \ominus \mathit{size}$, the ring slot that is $\mathit{size}$ positions behind the tail.
+A \emph{logical index} is a ring address $j$ that falls within the live portion of the buffer: one satisfying $\mathit{valid\_index}(s, j)$, meaning the forward distance $j \ominus \mathit{head}(s)$ is strictly less than $\mathit{size}(s)$.
+The $\mathit{sub}$ and $\mathit{upd}$ operations access elements by logical index, and $\mathit{squash}$ accepts a new tail that must itself be a logical index.
+The representation invariant $\mathit{wf}$ bounds $\mathit{tail}$ and $\mathit{size}$ to stay within $2^{N}$.
+When the head equals the tail, the buffer may be full or empty; the size disambiguates the two cases, so no explicit full flag appears in the abstract state.
 The method specifications are written in the predicate-transformer style described in \Cref{sec:Golemma-spec-framework}.
 \Cref{fig:rb-spec-methods} shows the specifications for the two core action methods.
 
@@ -1612,19 +1630,19 @@ Definition deq' : MRASpec State (mkMetSig <> Void) :=
     exists Hempty : ~ empty st,
       P (tt, deq st Hempty).
 \end{minted}
-\caption{Predicate-transformer specifications for \mintinline{coq}{enq} and \mintinline{coq}{deq}.
+\caption{Predicate-transformer specifications for $\mathit{enq}$ and $\mathit{deq}$.
 The existential witness encodes the precondition as a proof term that is passed directly to the abstract operation.}
 \label{fig:rb-spec-methods}
 \end{figure}
 
-The \mintinline{coq}{enq} operation on the abstract state appends the new element to \mintinline{coq}{entries} and increments \mintinline{coq}{tail} by one modulo $2^{N}$.
-The \mintinline{coq}{deq} operation drops the head of \mintinline{coq}{entries} and leaves \mintinline{coq}{tail} unchanged, so that subsequent indices shift down by one.
-The \mintinline{coq}{squash} operation truncates \mintinline{coq}{entries} to the first \mintinline{coq}{index st tail'} elements and sets \mintinline{coq}{tail := tail'}.
-The \mintinline{coq}{upd} and \mintinline{coq}{sub} operations perform a list update and a list lookup, respectively, at the physical offset computed by \mintinline{coq}{index}.
+The $\mathit{enq}$ operation on the abstract state appends the new element to $\mathit{entries}$ and increments $\mathit{tail}$ by one modulo $2^{N}$.
+The $\mathit{deq}$ operation drops the head of $\mathit{entries}$ and leaves $\mathit{tail}$ unchanged, so that subsequent indices shift down by one.
+The $\mathit{squash}$ operation truncates $\mathit{entries}$ to the first \mintinline{coq}{index st tail'} elements and sets \mintinline{coq}{tail := tail'}.
+The $\mathit{upd}$ and $\mathit{sub}$ operations perform a list update and a list lookup, respectively, at the physical offset computed by $\mathit{index}$.
 
 \subsection{Implementation}
 
-The implementation maintains a fixed-size vector of registers for entries and three control registers: \mintinline{coq}{head} and \mintinline{coq}{tail} as $N$-bit values and \mintinline{coq}{full} as a one-bit flag.
+The implementation maintains a fixed-size vector of registers for entries and three control registers: $\mathit{head}$ and $\mathit{tail}$ as $N$-bit values and $\mathit{full}$ as a one-bit flag.
 \Cref{fig:rb-impl} shows the module declaration.
 
 \begin{figure}[ht]
@@ -1639,49 +1657,28 @@ module mkRingBuffer#(RingBuffer#(@$\varepsilon$@, N));
 \label{fig:rb-impl}
 \end{figure}
 
-The \mintinline{coq}{enq} method writes the new element to \mintinline{coq}{entries[tail]}, advances \mintinline{coq}{tail} by one using bitvector addition (which wraps naturally at $2^N$), and updates \mintinline{coq}{full} by checking whether the new tail equals \mintinline{coq}{head}.
-The validity check for \mintinline{coq}{sub}, \mintinline{coq}{upd}, and \mintinline{coq}{squash} is computed as the comparison \mintinline{coq}{(idx - head) < (tail - head)}, which effectively checks if \mintinline{coq}{entries[idx]} is a valid element.
-Unlike the specification, which derives the \mintinline{coq}{full} condition from the size, the implementation must maintain the \mintinline{coq}{full} flag explicitly to disambiguate whether the queue is empty or full when the head equals the tail.
+The $\mathit{enq}$ method writes the new element to \mintinline{coq}{entries[tail]}, advances $\mathit{tail}$ by one using bitvector addition (which wraps naturally at $2^N$), and updates $\mathit{full}$ by checking whether the new tail equals $\mathit{head}$.
+The validity check for $\mathit{sub}$, $\mathit{upd}$, and $\mathit{squash}$ is computed as the comparison \mintinline{coq}{(idx - head) < (tail - head)}, which effectively checks if \mintinline{coq}{entries[idx]} is a valid element.
+Unlike the specification, which derives the $\mathit{full}$ condition from the size, the implementation must maintain the $\mathit{full}$ flag explicitly to disambiguate whether the queue is empty or full when the head equals the tail.
 
 \subsection{Verification}
 
-The specification uses modular arithmetic over nautral numbers, while the implementation uses the corresponding bitvector arithmetic.
-To bridge this gap, a library of modular arithmetic over natural numbers was developed.
-\Cref{fig:rb-nat-ring} shows the key definitions of this theory.
-
-\begin{figure}[ht]
-\begin{minted}[mathescape]{coq}
-Definition nat_wrap x  := x mod 2 ^ N.
-Definition x @$\oplus$@ y := (x + y) mod 2 ^ N.
-Definition x @$\ominus$@ y := (x + 2 ^ N - y mod 2 ^ N) mod 2 ^ N.
-Definition x @$\otimes$@ y := (x * y) mod 2 ^ N.
-Definition @$\ominus$@ x := (2 ^ N - x mod 2 ^ N) mod 2 ^ N.
-Definition x @$\equiv$@ y := nat_wrap x = nat_wrap y.
-\end{minted}
-\caption{Modular natural-number arithmetic.}
-\label{fig:rb-nat-ring}
-\end{figure}
-
-These operations form a commutative ring under the equivalence relation $x \equiv y$, registered with Rocq's \mintinline{coq}{ring} tactic via \mintinline{coq}{Add Ring}.
-This allows proof automation to close goals such as $(x \oplus y) \ominus y \equiv x$ automatically, rather than requiring tedious, manual rewrites using helper lemmas.
-The library also proves that each operation agrees with the corresponding bitvector operation under the conversion \mintinline{coq}{nat_to_bv} (natural number to bitvector); for instance, \mintinline{coq}{nat_to_bv (x @$\ominus$@ y) = bv_sub (nat_to_bv x) (nat_to_bv y)}.
-These correspondence lemmas are used for translating implementation-level, bitvector goals into specification-level, modular-arithmetic goals during refinement proofs.
-
+\paragraph{Refinement relation.}
 The refinement relation $R$ connects implementation states to specification states as shown in \Cref{fig:rb-rel}.
 The relation has four components.
-First, for every valid logical index $i$ in the specification, the corresponding physical slot in the implementation's entries vector holds the value \mintinline{coq}{sub sst i}. The notation \mintinline{coq}{xs !!! i} denotes a lookup into a list \mintinline{coq}{xs} at position \mintinline{coq}{i}, returning a default value if the index is out of bounds.
-Second, the implementation \mintinline{coq}{head} and \mintinline{coq}{tail} registers equal the bitvector representations of the specification's head and tail.
-Third, the implementation \mintinline{coq}{full} bit encodes the specification's full predicate.
-Notably, $R$ imposes no constraint on vector slots at indices that are not valid in the specification, so the implementation may hold arbitrary data in those positions.
+First, for every valid logical index $i$ in the specification's ring buffer, the corresponding entry in the implementation's ring buffer matches. The notation \mintinline{coq}{xs !!! i} denotes a lookup into a list $\mathit{xs}$ at position $\mathit{i}$, returning a default value if the index is out of bounds.
+Second, the implementation $\mathit{head}$ and $\mathit{tail}$ registers equal the bitvector representations of the specification's head and tail.
+Third, the implementation $\mathit{full}$ bit matches with the specification's full predicate.
+Notably, $R$ imposes no constraint on vector slots at indices that are not valid in the specification, so the implementation is allowed to hold arbitrary data in those positions.
 
 \begin{figure}[ht]
 \begin{minted}{coq}
 Definition R (ist : ImplState) (sst : SpecState) :=
-  (forall i, valid_index sst i ->
+  (forall i, Spec.valid_index sst i ->
      Impl.entries ist !!! i = Spec.sub sst i) /\
   Impl.head ist = nat_to_bv (Spec.head sst) /\
   Impl.tail ist = nat_to_bv (Spec.tail sst) /\
-  Impl.full ist = if decide (Spec.full sst) then 1%bv else 0%bv.
+  Impl.full ist = Spec.full sst.
 \end{minted}
 \caption{Refinement relation for the ring buffer.
 The relation requires that the implementation vector agrees with the specification list at every valid index, and that the control registers match the specification's derived values under bitvector conversion.}
@@ -1689,11 +1686,12 @@ The relation requires that the implementation vector agrees with the specificati
 \end{figure}
 
 The main theorem is proved by first applying \Cref{def:refines-module}, which produces one proof obligation per method.
-We derive a suite of 52 helper lemmas that reason about combinations of methods which we use to rewrite proof obligations without destructing the specification state.
+We derive a suite of 52 helper lemmas that reason about combinations of methods (e.g. taking the tail of the specification buffer after a dequeue).
+We use these helper lemmas to rewrite proof obligations without internally inspecting the components of the specification state.
 Reasoning about the implementation requires destructing the state and combining bitvector arithmetic facts with modular arithmetic lemmas.
 
 \begin{lemma} \label{lem:rb-full-tail}
-The \mintinline{coq}{full}, \mintinline{coq}{head} and \mintinline{coq}{tail} methods each refine their specifications under $R$.
+The $\mathit{full}$, $\mathit{head}$ and $\mathit{tail}$ methods each refine their specifications under $R$.
 \end{lemma}
 
 \begin{proof}[Proof sketch]
@@ -1701,72 +1699,86 @@ Each follows immediately from $R$, which directly relates the registers in the i
 \end{proof}
 
 \begin{lemma} \label{lem:rb-empty}
-The \mintinline{coq}{empty} method refines its specification under $R$.
+The $\mathit{empty}$ method refines its specification under $R$.
 \end{lemma}
 
 \begin{proof}[Proof sketch]
-The implementation checks whether the buffer is non-full and the head equals the tail.
-The key observation is that in the specification, head equals tail precisely when the buffer is full or empty; combined with $R$ which relates the full flag and the two pointers, the implementation's check agrees with the specification's emptiness predicate.
+Assume $(i, s) \in R$.
+The implementation checks $\neg i.\mathit{full} \wedge (i.\mathit{head} = i.\mathit{tail})$.
+By $R$, the full flag agrees with $\mathit{full}(s)$ and both pointers agree with $\mathit{head}(s)$ and $\mathit{tail}(s)$.
+A helper lemma establishes that $\mathit{head}(s) = \mathit{tail}(s)$ if and only if the buffer is full or empty in the specification.
+Therefore the implementation's conjunction reduces to $\neg\mathit{full}(s) \wedge (\mathit{head}(s) = \mathit{tail}(s))$, which holds exactly when $\mathit{empty}(s)$.
 \end{proof}
 
 \begin{lemma} \label{lem:rb-first}
-The \mintinline{coq}{first} method refines its specification under $R$.
+The $\mathit{first}$ method refines its specification under $R$.
 \end{lemma}
 
 \begin{proof}[Proof sketch]
-The implementation guards on the buffer being non-empty and reads the entry at the head position.
-When the buffer is non-empty, the head is a valid logical index in the specification, so $R$ directly gives that the physical slot in the vector at that the head position is matches the value the specification returns.
+Assume $(i, s) \in R$.
+The non-empty guard agrees with the specification's precondition by the same reasoning as \Cref{lem:rb-empty}.
+A helper lemma shows that when $s$ is non-empty, $\mathit{head}(s)$ is a valid index.
+The array-agreement component of $R$ at $\mathit{head}(s)$ then gives $i.\mathit{entries}[\mathit{head}(s)] = \mathit{sub}(s,\, \mathit{head}(s)) = \mathit{first}(s)$.
 \end{proof}
 
 \begin{lemma} \label{lem:rb-sub}
-The \mintinline{coq}{sub} method refines its specification under $R$.
+The $\mathit{sub}$ method refines its specification under $R$.
 \end{lemma}
 
 \begin{proof}[Proof sketch]
-The implementation's range check is logically equivalent to the specification's valid index predicate, so both abort under the same condition.
-Once validity is established, $R$ gives the correct return value directly.
+Assume $(i, s) \in R$ and logical index $j$.
+The implementation's range check computes $(j - i.\mathit{head}) < (i.\mathit{tail} - i.\mathit{head})$ using bitvector subtraction.
+By the nat-ring correspondence, this bitvector comparison is equivalent to $(j \ominus \mathit{head}(s)) < \mathit{size}(s)$, which is the specification's $\mathit{valid\_index}(s,\, j)$ condition.
+Once validity is established, the array-agreement component of $R$ gives $i.\mathit{entries}[j] = \mathit{sub}(s,\, j)$ directly.
 \end{proof}
 
 \begin{lemma} \label{lem:rb-enq}
-The \mintinline{coq}{enq} method refines its specification under $R$.
+The $\mathit{enq}$ method refines its specification under $R$.
 \end{lemma}
 
 \begin{proof}[Proof sketch]
-Both the implementation and specification check for fullness using the same condition due to $R$.
-So both will abort under the same conditions.
-After writing the new entry at the tail and advancing the tail, re-establishing $R$ splits by case:
-previously valid indices are handled by a helper lemma showing the specification list preserves their values, and the newly occupied tail position is handled by a helper lemma giving the entry at that position in the post-enqueue specification state.
-The full flag after the operation is discharged by the ring tactic after converting the pointer comparison and the size condition to the same modular form.
+Assume $(i, s) \in R$ and entry $e$.
+The full check agrees by the full-flag component of $R$.
+After writing $i.\mathit{entries}[i.\mathit{tail}] := e$ and advancing $i.\mathit{tail}$ by one, let $i'$ and $s' = \mathit{enq}(s, e)$ be the successor states.
+For array agreement in $R$: if $j$ is valid in $s'$, either $j$ was already valid in $s$, in which case $i'.\mathit{entries}[j] = i.\mathit{entries}[j] = \mathit{sub}(s, j) = \mathit{sub}(s', j)$ by a helper lemma, or $j = \mathit{tail}(s)$, in which case $i'.\mathit{entries}[j] = e = \mathit{sub}(s', j)$ by another.
+For the full flag: the implementation sets full when the new tail equals the head, and the ring tactic shows this bitvector condition corresponds to $\mathit{size}(s) + 1 = 2^{\mathit{Width}}$, i.e., $\mathit{full}(s')$.
 \end{proof}
 
 \begin{lemma} \label{lem:rb-deq}
-The \mintinline{coq}{deq} method refines its specification under $R$.
+The $\mathit{deq}$ method refines its specification under $R$.
 \end{lemma}
 
 \begin{proof}[Proof sketch]
-The empty check agrees by the reasoning of \Cref{lem:rb-empty}.
-After advancing the head, a helper lemma shows that every valid index in the post-dequeue specification state was also valid before and held the same value, so the implementation's unchanged vector satisfies vector agreement.
-The new head pointer and the cleared full flag both follow from the corresponding specification lemmas combined with the nat-ring correspondence for pointer arithmetic.
+Assume $(i, s) \in R$.
+The empty check agrees by \Cref{lem:rb-empty}.
+After advancing $i.\mathit{head}$ by one and clearing $i.\mathit{full}$, let $i'$ and $s' = \mathit{deq}(s)$ be the successor states.
+For array agreement: if $j$ is valid in $s'$ then $j$ was valid in $s$ and a helper lemma gives $\mathit{sub}(s', j) = \mathit{sub}(s, j)$, while the entry vector is unchanged.
+For the head pointer: $\mathit{head}(s') = \mathit{head}(s) \oplus 1$, and by the nat-to-bv successor correspondence, $\mathit{nat\_to\_bv}(\mathit{head}(s') ) = i.\mathit{head} + 1 = i'.\mathit{head}$.
+Dequeue always produces a non-full state, so $i'.\mathit{full} = 0$ matches $\mathit{full}(s')$.
 \end{proof}
 
 \begin{lemma} \label{lem:rb-squash}
-The \mintinline{coq}{squash} method refines its specification under $R$.
+The $\mathit{squash}$ method refines its specification under $R$.
 \end{lemma}
 
 \begin{proof}[Proof sketch]
-The range check on the new tail translates by the same pointer-difference correspondence as \Cref{lem:rb-sub}.
-After truncating, every valid index in the post-squash specification state was also valid before, so vector agreement is preserved.
-The new tail pointer is set directly and the full flag is cleared, both consistent with the post-squash specification state.
+Assume $(i, s) \in R$ and new tail index $\mathit{tail}'$.
+The range check on $\mathit{tail}'$ translates to $\mathit{valid\_index}(s,\, \mathit{tail}')$ by the same bitvector-to-nat correspondence as \Cref{lem:rb-sub}.
+After setting $i.\mathit{tail} := \mathit{tail}'$ and $i.\mathit{full} := 0$, let $i'$ and $s' = \mathit{squash}(s, \mathit{tail}')$ be the successor states.
+For array agreement: if $j$ is valid in $s'$ then $j$ was valid in $s$ and a helper lemma gives $\mathit{sub}(s', j) = \mathit{sub}(s, j)$, while the entry vector is unchanged.
+The new tail pointer and cleared full flag match the specification by construction.
 \end{proof}
 
 \begin{lemma} \label{lem:rb-upd}
-The \mintinline{coq}{upd} method refines its specification under $R$.
+The $\mathit{upd}$ method refines its specification under $R$.
 \end{lemma}
 
 \begin{proof}[Proof sketch]
+Assume $(i, s) \in R$, logical index $j$, and entry $e$.
 The range check translates as in \Cref{lem:rb-sub}.
-After writing the new value at the target slot, vector agreement at the updated index follows from a helper lemma for in-place update, and agreement at all other valid indices holds because distinct valid indices map to distinct physical offsets.
-The control registers are unchanged.
+After writing $i.\mathit{entries}[j] := e$, let $i'$ and $s' = \mathit{upd}(s, j, e)$ be the successor states.
+For array agreement: if $k$ is valid in $s'$ (equivalently, in $s$, since update preserves size), then if $k = j$, $i'.\mathit{entries}[k] = e = \mathit{sub}(s', j)$ by a helper lemma; if $k \neq j$, $i'.\mathit{entries}[k] = i.\mathit{entries}[k] = \mathit{sub}(s, k) = \mathit{sub}(s', k)$ by another, using that distinct valid indices map to distinct physical offsets.
+The head, tail, and full registers are unaffected.
 \end{proof}
 
 \begin{theorem}[Ring buffer correctness] \label{thm:rb-correct}
@@ -1776,10 +1788,8 @@ The ring buffer implementation refines the ring buffer specification.
 \begin{proof}[Proof sketch]
 Apply \Cref{def:refines-module}.
 \Cref{lem:rb-full-tail,lem:rb-empty,lem:rb-first,lem:rb-sub,lem:rb-enq,lem:rb-deq,lem:rb-squash,lem:rb-upd} discharge the per-method obligations.
-The reset state satisfies $R$ trivially since both the implementation and specification reset to an empty buffer with \mintinline{coq}{head}, \mintinline{coq}{tail}, and \mintinline{coq}{full} all equal to zero.
+The reset state satisfies $R$ trivially since both the implementation and specification reset to an empty buffer with $\mathit{head}$, $\mathit{tail}$, and $\mathit{full}$ all equal to zero.
 \end{proof}
-
-\section{Functional correctness: Reorder buffer} \label{sec:case-study-reorder-buffer}
 
 \chapter{Conclusion}
 \section{Developer effort}
