@@ -87,9 +87,9 @@ To express hardware circuits in a proof-friendly style, the thesis introduces \e
 Slate provides an imperative-programming model to describe circuits compactly in Gallina.
 Since Slate circuits are Gallina functions, reasoning about them in proofs is simple.
 The timing-security framework is exercised on a case study of a variable-latency multiplier.
-In parallel, the thesis uses \emph{Golemma}, a deeply embedded hardware language in Rocq, to establish functional-correctness results for key out-of-order processor submodules.
+The thesis also uses \emph{Golemma}, a deeply embedded hardware language in Rocq, to establish correctness results for key out-of-order processor submodules.
 Golemma provides facilities for modularity and exposes a sequential execution model which makes functional-correctness reasoning simple.
-Together, these contributions provide a foundation for scaling toward integrated proofs of correctness and timing security for full out-of-order processors.
+Together, these contributions provide a foundation for progression towards integrated proofs of correctness and timing security for full out-of-order processors.
 \end{abstract}
 
 \chapter*{Acknowledgments}
@@ -983,7 +983,7 @@ Finally, it discusses the proof strategy needed to show that the implementation 
 
 A specification describes the set of valid behaviors a module may exhibit.
 Specifications do not need to be executable; they are relational, and it is reasonable for them to use existential quantifiers, which are expressive and enable nondeterminism naturally.
-The only constraint is that a specification must cover the same interface as the implementation it is meant to describe: the interface acts as the specification boundary, and both the concrete module and its specification provide an implementation of every method declared there, with matching argument and return types.
+The only constraint is that a specification must cover the same interface as the implementation it is meant to describe. The interface acts as the specification boundary, and both the concrete module and its specification provide an implementation of every method declared there, with matching argument and return types.
 The rest of this subsection develops a specification for the greatest-common-divisor module from \Cref{fig:Golemma-gcd-intf}, using it to illustrate the key features of this specification style.
 
 \paragraph{Abstract state.}
@@ -1240,16 +1240,33 @@ This chapter demonstrates the expressivity of the two verification frameworks co
 
 \section{Timing security: Variable-latency multiplier} \label{sec:case-study-multiplier}
 
-This section presents the hardware-constant-time verification of a variable-latency integer multiplier.
+This section presents the hardware-constant-time verification of a variable-latency integer multiplier using Slate.
 The multiplier computes the product of two 8-bit operands using a shift-and-add algorithm.
 Because the number of cycles depends on the first operand and not the second, the second operand can be treated as a secret without affecting the timing behavior.
 The goal is to establish hardware constant time with respect to an erasure contract that hides the second operand and the final product.
 
 \subsection{Interface}
 
-The multiplier exposes six methods.
-Three operations are stateful: \mintinline{coq}{enq} loads a pair of operands and starts the computation, \mintinline{coq}{step} advances the shift-and-add algorithm by one step, and \mintinline{coq}{deq} retrieves the result once it is ready.
+The multiplier exposes six methods which are summarized in \Cref{fig:mult-intf} as a Golemma interface.
+Three operations are stateful: \mintinline{coq}{enq} loads a pair of operands and starts the computation, \mintinline{coq}{step} advances the shift-and-add algorithm by one step, and \mintinline{coq}{deq} retrieves the 16-bit product once it is ready.
 Three additional operations are observational: \mintinline{coq}{empty}, \mintinline{coq}{busy}, and \mintinline{coq}{full}.
+
+\begin{figure}[H]
+\begin{minted}{coq}
+Definition Multiplier : ModSig :=
+  interface
+    method  Bit#(1)   empty;
+    method  Bit#(1)   busy;
+    method  Bit#(1)   full;
+    method  Action    enq  <Bit#(8) a, Bit#(8) b>;
+    method  Action    step;
+    method  Bit#(16)  deq;
+  endinterface.
+\end{minted}
+\caption{Interface definition for the multiplier.
+Action methods (\mintinline{coq}{enq}, \mintinline{coq}{step}) mutate state; value methods return a result without modifying state.}
+\label{fig:mult-intf}
+\end{figure}
 
 \Cref{fig:mult-block-diagram} shows the port-level signals of the multiplier.
 Each method is represented as a group of signals: an enable input, driven by the caller to invoke the method, and a ready output, driven by the module to indicate that the method's guard holds and the call will succeed.
@@ -1499,7 +1516,7 @@ The accumulation into \mintinline{coq}{dst} may differ since \mintinline{coq}{sr
 \end{proof}
 
 \begin{lemma} \label{lem:mult-status}
-\mintinline{coq}{empty}, \mintinline{coq}{busy}, and \mintinline{coq}{full} each refine themselves under $(R, \mathcal E)$.
+\mintinline{coq}{empty}, \mintinline{coq}{busy}, and \mintinline{coq}{full} each self-simulate themselves under $(R, \mathcal E)$.
 \end{lemma}
 
 \begin{proof}[Proof sketch]
@@ -1519,17 +1536,37 @@ The reset state satisfies $R$ trivially since both copies of the reset record ar
 
 \section{Functional correctness: Ring buffer} \label{sec:case-study-ring-buffer}
 
-This section presents the functional-correctness verification of a circular queue with a fixed, but configurable size $N$.
+This section presents the proof of correctness for a ring buffer,
 The ring buffer holds entries of parameterized type $\varepsilon$ and supports a capacity of $2^N$ slots.
 Beyond the standard enqueue and dequeue operations, the ring buffer also exposes a squash method that retracts the tail pointer to an earlier position.
 These extra operations are motivated by their use in an out-of-order processor's reorder buffer, where instructions that are resident in the buffer may need to be squashed upon a branch misprediction.
 
 \subsection{Interface}
 
-The ring buffer exposes nine methods.
+The ring buffer exposes nine methods, shown in \Cref{fig:rb-intf}.
 Five are value methods: \mintinline{coq}{empty} and \mintinline{coq}{full} return the status of the buffer; \mintinline{coq}{first} returns the element at the head; \mintinline{coq}{tail} returns the current tail index; and \mintinline{coq}{sub} returns the element at a given logical index.
 Four are action methods: \mintinline{coq}{enq} inserts an entry at the tail and advances the tail, \mintinline{coq}{deq} removes the element at the head, \mintinline{coq}{squash} retracts the tail to a given earlier position discarding pending entries, and \mintinline{coq}{upd} overwrites an existing entry in place.
 Each action method guards against invalid calls: \mintinline{coq}{enq} aborts when the buffer is full; \mintinline{coq}{deq} and \mintinline{coq}{first} abort when it is empty; and \mintinline{coq}{sub}, \mintinline{coq}{upd}, and \mintinline{coq}{squash} abort when the provided index does not have a valid element there.
+
+\begin{figure}[H]
+\begin{minted}{coq}
+Definition RingBuffer (Entry : type) (Width : nat) : ModSig :=
+  interface
+    method  Bit#(1)        empty;
+    method  Bit#(1)        full;
+    method  Entry          first;
+    method  Bit#(Width)    tail;
+    method  Entry          sub     <Bit#(Width) idx>;
+    method  Action         deq;
+    method  Action         enq     <Entry e>;
+    method  Action         squash  <Bit#(Width) tail'>;
+    method  Action         upd     <Bit#(Width) idx, Entry e>;
+  endinterface.
+\end{minted}
+\caption{Interface definition for the ring buffer, parameterized by entry type and address width.
+Value methods return a result without modifying state; action methods mutate state and abort if their precondition does not hold.}
+\label{fig:rb-intf}
+\end{figure}
 
 \subsection{Specification}
 
@@ -1539,15 +1576,16 @@ The specification represents the ring buffer abstractly as an ordered list of en
 \begin{figure}[ht]
 \begin{minted}[mathescape]{coq}
 Record State := mkState {
-  entries       : list Entry;
+  entries       : list @$\varepsilon$@;
   tail          : nat;
+  wf            : tail < 2 ^ N /\ size <= 2 ^ N;
+  (* The definitions below are methods on [State]. *)
   size          := length entries;
   head          := tail @$\ominus$@ size;
   full          := size = 2 ^ N;
   empty         := size = 0;
   index i       := i @$\ominus$@ head;
-  valid_index i := i < 2 ^ N /\ index i < size;
-  wf            : tail < 2 ^ N /\ size <= 2 ^ Width;
+  valid_index i := index i < size;
 }.
 \end{minted}
 \caption{Abstract state for the ring buffer specification.}
@@ -1555,19 +1593,19 @@ Record State := mkState {
 \end{figure}
 
 The abstract model stores the logical contents of the buffer as the list \mintinline{coq}{entries}, ordered from head to tail, along with a \mintinline{coq}{tail} index.
-The \mintinline{coq}{head} index is derived as $\mathtt{tail} \ominus \mathtt{size}$, the slot that is \mintinline{coq}{size} positions before the tail in the ring.
-The \mintinline{coq}{index} function maps a logical index $i$ to its physical offset from the head as $i \ominus \mathtt{head}$.
+The \mintinline{coq}{head} index is derived as \mintinline{coq}{tail @$\ominus$@ size}, the slot that is \mintinline{coq}{size} positions before the tail in the ring.
+The \mintinline{coq}{index} function maps a logical index $i$ to its physical offset from the head as \mintinline{coq}{i @$\ominus$@ head}.
 The representation invariant \mintinline{coq}{wf} bounds \mintinline{coq}{tail} and \mintinline{coq}{size} to stay within $2^{N}$.
-Because both head and tail coincide when the buffer is either full or empty, a dedicated \mintinline{coq}{full} flag is not stored in the abstract state; the size serves as the disambiguating quantity.
+When both the head and tail match, the buffer is either full or empty, a dedicated \mintinline{coq}{full} flag is not stored in the abstract state; the size serves as the disambiguating quantity.
 The method specifications are written in the predicate-transformer style described in \Cref{sec:Golemma-spec-framework}.
 \Cref{fig:rb-spec-methods} shows the specifications for the two core action methods.
 
 \begin{figure}[ht]
-\begin{minted}{coq}
-Definition enq' : MRASpec State (mkMetSig <Entry e> Void) :=
+\begin{minted}[escapeinside=||]{coq}
+Definition enq' : MRASpec State (mkMetSig <|$\varepsilon$| e> Void) :=
   fun '(args, st) P =>
     exists Hfull : ~ full st,
-      P (tt, enq st (args[[0]]) Hfull).
+      P (tt, enq st (args[[@0]]) Hfull).
 
 Definition deq' : MRASpec State (mkMetSig <> Void) :=
   fun '(_, st) P =>
@@ -1579,7 +1617,7 @@ The existential witness encodes the precondition as a proof term that is passed 
 \label{fig:rb-spec-methods}
 \end{figure}
 
-The \mintinline{coq}{enq} operation on the abstract state appends the new element to \mintinline{coq}{entries} and advances \mintinline{coq}{tail} by one modulo $2^{N}$.
+The \mintinline{coq}{enq} operation on the abstract state appends the new element to \mintinline{coq}{entries} and increments \mintinline{coq}{tail} by one modulo $2^{N}$.
 The \mintinline{coq}{deq} operation drops the head of \mintinline{coq}{entries} and leaves \mintinline{coq}{tail} unchanged, so that subsequent indices shift down by one.
 The \mintinline{coq}{squash} operation truncates \mintinline{coq}{entries} to the first \mintinline{coq}{index st tail'} elements and sets \mintinline{coq}{tail := tail'}.
 The \mintinline{coq}{upd} and \mintinline{coq}{sub} operations perform a list update and a list lookup, respectively, at the physical offset computed by \mintinline{coq}{index}.
@@ -1591,164 +1629,151 @@ The implementation maintains a fixed-size vector of registers for entries and th
 
 \begin{figure}[ht]
 \begin{minted}{coq}
-module mkRingBuffer#(RingBuffer#(Entry, N));
-  Vector#(2 ^ N, Reg#(Entry))     entries <- replicateM(mkReg());
-  Reg#(Bit#(Width))               head    <- mkReg();
-  Reg#(Bit#(Width))               tail    <- mkReg();
-  Reg#(Bit#(1))                   full    <- mkReg();
+module mkRingBuffer#(RingBuffer#(@$\varepsilon$@, N));
+  Vector#(2 ^ N, Reg#(@$\varepsilon$@)) entries <- replicateM(mkReg());
+  Reg#(Bit#(N)) head <- mkReg();
+  Reg#(Bit#(N)) tail <- mkReg();
+  Reg#(Bit#(1)) full <- mkReg();
 \end{minted}
 \caption{Module declaration for the ring buffer implementation.}
 \label{fig:rb-impl}
 \end{figure}
 
-The \mintinline{coq}{enq} method writes the new element to \mintinline{coq}{entries[tail]}, advances \mintinline{coq}{tail} by one using fixed-width addition (which wraps naturally at $2^N$), and updates \mintinline{coq}{full} by checking whether the new tail equals \mintinline{coq}{head}.
-The validity check for \mintinline{coq}{sub}, \mintinline{coq}{upd}, and \mintinline{coq}{squash} is computed as the comparison \mintinline{coq}{(idx - head) < (tail - head)}, which effectively checks if \mintinline{coq}{idx} is a valid index in the current list.
-Unlike the specification, which derives the \mintinline{coq}{full} condition from the size, the implementation must maintain the \mintinline{coq}{full} flag explicitly to disambiguate the case where head equals tail.
+The \mintinline{coq}{enq} method writes the new element to \mintinline{coq}{entries[tail]}, advances \mintinline{coq}{tail} by one using bitvector addition (which wraps naturally at $2^N$), and updates \mintinline{coq}{full} by checking whether the new tail equals \mintinline{coq}{head}.
+The validity check for \mintinline{coq}{sub}, \mintinline{coq}{upd}, and \mintinline{coq}{squash} is computed as the comparison \mintinline{coq}{(idx - head) < (tail - head)}, which effectively checks if \mintinline{coq}{entries[idx]} is a valid element.
+Unlike the specification, which derives the \mintinline{coq}{full} condition from the size, the implementation must maintain the \mintinline{coq}{full} flag explicitly to disambiguate whether the queue is empty or full when the head equals the tail.
 
 \subsection{Verification}
 
-\paragraph{Natural-number ring theory.}
-The specification computes head, index, and validity using operations such as \mintinline{coq}{nat\_wrap\_sub} (modular subtraction over natural numbers), while the implementation uses the corresponding bitvector subtraction \mintinline{coq}{bv\_sub}.
-To bridge this gap, a library of modular natural-number arithmetic was developed.
-\Cref{fig:rb-nat-ring} shows the key definitions and the ring axiom.
+The specification uses modular arithmetic over nautral numbers, while the implementation uses the corresponding bitvector arithmetic.
+To bridge this gap, a library of modular arithmetic over natural numbers was developed.
+\Cref{fig:rb-nat-ring} shows the key definitions of this theory.
 
 \begin{figure}[ht]
 \begin{minted}[mathescape]{coq}
-Definition nat_wrap x   := x mod 2 ^ n.
-Definition x @$\oplus$@ y  := (x + y) mod 2 ^ n.
-Definition x @$\ominus$@ y := (x + 2 ^ n - y mod 2 ^ n) mod 2 ^ n.
-Definition x @$\otimes$@ y := (x * y) mod 2 ^ n.
-Definition @$\ominus$@ x   := (2 ^ n - x mod 2 ^ n) mod 2 ^ n.
-Definition x @$\equiv$@ y  := nat_wrap x = nat_wrap y.
-
-Lemma Rnat : ring_theory 0 1 (@$\oplus$@) (@$\otimes$@) (@$\ominus$@) (fun x => @$\ominus$@ x) (@$\equiv$@).
+Definition nat_wrap x  := x mod 2 ^ N.
+Definition x @$\oplus$@ y := (x + y) mod 2 ^ N.
+Definition x @$\ominus$@ y := (x + 2 ^ N - y mod 2 ^ N) mod 2 ^ N.
+Definition x @$\otimes$@ y := (x * y) mod 2 ^ N.
+Definition @$\ominus$@ x := (2 ^ N - x mod 2 ^ N) mod 2 ^ N.
+Definition x @$\equiv$@ y := nat_wrap x = nat_wrap y.
 \end{minted}
-\caption{Modular natural-number arithmetic and its commutative ring structure.
-Registering \mintinline{coq}{Rnat} with Rocq's \mintinline{coq}{ring} tactic allows modular-arithmetic goals over these operations to be discharged automatically.}
+\caption{Modular natural-number arithmetic.}
 \label{fig:rb-nat-ring}
 \end{figure}
 
-These operations form a commutative ring under the equivalence relation $x \equiv y$ (defined as $\mathtt{nat\_wrap}\,x = \mathtt{nat\_wrap}\,y$), registered with Rocq's \mintinline{coq}{ring} tactic via \mintinline{coq}{Add Ring Rnat : (Rnat Width)}.
-This allows proof automation to close goals such as $(x \oplus y) \ominus y \equiv x$ automatically, rather than requiring manual case analysis on overflow conditions.
-The library also proves that each operation agrees with the corresponding bitvector operation under the conversion \mintinline{coq}{nat\_to\_bv}; for instance, $\mathtt{nat\_to\_bv}(x \ominus y) = \mathtt{bv\_sub}(\mathtt{nat\_to\_bv}\,x,\, \mathtt{nat\_to\_bv}\,y)$.
-These correspondence lemmas are the primary tool for translating specification-level arithmetic goals into implementation-level ones during the refinement proofs.
+These operations form a commutative ring under the equivalence relation $x \equiv y$, registered with Rocq's \mintinline{coq}{ring} tactic via \mintinline{coq}{Add Ring}.
+This allows proof automation to close goals such as $(x \oplus y) \ominus y \equiv x$ automatically, rather than requiring tedious, manual rewrites using helper lemmas.
+The library also proves that each operation agrees with the corresponding bitvector operation under the conversion \mintinline{coq}{nat_to_bv} (natural number to bitvector); for instance, \mintinline{coq}{nat_to_bv (x @$\ominus$@ y) = bv_sub (nat_to_bv x) (nat_to_bv y)}.
+These correspondence lemmas are used for translating implementation-level, bitvector goals into specification-level, modular-arithmetic goals during refinement proofs.
 
-\paragraph{Refinement relation.}
-The refinement relation $R$ connecting implementation states to specification states is shown in \Cref{fig:rb-rel}.
+The refinement relation $R$ connects implementation states to specification states as shown in \Cref{fig:rb-rel}.
+The relation has four components.
+First, for every valid logical index $i$ in the specification, the corresponding physical slot in the implementation's entries vector holds the value \mintinline{coq}{sub sst i}. The notation \mintinline{coq}{xs !!! i} denotes a lookup into a list \mintinline{coq}{xs} at position \mintinline{coq}{i}, returning a default value if the index is out of bounds.
+Second, the implementation \mintinline{coq}{head} and \mintinline{coq}{tail} registers equal the bitvector representations of the specification's head and tail.
+Third, the implementation \mintinline{coq}{full} bit encodes the specification's full predicate.
+Notably, $R$ imposes no constraint on vector slots at indices that are not valid in the specification, so the implementation may hold arbitrary data in those positions.
 
 \begin{figure}[ht]
 \begin{minted}{coq}
 Definition R (ist : ImplState) (sst : SpecState) :=
   (forall i, valid_index sst i ->
-     to_list (Impl.entries ist) !!! i = Spec.sub sst i) /\
-  Impl.head  ist = nat_to_bv (Spec.head sst) /\
-  Impl.tail_ ist = nat_to_bv (Spec.tail sst) /\
-  Impl.full_ ist = if decide (Spec.full sst) then 1%bv else 0%bv.
+     Impl.entries ist !!! i = Spec.sub sst i) /\
+  Impl.head ist = nat_to_bv (Spec.head sst) /\
+  Impl.tail ist = nat_to_bv (Spec.tail sst) /\
+  Impl.full ist = if decide (Spec.full sst) then 1%bv else 0%bv.
 \end{minted}
 \caption{Refinement relation for the ring buffer.
-The relation requires that the implementation array agrees with the specification list at every valid index, and that the control registers match the specification's derived values under bitvector conversion.}
+The relation requires that the implementation vector agrees with the specification list at every valid index, and that the control registers match the specification's derived values under bitvector conversion.}
 \label{fig:rb-rel}
 \end{figure}
 
-The relation has four components.
-First, for every valid logical index $i$ in the specification, the corresponding physical slot in the implementation's entry vector holds the value \mintinline{coq}{sub sst i}; the implementation vector is accessed via \mintinline{coq}{to\_list} to convert it to a nat-indexed list.
-Second and third, the implementation \mintinline{coq}{head} and \mintinline{coq}{tail} registers equal the bitvector representations of the specification's derived head and stored tail.
-Fourth, the implementation \mintinline{coq}{full} bit encodes the specification's \mintinline{coq}{full} predicate.
-Notably, $R$ imposes no constraint on array slots at indices that are not valid in the specification, so the implementation may hold stale data in those positions.
+The main theorem is proved by first applying \Cref{def:refines-module}, which produces one proof obligation per method.
+We derive a suite of 52 helper lemmas that reason about combinations of methods which we use to rewrite proof obligations without destructing the specification state.
+Reasoning about the implementation requires destructing the state and combining bitvector arithmetic facts with modular arithmetic lemmas.
 
-\paragraph{Proof structure.}
-The main theorem is proved by applying \Cref{def:refines-module}, which produces one proof obligation per method.
-Reasoning about each specification method is clean because the abstract state is a list: a suite of helper lemmas such as \mintinline{coq}{enq\_sub}, \mintinline{coq}{deq\_sub}, and \mintinline{coq}{squash\_sub} reduces index queries at valid positions to direct list lookups, so the abstract state never needs to be destructed.
-Reasoning about the implementation requires destructing the four raw registers and combining bitvector arithmetic facts with nat-ring lemmas.
+\begin{lemma} \label{lem:rb-full-tail}
+The \mintinline{coq}{full}, \mintinline{coq}{head} and \mintinline{coq}{tail} methods each refine their specifications under $R$.
+\end{lemma}
+
+\begin{proof}[Proof sketch]
+Each follows immediately from $R$, which directly relates the registers in the implementation with their counterparts in the specification.
+\end{proof}
+
+\begin{lemma} \label{lem:rb-empty}
+The \mintinline{coq}{empty} method refines its specification under $R$.
+\end{lemma}
+
+\begin{proof}[Proof sketch]
+The implementation checks whether the buffer is non-full and the head equals the tail.
+The key observation is that in the specification, head equals tail precisely when the buffer is full or empty; combined with $R$ which relates the full flag and the two pointers, the implementation's check agrees with the specification's emptiness predicate.
+\end{proof}
+
+\begin{lemma} \label{lem:rb-first}
+The \mintinline{coq}{first} method refines its specification under $R$.
+\end{lemma}
+
+\begin{proof}[Proof sketch]
+The implementation guards on the buffer being non-empty and reads the entry at the head position.
+When the buffer is non-empty, the head is a valid logical index in the specification, so $R$ directly gives that the physical slot in the vector at that the head position is matches the value the specification returns.
+\end{proof}
+
+\begin{lemma} \label{lem:rb-sub}
+The \mintinline{coq}{sub} method refines its specification under $R$.
+\end{lemma}
+
+\begin{proof}[Proof sketch]
+The implementation's range check is logically equivalent to the specification's valid index predicate, so both abort under the same condition.
+Once validity is established, $R$ gives the correct return value directly.
+\end{proof}
+
+\begin{lemma} \label{lem:rb-enq}
+The \mintinline{coq}{enq} method refines its specification under $R$.
+\end{lemma}
+
+\begin{proof}[Proof sketch]
+Both the implementation and specification check for fullness using the same condition due to $R$.
+So both will abort under the same conditions.
+After writing the new entry at the tail and advancing the tail, re-establishing $R$ splits by case:
+previously valid indices are handled by a helper lemma showing the specification list preserves their values, and the newly occupied tail position is handled by a helper lemma giving the entry at that position in the post-enqueue specification state.
+The full flag after the operation is discharged by the ring tactic after converting the pointer comparison and the size condition to the same modular form.
+\end{proof}
+
+\begin{lemma} \label{lem:rb-deq}
+The \mintinline{coq}{deq} method refines its specification under $R$.
+\end{lemma}
+
+\begin{proof}[Proof sketch]
+The empty check agrees by the reasoning of \Cref{lem:rb-empty}.
+After advancing the head, a helper lemma shows that every valid index in the post-dequeue specification state was also valid before and held the same value, so the implementation's unchanged vector satisfies vector agreement.
+The new head pointer and the cleared full flag both follow from the corresponding specification lemmas combined with the nat-ring correspondence for pointer arithmetic.
+\end{proof}
+
+\begin{lemma} \label{lem:rb-squash}
+The \mintinline{coq}{squash} method refines its specification under $R$.
+\end{lemma}
+
+\begin{proof}[Proof sketch]
+The range check on the new tail translates by the same pointer-difference correspondence as \Cref{lem:rb-sub}.
+After truncating, every valid index in the post-squash specification state was also valid before, so vector agreement is preserved.
+The new tail pointer is set directly and the full flag is cleared, both consistent with the post-squash specification state.
+\end{proof}
+
+\begin{lemma} \label{lem:rb-upd}
+The \mintinline{coq}{upd} method refines its specification under $R$.
+\end{lemma}
+
+\begin{proof}[Proof sketch]
+The range check translates as in \Cref{lem:rb-sub}.
+After writing the new value at the target slot, vector agreement at the updated index follows from a helper lemma for in-place update, and agreement at all other valid indices holds because distinct valid indices map to distinct physical offsets.
+The control registers are unchanged.
+\end{proof}
 
 \begin{theorem}[Ring buffer correctness] \label{thm:rb-correct}
 The ring buffer implementation refines the ring buffer specification.
 \end{theorem}
 
-\begin{lemma}[Full and tail refine] \label{lem:rb-full-tail}
-\mintinline{coq}{full} and \mintinline{coq}{tail} each refine their specifications under $R$.
-\end{lemma}
-
 \begin{proof}[Proof sketch]
-Both follow immediately from the corresponding components of $R$: the fourth component directly equates the implementation's \mintinline{coq}{full\_} bit with the specification's \mintinline{coq}{full} predicate, and the third equates the \mintinline{coq}{tail\_} register with \mintinline{coq}{nat\_to\_bv (tail sst)}.
-\end{proof}
-
-\begin{lemma}[Empty refines] \label{lem:rb-empty}
-\mintinline{coq}{empty} refines its specification under $R$.
-\end{lemma}
-
-\begin{proof}[Proof sketch]
-The implementation computes \mintinline{coq}{!full \& (head == tail)}.
-By $R$, the \mintinline{coq}{full\_} bit and pointer registers agree with the specification.
-The key auxiliary lemma is \mintinline{coq}{empty\_full\_correct}: in the specification, \mintinline{coq}{head sst = tail sst} holds if and only if the buffer is full or empty.
-Combined with the $R$ components, the implementation's bitvector check \mintinline{coq}{head == tail} matches the specification's \mintinline{coq}{empty} predicate exactly.
-\end{proof}
-
-\begin{lemma}[First refines] \label{lem:rb-first}
-\mintinline{coq}{first} refines its specification under $R$.
-\end{lemma}
-
-\begin{proof}[Proof sketch]
-The implementation guards on the buffer being non-empty and then reads \mintinline{coq}{entries[head]}.
-The lemma \mintinline{coq}{valid\_index\_head} shows that, when the buffer is non-empty, \mintinline{coq}{head sst} is a valid index.
-The array-agreement component of $R$ at this index gives \mintinline{coq}{entries[nat\_to\_bv (head sst)] = sub sst (head sst)}, which equals \mintinline{coq}{first sst} by definition.
-\end{proof}
-
-\begin{lemma}[Sub refines] \label{lem:rb-sub}
-\mintinline{coq}{sub} refines its specification under $R$.
-\end{lemma}
-
-\begin{proof}[Proof sketch]
-The implementation checks validity as \mintinline{coq}{(idx - head) < (tail - head)} using bitvector subtraction and reads \mintinline{coq}{entries[idx]}.
-Using the correspondence lemma $\mathtt{nat\_to\_bv}(x \ominus y) = \mathtt{bv\_sub}(\mathtt{nat\_to\_bv}\,x,\, \mathtt{nat\_to\_bv}\,y)$, the bitvector comparison translates to \mintinline{coq}{index sst (bv\_to\_nat idx) < size sst}, which is exactly the specification's \mintinline{coq}{valid\_index} condition.
-The array-agreement component of $R$ then gives the correct return value.
-\end{proof}
-
-\begin{lemma}[Enq refines] \label{lem:rb-enq}
-\mintinline{coq}{enq} refines its specification under $R$.
-\end{lemma}
-
-\begin{proof}[Proof sketch]
-The full check agrees by the \mintinline{coq}{full\_} component of $R$.
-After writing \mintinline{coq}{entries[tail] := e} and advancing \mintinline{coq}{tail} by one, re-establishing array agreement splits by index.
-For old valid indices, \mintinline{coq}{enq\_sub} shows the specification list preserves old entries, and the implementation leaves those slots unchanged.
-For the new tail position, \mintinline{coq}{enq\_sub\_tail} gives \mintinline{coq}{sub (enq sst e) (tail sst) = e}, matching the implementation write.
-For the full bit, the obligation that \mintinline{coq}{next\_tail == head} in the implementation holds if and only if \mintinline{coq}{size + 1 = 2\^{}Width} in the specification is discharged automatically by the ring tactic after converting both sides to their modular forms with the nat-ring correspondence lemmas.
-\end{proof}
-
-\begin{lemma}[Deq refines] \label{lem:rb-deq}
-\mintinline{coq}{deq} refines its specification under $R$.
-\end{lemma}
-
-\begin{proof}[Proof sketch]
-The empty check agrees via the same reasoning as \Cref{lem:rb-empty}.
-After advancing the head, \mintinline{coq}{deq\_sub} shows that the entries at valid indices in the new specification state equal those in the old state, matching the unchanged implementation array.
-The new head in the specification is $\mathtt{head} \oplus 1$; by \mintinline{coq}{nat\_to\_bv\_succ}, this corresponds to \mintinline{coq}{bv\_succ head\_impl}, which is what the implementation computes.
-The \mintinline{coq}{full\_} bit is cleared unconditionally, and \mintinline{coq}{deq\_not\_full} confirms the specification is also not full after dequeue.
-\end{proof}
-
-\begin{lemma}[Squash refines] \label{lem:rb-squash}
-\mintinline{coq}{squash} refines its specification under $R$.
-\end{lemma}
-
-\begin{proof}[Proof sketch]
-The range check on the new tail index translates by the same bitvector-to-nat correspondence as \Cref{lem:rb-sub}.
-After retracting the tail to \mintinline{coq}{tail'}, \mintinline{coq}{squash\_sub} shows that every valid index in the new specification state was also valid before, so array agreement is preserved.
-The new tail is set directly to \mintinline{coq}{bv\_to\_nat tail'}, matching the implementation assignment.
-The \mintinline{coq}{full\_} bit is cleared unconditionally, consistent with \mintinline{coq}{squash\_not\_full}.
-\end{proof}
-
-\begin{lemma}[Upd refines] \label{lem:rb-upd}
-\mintinline{coq}{upd} refines its specification under $R$.
-\end{lemma}
-
-\begin{proof}[Proof sketch]
-The range check translates as for \Cref{lem:rb-sub}.
-After writing \mintinline{coq}{entries[idx] := e}, array agreement at the updated index follows from \mintinline{coq}{upd\_sub\_eq}, and agreement at all other valid indices follows from \mintinline{coq}{upd\_sub\_ne} using the fact that distinct valid indices map to distinct physical offsets by \mintinline{coq}{index\_ne}.
-The head, tail, and full components of $R$ are unaffected.
-\end{proof}
-
-\begin{proof}[Proof sketch of \Cref{thm:rb-correct}]
 Apply \Cref{def:refines-module}.
 \Cref{lem:rb-full-tail,lem:rb-empty,lem:rb-first,lem:rb-sub,lem:rb-enq,lem:rb-deq,lem:rb-squash,lem:rb-upd} discharge the per-method obligations.
 The reset state satisfies $R$ trivially since both the implementation and specification reset to an empty buffer with \mintinline{coq}{head}, \mintinline{coq}{tail}, and \mintinline{coq}{full} all equal to zero.
