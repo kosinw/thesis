@@ -1112,7 +1112,7 @@ Rules carry no arguments and produce no return value, but they do update state.
 Rule refinement therefore follows the same shape as action-method refinement, with the added flexibility of a possibly different post-relation $R'$ for relating successor states:
 
 \begin{definition}[Rule refinement] \label{def:refines-rules}
-Let $\varphi$ and $\psi$ be rule-predicate transformers over states $I$ and $S$, respectively.
+Let $\varphi$ and $\psi$ be rule predicate transformers over states $I$ and $S$, respectively.
 $\varphi$ refines $\psi$ under $(R, R' : I \to S \to \text{Prop})$ when, for every $(i, s) \in R$ and every postcondition $P$,
 \[
   \psi(s,\, P)
