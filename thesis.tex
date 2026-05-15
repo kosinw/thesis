@@ -71,7 +71,7 @@
 \begin{abstract}
 High-performance processors rely on out-of-order execution, an instruction-scheduling algorithm that is both difficult to implement correctly and prone to timing side-channel attacks without principled defenses.
 This thesis develops an approach using the Rocq proof assistant for specifying and proving timing-security properties of hardware circuits.
-To express hardware circuits in a proof-friendly style, the thesis introduces \emph{Slate}, a shallowly embedded surface language built on state monads.
+To express hardware circuits in a proof-friendly style, the thesis introduces \emph{Slate}, a shallowly embedded hardware-description language built on state monads.
 Slate provides an imperative-programming model to describe circuits compactly in Gallina.
 Since Slate circuits are Gallina functions, reasoning about them in proofs is simple.
 The timing-security framework is exercised on a case study of a variable-latency multiplier.
@@ -85,14 +85,14 @@ Together, these contributions provide a foundation for progression towards integ
 I would like to thank the following people for their encouragement, support, and mentorship throughout the completion of my master's thesis.
 \begin{itemize}
   \item \textbf{Adam and Mengjia}, my research advisors, for their guidance, insights, and support throughout this project.
-  Their expertise in both programming languages and computer architecture, respectively, made this work possible.
+  Their expert knowledge in both formal methods and computer architecture research made this work possible.
 
   \item \textbf{Shixin}, for her mentorship throughout my time as a UROP and MEng student in the MATCHA lab.
-  I have learned an enormous amount about both computer architecture and programming languages from working alongside her over the past two years.
+  I have learned an enormous amount about both computer architecture and academia from working alongside her over the past two years.
 
   \item \textbf{Stella, Elvis, and Andres}, for their collaboration on this project and many valuable technical and design discussions over the past year. Without their guidance, this project would not be where it is today.
 
-  \item \textbf{Dad, Mom, Kamsi, Kamto, and Kobi}, my family, for their unconditional love and emotional encouragement throughout my time at MIT.
+  \item \textbf{Dad, Mom, Kamsi, Kamto, and Kobi}---my family---for their unconditional love and emotional encouragement throughout my time as a student at MIT.
 \end{itemize}
 
 \tableofcontents
@@ -101,12 +101,12 @@ I would like to thank the following people for their encouragement, support, and
 
 \chapter{Introduction} \label{chap:intro}
 This thesis contributes an approach for proving correctness and timing properties for hardware circuits described in the Rocq proof assistant.
-This work serves as the first step towards the mechanization of entire correctness and timing proofs for a realistic, modern computer system including a single out-of-order core complete with a memory hierarchy.
+This work serves as the first step towards the mechanization of entire correctness and timing proofs for a realistic, modern out-of-order core.
 
 \section{Background: out-of-order execution} \label{sec:ooo}
-Most modern high-speed processors are based on out-of-order (OoO) execution, which allows the CPU to reorder instructions dynamically based on the availability of functional units (FUs) and input operands, minimizing structural hazards.
-Instruction-scheduling algorithms supporting out-of-order execution with precise exceptions started with Tomasulo's algorithm~\cite{tomasulo1967}, which first introduced the concept of register renaming to eliminate false dependencies between instructions.
-Out-of-order processors combined with another ubiquitous performance optimization, speculative execution, are vulnerable to transient-execution attacks, which in-order processors are not.
+Most modern high-speed processors are based on out-of-order (OoO) execution, which allows the CPU to reorder instructions dynamically based on the availability of functional units (FUs) and input operands.
+Instruction-scheduling algorithms supporting out-of-order execution with precise exceptions began with Tomasulo's algorithm~\cite{tomasulo1967}, which first introduced the concept of register renaming to eliminate false dependencies between instructions.
+Out-of-order processors combined with speculative execution are vulnerable to transient-execution attacks, which in-order processors are not.
 Principled defenses must be carefully designed to ensure that attackers cannot exploit programs that are safe for in-order processors to execute but unsafe for out-of-order processors.
 
 \Cref{fig:fig1} shows a block diagram for the particular variant of the out-of-order algorithm discussed in this thesis.
@@ -123,25 +123,25 @@ Our algorithm is split into seven separate pipeline stages: fetch, decode, renam
 The frontend stage fetches instructions from the instruction stream and decodes them into an internal data type the machine can schedule.
 The renaming stage then maps architectural registers to a larger physical register file so false dependencies can be dissolved.
 The issue stage selects ready renamed operations and sends them to functional units that execute the actual computation.
-The writeback stage then posts results to the physical registers so that later instructions can consume operands as they become ready.
+The writeback stage then writes results to the physical register file, so that downstream instructions can consume these results.
 The retire stage retires instructions in program order, committing their effects to the architectural state.
 
 Our design diverges from the R10K algorithm in two major aspects to simplify which invariants are needed to write proofs.
-The most important difference is how the renaming mechanism works.
-The original R10K algorithm records, in the reorder buffer (ROB), the previous physical register index for each instruction's destination so that the rename map can be rolled back precisely when a younger path is squashed.
+The biggest difference is how the renaming mechanism works.
+The original R10K algorithm records, in the reorder buffer (ROB), the previous physical register index for each instruction's destination so that the rename map can be rolled back precisely when a younger execution path is squashed.
 We instead maintain two register alias tables (RATs), avoiding the need to track a per-instruction previous physical destination in the ROB.
 The future table holds the most up-to-date speculative mapping from architectural registers to physical registers, while the commit table records the mapping as of the last retired instruction.
 Squashing speculative state can then be performed by reverting the future back to the commit table.
 
 Rolling back the alias tables alone would be insufficient, because speculative execution can still overwrite physical register contents before those instructions retire; restoring only the architectural-to-physical mapping would leave stale or partially updated values visible under the recovered names.
 Our design therefore pairs the dual RAT with explicit snapshots of register values (not just of the rename map).
-Enough snapshots are retained to reconstruct the physical register file as it stood at the last retired instruction, so a squash restores both the mapping from each architectural register to its physical backing and the bit patterns stored in those physical registers at that point.
+Enough snapshots are retained to reconstruct the physical register file as it stood at the last retired instruction, so a squash restores both the mapping from each architectural register to its physical backing and the values stored in those physical registers at that point.
 The maximum number of snapshots is finite, so it bounds the number of branches the machine can speculate ahead; once that budget is exhausted, the issue stage must stall until retire frees snapshot capacity.
 
 A second major deviation concerns speculative memory accesses.
-To make timing properties easier to state and prove at first, we delay all speculative loads and stores.
-This policy is extremely pessimistic: it sacrifices the performance that comes from speculative execution when interacting with memory and is not meant as a proposal for a serious, production-ready design.
-Looking ahead, we expect that a realistic design can be achieved by pairing speculative memory execution with a dynamic taint-tracking defense, together with a mechanized proof that the resulting design still satisfies the same class of timing-security obligations; that extension is left to future work.
+To make timing security easier prove at first, we delay all speculative loads and stores.
+This policy is extremely pessimistic: it foregoes the performance gains that comes from speculative execution and is not meant as a proposal for a serious, production-ready design.
+Looking ahead, we expect that a realistic design can be achieved by pairing speculative memory execution with a dynamic taint-tracking defense, together with a mechanized proof that the resulting design still satisfies the same security property.
 
 \section{Goal: verifying hardware circuits}
 This thesis develops techniques for proving correctness and timing properties of synthesizable hardware described in Rocq.
@@ -191,14 +191,13 @@ SecSep rewrites compiled assembly programs so that secret and public data are pa
 The approach correctly handles secrets on the stack and achieves a low additional runtime overhead on cryptographic programs.
 
 Prior work on hardware timing security~\cite{duxovni2018} builds off the Kami framework to reason about timing-security properties of hardware circuits, showing that the same embedding used to verify functional correctness can also support security arguments.
-More recent work~\cite{lau2024} formally specifies and verifies strong timing isolation for hardware enclaves, reasoning about cycle-accurate circuit semantics with respect to an air-gapped-machine formulation of isolation and applying the method to a multicore, pipelined RISC-V design.
-This thesis continues in the same tradition, carrying these timing-security proof techniques into the setting of individual submodules of a large out-of-order machine.
+More recent work~\cite{lau2024} formally specifies and verifies strong timing isolation for hardware enclaves.
 
 \chapter{Verifying timing security for circuits} \label{chap:Slate}
 
 This chapter presents a framework for timing-security verification of hardware circuits.
-It begins by giving a formalism of state machines (\Cref{sec:timing-state-machine}) to model hardware circuits and then introduces \emph{Slate}, a shallowly embedded language in Rocq for specifying hardware circuits (\Cref{sec:timing-monads}).
-Finally, it defines hardware timing security and develops the simulation-based proof structure used to establish it (\Cref{sec:timing-security}).
+It begins by giving a formalism of state machines to model hardware circuits (\Cref{sec:timing-state-machine})  and then introduces \emph{Slate}, a shallowly embedded language in Rocq for specifying hardware circuits (\Cref{sec:timing-monads}).
+Finally, it defines hardware timing security and develops the simulation-based proof structure used to establish this security property (\Cref{sec:timing-security}).
 
 \section{State machines} \label{sec:timing-state-machine}
 
@@ -243,9 +242,9 @@ In words, if a state and input can step to two results, then those results must 
 This restriction is convenient for reasoning about the proof obligations in \Cref{sec:timing-security}, where we compare runs under related inputs and want equality of traces without existentially quantifying over implementation-defined resolution of nondeterminism in proofs.
 Determinism is a design choice of convenience, not necessity; as discussed in \Cref{chap:Golemma}, the framework for deeply embedded circuits can use nondeterministic semantics (in particular, omnisemantics~\cite{chargueraud2023}) to describe specifications.
 
-Given an input sequence $\iota_1, \iota_2, \ldots, \iota_n \in I$, repeatedly applying $\delta$ from the initial state $s_0$ defines a \emph{run} of the machine.
-The corresponding sequence of per-step observations is called the machine's \emph{observation trace}.
-Concretely, the machine $\mathcal{M}$ produces a sequence of optional outputs by repeatedly applying $\delta$ from $s_0$ for each input $\iota_k \in I$:
+Given an input sequence $(\iota_1, \iota_2, \ldots, \iota_n) \in I^*$, repeatedly applying $\delta$ from the initial state $s_0$ defines a \emph{run} of the machine.
+The corresponding sequence of per-step outputs is called the machine's \emph{observation trace}.
+Concretely, the machine $\mathcal{M}$ produces a sequence of outputs by repeatedly applying $\delta$ from $s_0$ for each input $\iota_k \in I$:
 \[
   s_0 \xrightarrow{\iota_1 / o_1} s_1 \xrightarrow{\iota_2 / o_2} s_2 \;\cdots\; \xrightarrow{\iota_n / o_n} s_n, \qquad o_i \in O,\ s_i \in S.
 \]
@@ -295,7 +294,7 @@ As a consequence, one can describe sequential hardware behavior in a pure functi
 
 \Cref{fig:state-monad-core} shows the state monad encoded in Rocq together with its basic operations.
 The constructor $\mathit{ret}$ lifts a pure value into the monad without changing the state, while $\mathit{bind}$ sequences two computations by feeding the result and resulting state of the first computation into the second.
-The infix operator \mintinline{coq}{>>=} is another way to express $\mathit{bind}$.
+The infix operator $\mathbin{>>=}$ is another way to express $\mathit{bind}$.
 State monads also provide state-specific primitives, notably $\mathit{get}$ and $\mathit{put}$: $\mathit{get}$ returns the current state as a value, and $\mathit{put}$ replaces the current state with a new one.
 
 \begin{figure}[H]
@@ -403,7 +402,7 @@ The syntax for Slate is implemented using the extensible parser in Rocq.
 Crucially, the parser elaborates Slate syntax directly into actions as described above; it does not introduce a syntax tree.
 Consider \Cref{fig:slate-surface}, which implements the $\mathit{step}$ method of a GCD module.
 The state type $\mathit{GCDState}$ holds two registers $\mathit{x}$ and $\mathit{y}$.
-The method reads both registers into let bindings, aborts immediately when \mintinline{coq}{y = 0} (the computation is already finished), and otherwise subtracts the smaller value from the larger.
+The method reads both registers into let bindings, aborts immediately when $\mathit{y} = 0$ (the computation is already finished), and otherwise subtracts the smaller value from the larger.
 This style reads like imperative code while denoting a Gallina term.
 
 \begin{figure}[H]
@@ -423,12 +422,12 @@ Definition step : Action GCDState unit :=
     end
   end.
 \end{minted}
-\caption[GCD step, Slate]{The $\mathit{step}$ method of a GCD module using Slate.}
+\caption[GCD step, in Slate]{The $\mathit{step}$ method of a GCD module using Slate.}
 \label{fig:slate-surface}
 \end{figure}
 
 The same method can be written directly with monadic operators (\Cref{fig:slate-bind}).
-This version makes sequencing explicit through \mintinline{coq}{>>=}, but is noticeably less readable for method bodies of this length.
+This version makes sequencing explicit through $\mathbin{>>=}$, but is noticeably less readable for method bodies of this length.
 In practice, both forms are definitionally equal after notation elaboration.
 
 \begin{figure}[H]
@@ -743,8 +742,8 @@ Modules contain \emph{submodules} with which they interact through method invoca
 Registers are implemented as submodules: a register submodule holds state across clock cycles and exposes methods for reading and updating that state.
 \Cref{fig:Golemma-gcd} shows the implementation of the GCD module.
 The header declares that the module implements the $\mathit{GCD}$ interface.
-The two register declarations \mintinline{coq}{Reg#(Bit#(16)) x <- mkReg()} and \mintinline{coq}{Reg#(Bit#(16)) y <- mkReg()} create the persistent state.
-Submodule interactions, including register reads and writes, use backtick notation, as in \mintinline{coq}{`x`read()} and \mintinline{coq}{`x`write(v)}.
+The two register declarations $\mathit{x}$ and $\mathit{y}$ create the persistent state.
+Submodule interactions, including register reads and writes, use backtick notation, as in $\mathit{x}.\mathit{read}()$ and $\mathit{x}.\mathit{write}(v)$.
 Unlike most register-transfer-level languages, Golemma does not have the restriction that every read within a method body sees the value the register held at the start of the method call; it sees the last write that occurred.
 
 \begin{figure}[t]
@@ -785,29 +784,29 @@ endmodule.
 
 \subsection{Methods}
 Every module method is declared with a return type, a name, and an optional parameter list enclosed in angle brackets.
-Methods whose return type are $\mathit{Action}$ or \mintinline{coq}{ActionValue\#(t)} may call submodule action methods; they can also abort, leaving state unchanged.
+Methods whose return type are $\mathit{Action}$ or $\mathit{ActionValue}\#(t)$ may call submodule action methods; they can also abort, leaving state unchanged.
 Methods with any other return types are \emph{value methods}: they may only read state and return pure values, and they never abort.
 This distinction is enforced syntactically: only action methods may contain write or abort statements, so the separation between observation and mutation is visible directly in the interface signature.
 
 \subsection{Expressions}
 Expressions are pure terms of a given type.
 The primitive types in Golemma are bitvectors ($\mathit{Bit\#(n)}$ for a $n$-bit word), fixed-size vectors of types ($\mathit{Vector\#(n,t)}$ for a fixed-size array of $t$ with $n$ items), structs, and enums.
-An expression can be a constant literal such as \mintinline{coq}{16'd0}, a local variable bound by a prior $\mathit{let}$ statement, a field access \mintinline{coq}{e`f}, a primitive operator such as addition or comparison, or a submodule call \mintinline{coq}{`sub`met(args)}.
+An expression can be a constant literal such as $16'd0$, a local variable bound by a prior $\mathit{let}$ statement, a field access $\mathit{e}.\mathit{f}$, a primitive operator such as addition or comparison, or a submodule call $\mathit{sub}.\mathit{met}(\mathit{args})$.
 Value method calls read current register state inside a submodule and return a result without modifying it; they appear as expressions because their effect are purely observational.
 
 \subsection{Statements}
 Statements sequence effects inside a method body.
-The \mintinline{coq}{let x = e} form binds a fresh variable $\mathit{x}$ to the value of expression $\mathit{e}$ in the rest of the block.
-A typed form \mintinline{coq}{T\#($t$) x = e} binds $\mathit{x}$ with an explicit type annotation.
-Register state is updated via submodule action method calls: \mintinline{coq}{`reg`write(e)} calls the $\mathit{write}$ action on register $\mathit{reg}$ with argument $\mathit{e}$.
-The result of calling an action-method can be captured with \mintinline{coq}{let x <- `mod`met(args)}.
-Conditional branching uses \mintinline{coq}{if (c) { ... } else { ... }}, where $\mathit{c}$ is an expression of type \mintinline{coq}{Bit#(1)}; the $\mathit{else}$ branch is optional and defaults to a no-op.
+The $\mathit{let}\;\mathit{x} = \mathit{e}$ form binds a fresh variable $\mathit{x}$ to the value of expression $\mathit{e}$ in the rest of the block.
+A typed form $\mathit{T}\#(t)\;\mathit{x} = \mathit{e}$ binds $\mathit{x}$ with an explicit type annotation.
+Register state is updated via submodule action method calls: $\mathit{reg}.\mathit{write}(e)$ calls the $\mathit{write}$ action on register $\mathit{reg}$ with argument $\mathit{e}$.
+The result of calling an action-method can be captured with $\mathit{let}\;\mathit{x} \leftarrow \mathit{mod}.\mathit{met}(\mathit{args})$.
+Conditional branching uses $\mathit{if}\;(\mathit{c})\;\{\ldots\}\;\mathit{else}\;\{\ldots\}$, where $\mathit{c}$ is an expression of type $\mathit{Bit}\#(1)$; the $\mathit{else}$ branch is optional and defaults to a no-op.
 A statement may be terminated early by $\mathit{abort}$, which causes the entire method to fail and appear as if it never exited.
 No special synthesis is needed to implement $\mathit{abort}$, but it induces a precondition on the method.
 The method only will be called in states where execution cannot reach the $\mathit{abort}$.
 During verification, callers must prove that this precondition holds.
 Statements are sequenced by separating them with semicolons inside a $\mathit{begin}$ ... $\mathit{end}$ block.
-A block may end with a \mintinline{coq}{return e} expression that specifies the method's output value; methods of type $\mathit{Action}$ whose return type are $\mathit{unit}$ may omit $\mathit{return}$ and close with $\mathit{end}$ directly.
+A block may end with a $\mathit{return}\;\mathit{e}$ expression that specifies the method's output value; methods of type $\mathit{Action}$ whose return type are $\mathit{unit}$ may omit $\mathit{return}$ and close with $\mathit{end}$ directly.
 
 \section{Extending Golemma with type classes} \label{sec:Golemma-synth}
 
@@ -822,7 +821,10 @@ Proofs would need to reason about raw bitvectors rather than natural Gallina typ
 A better approach is to allow the developer to use familiar Gallina types directly in Golemma circuits, so that specifications and proofs can be stated at the Gallina level and then connected to the hardware representation transparently.
 
 The Synthesizable type class formalizes this connection.
-Instances of the $\mathit{Synthesizable}$ type-class witness that a Gallina type $\alpha$ has a corresponding Golemma hardware type $\tau$ and provide the two functions that convert between them:
+Instances of the $\mathit{Synthesizable}$ type-class witness that a Gallina type $\alpha$ has a corresponding Golemma hardware type $\tau$ and provide the two functions that convert between them.
+\Cref{fig:synth-class} shows the definition.
+
+\begin{figure}[H]
 \begin{minted}[mathescape=true,escapeinside=||]{coq}
 Class Synthesizable (|$\alpha$| : Type) := {
   (* [type] is the type of embedded Golemma types *)
@@ -832,10 +834,14 @@ Class Synthesizable (|$\alpha$| : Type) := {
   pack_unpack : forall x, unpack (pack x) = x;
 }.
 \end{minted}
+\caption[Synthesizable type class]{Definition of the $\mathit{Synthesizable}$ type class.}
+\label{fig:synth-class}
+\end{figure}
+
 The field $\tau$ is the Golemma type representing $\alpha$ in hardware.
 The function $\mathit{pack}$ is an injection from $\alpha$ into the hardware representation: $\mathit{unpack}$ is its left inverse, recovering the original Gallina value from the encoding, and $\mathit{pack\_unpack}$ proves that $\mathit{pack}$ is indeed an injection.
-Every native Golemma type is trivially synthesizable with \mintinline{coq}{pack = unpack = id}.
-Beyond Golemma types, several finite Gallina types have built-in instances: bitvectors \mintinline{coq}{bv n}, bounded naturals \mintinline{coq}{fin n}, Booleans $\mathit{bool}$, and $\mathit{unit}$.
+Every native Golemma type is trivially synthesizable with $\mathit{pack} = \mathit{unpack} = \mathit{id}$.
+Beyond Golemma types, several finite Gallina types have built-in instances: bitvectors $\mathit{bv}\;\mathit{n}$, bounded naturals $\mathit{fin}\;\mathit{n}$, Booleans $\mathit{bool}$, and $\mathit{unit}$.
 Three additional type classes extend $\mathit{Synthesizable}$ to structured Gallina types: Struct, Enum, and Bitflags.
 Each provides a Synthesizable instance automatically during type-class resolution.
 
@@ -854,7 +860,7 @@ Record TwoBits := {
 
 Instance two_bits_struct : Struct TwoBits. derive_struct. Defined.
 \end{minted}
-\caption[Struct instance]{Deriving a $\mathit{Struct}$ instance for a simple record.}
+\caption[Struct example]{Deriving a $\mathit{Struct}$ instance for a simple record.}
 \label{fig:synth-struct}
 \end{figure}
 
@@ -870,7 +876,7 @@ Variant Color : Set := Red | Green | Blue.
 
 Instance color_enum : Enum Color. derive_enum. Defined.
 \end{minted}
-\caption[Enum instance]{Deriving an $\mathit{Enum}$ instance for a Rocq variant type.}
+\caption[Enum example]{Deriving an $\mathit{Enum}$ instance for a Rocq variant type.}
 \label{fig:synth-enum}
 \end{figure}
 
@@ -879,7 +885,7 @@ The Bitflags type class handles Gallina variant types where each constructor rep
 Each constructor is mapped to a distinct bit position in a fixed-width bitvector, and the associated $\mathit{Bitset}$ type, which is formalized as a finite set using set-algebra instances from stdpp.
 Proofs over bitsets can therefore use the $\mathit{set\_solver}$ tactic and the full stdpp set lemma library.
 \Cref{fig:synth-bitflags} shows a hardware-flag example with five variants.
-The $\mathit{Bitset}$ type synthesizes to a \mintinline{coq}{Bit#(n)} for a type with $n$ constructors.
+The $\mathit{Bitset}$ type synthesizes to a $\mathit{Bit}\#(n)$ for a type with $n$ constructors.
 
 \begin{figure}[H]
 \begin{minted}{coq}
@@ -891,7 +897,7 @@ Definition user_rx : Bitset Permission := {[Valid; Read; Execute; User]}.
 
 Example user_rx_has_read : elem_of Read user_rx. Proof. set_solver. Qed.
 \end{minted}
-\caption[Bitflags instance]{Deriving a $\mathit{Bitflags}$ instance and using stdpp set reasoning.}
+\caption[Bitflags example]{Deriving a $\mathit{Bitflags}$ instance and using stdpp set reasoning.}
 \label{fig:synth-bitflags}
 \end{figure}
 
@@ -907,22 +913,28 @@ The derivation tactics ($\mathit{derive\_struct}$, $\mathit{derive\_enum}$, $\ma
 When a Golemma expression contains an identifier, the language front-end uses a sophisticated type-class-resolution mechanism to decide if it refers to a local method parameter, a local let binding, or a submodule.
 To add support for referring to record projections or Gallina constructors, this system was extended to recognize identifiers related to synthesizable types.
 This resolution is handled by a hint in the type-class resolution database that fires whenever the elaborator encounters a particular type-class goal that resolves identifiers.
-The hint, written in Ltac2, recovers the identifier name as a Rocq string, searches first among local hypotheses and then the global environment for a binding with that name, and, if found, wraps the value in \mintinline[escapeinside=||]{coq}{Cst (pack |$\cdot$|)}: the syntax tree for a constant node in Golemma.
+The hint, written in Ltac2, recovers the identifier name as a Rocq string, searches first among local hypotheses and then the global environment for a binding with that name, and, if found, wraps the value in $\mathit{Cst}\;(\mathit{pack}\;\cdot)$: the syntax tree for a constant node in Golemma.
 The result is that any Gallina constant or local variable of a synthesizable type can be dropped into a Golemma expression directly by name, without any explicit coercion syntax.
 
 \subsection{For loops} \label{sec:Golemma-for}
 
 Hardware circuits commonly need to operate over fixed-size arrays of registers, for example, to implement content-addressable memories (CAMs).
-Golemma did not provide native syntax for for-loop iteration at the time this thesis was written.  The for constructor in the syntax tree takes a bound $m$ and a body function from \mintinline{coq}{Fin m} to a block of actions, executing the body once for each index in \(0, 1, \ldots, m-1\).
+Golemma did not provide native syntax for for-loop iteration at the time this thesis was written.  The for constructor in the syntax tree takes a bound $m$ and a body function from $\mathit{Fin}\;\mathit{m}$ to a block of actions, executing the body once for each index in \(0, 1, \ldots, m-1\).
 
-The key step is converting the index \mintinline{coq}{i : Fin m} into a bitvector of size $\lceil \log_2{m} \rceil$ so that the body can use it in Golemma expressions directly.
+The key step is converting the index $\mathit{i}$ of type $\mathit{Fin}\;\mathit{m}$ into a bitvector of size $\lceil \log_2{m} \rceil$ so that the body can use it in Golemma expressions directly.
 This conversion process happens automatically via the type-class-resolution procedure described in \cref{sec:Golemma-synthesizable,par:ltac2}.
-A custom notation then exposes a familiar loop syntax as a Golemma statement:
+A custom notation then exposes a familiar loop syntax as a Golemma statement (\Cref{fig:Golemma-for-notation}).
+
+\begin{figure}[H]
 \begin{minted}{coq}
 for (let i = 0 to hi) begin
   (* body, i : bv hi *)
 end
 \end{minted}
+\caption[For-loop notation]{For-loop notation in Golemma.}
+\label{fig:Golemma-for-notation}
+\end{figure}
+
 The loop bound $\mathit{hi}$ must be a natural number fixed at elaboration time, so the loop always runs a statically known number of iterations, as required for synthesizability. During verification, for-loop semantics reduce to a loop rule that requires an explicit loop invariant.
 
 \section{Specifying and proving correctness} \label{sec:Golemma-spec}
@@ -944,7 +956,9 @@ Every specification module has an associated \emph{abstract state}, which is an 
 For the GCD module, the abstract state records both the original inputs and the current state of the Euclidean algorithm.
 The fields $\mathit{a}$ and $\mathit{b}$ are the original operands loaded into the module, while $\mathit{a'}$ and $\mathit{b'}$ are the current operands after some number of $\mathit{step}$ calls.
 The \emph{representation invariant} ($\mathit{wf}$) states that the current operands still have the same greatest common divisor as the original inputs.
+\Cref{fig:gcd-spec-state} shows the record.
 
+\begin{figure}[H]
 \begin{minted}{coq}
 Record SpecState := mkState {
   a  : nat;
@@ -954,6 +968,9 @@ Record SpecState := mkState {
   wf : gcd a b = gcd a' b';
 }.
 \end{minted}
+\caption[GCD abstract state]{Abstract state record for the GCD specification.}
+\label{fig:gcd-spec-state}
+\end{figure}
 
 The abstract state lives entirely in Gallina; it is only the implementation that requires the use of the hardware-description language.
 This specification style is a benefit: proofs, invariants, and lemmas about the specification are stated in terms of natural-number arithmetic and the standard GCD function rather than in terms of bitvectors.
@@ -975,7 +992,9 @@ In both cases the outermost proposition is the body of the specification.
 
 \paragraph{Value methods.}
 The $\mathit{result}$ method returns the correct result from the GCD computation and $\mathit{finished}$ returns whether the current second operand $\mathit{b'}$ is zero.
-Each specification simply calls $P$ on the appropriate return value:
+Each specification simply calls $P$ on the appropriate return value (\Cref{fig:gcd-val-specs}).
+
+\begin{figure}[H]
 \begin{minted}{coq}
 Definition result : MRVSpec State (mkMetSig <> Bit#(16)) :=
   fun '(_, st) P =>
@@ -985,13 +1004,18 @@ Definition finished : MRVSpec State (mkMetSig <> Bit#(1)) :=
   fun '(_, st) P =>
     P (if (st.(b') == 0) then 1%bv else 0%bv).
 \end{minted}
+\caption[GCD value-method specs]{Value-method specifications for $\mathit{result}$ and $\mathit{finished}$.}
+\label{fig:gcd-val-specs}
+\end{figure}
+
 The postcondition is stated by choosing what term to apply $P$ to.
 Different terms produce stronger or weaker guarantees; the specification's job is to apply $P$ to exactly the value the method is guaranteed to return.
 
 \paragraph{Action methods and preconditions.}
 Action-method specifications additionally describe how the abstract state evolves.
-The $\mathit{load}$ method sets the two operands to the supplied arguments:
-\begin{listing}[H] % [H] forces it to stay "Here"
+The $\mathit{load}$ method sets the two operands to the supplied arguments (\Cref{fig:gcd-load-spec}).
+
+\begin{figure}[H]
 \begin{minted}[escapeinside=||]{coq}
 Definition load : MRASpec State (mkMetSig <Bit#(16) a, Bit#(16) b> Bit#(0)) :=
   fun '(args, _) P =>
@@ -999,12 +1023,17 @@ Definition load : MRASpec State (mkMetSig <Bit#(16) a, Bit#(16) b> Bit#(0)) :=
     let b := bv_to_nat args[[@1]] in
       P (0%bv, mkState a b a b _).
 \end{minted}
-\end{listing}
+\caption[GCD load spec]{Action-method specification for $\mathit{load}$.}
+\label{fig:gcd-load-spec}
+\end{figure}
+
 The successor state stores the loaded operands twice: once as the fixed original inputs and once as the current operands.
-The proof witness $\mathit{pf}$ establishes \mintinline{coq}{gcd a b = gcd a b}, so the invariant holds immediately after loading.
+The proof witness $\mathit{pf}$ establishes $\mathit{gcd}\;\mathit{a}\;\mathit{b} = \mathit{gcd}\;\mathit{a}\;\mathit{b}$, so the invariant holds immediately after loading.
 
 The $\mathit{step}$ method is more interesting because the implementation aborts when the current second operand is zero.
-A \emph{precondition} on the method is expressed as a conjunct placed \emph{outside} of $P$, before any existential quantification.
+A \emph{precondition} on the method is expressed as a conjunct placed \emph{outside} of $P$, before any existential quantification (\Cref{fig:gcd-step-spec}).
+
+\begin{figure}[H]
 \begin{minted}{coq}
 Definition step : MRASpec State (mkMetSig <> Bit#(0)) :=
   fun '(_, st) P =>
@@ -1016,18 +1045,22 @@ Definition step : MRASpec State (mkMetSig <> Bit#(0)) :=
         mkState st.(a) st.(b) st.(a') (st.(b') - st.(a')) _ in
       P (0%bv, next).
 \end{minted}
-Since \mintinline{coq}{st.(b') <> 0} sits outside $P$, it is a delegated obligation that callers of this submodule must discharge.
+\caption[GCD step spec]{Action-method specification for $\mathit{step}$, with precondition outside $P$.}
+\label{fig:gcd-step-spec}
+\end{figure}
+
+Since $\mathit{st}.(\mathit{b'}) \neq 0$ sits outside $P$, it is a delegated obligation that callers of this submodule must discharge.
 The refinement proof must show that the implementation never invokes $\mathit{step}$ in a state where the abort path can be reached.
 Postconditions, by contrast, are captured by constructing the next abstract state passed to $\mathit{P}$; here that state preserves the original $\mathit{a}$ and $\mathit{b}$ fields while updating only $\mathit{a'}$ and $\mathit{b'}$.
 
 \paragraph{Representation invariants.}
 Not every tuple of natural numbers is a valid intermediate state for a GCD computation.
-The $\mathit{SpecState}$ record shown earlier encodes this constraint through the $\mathit{wf}$ field: a Rocq proof that the current pair \mintinline{coq}{(a', b')} has the same GCD as the original pair \mintinline{coq}{(a, b)}.
+The $\mathit{SpecState}$ record shown earlier encodes this constraint through the $\mathit{wf}$ field: a Rocq proof that the current pair $(\mathit{a'}, \mathit{b'})$ has the same GCD as the original pair $(\mathit{a}, \mathit{b})$.
 This proof field is a \emph{representation invariant} that every abstract state must carry.
 
 Since $\mathit{wf}$ is a field of the record, Rocq's type system ensures it is present in every $\mathit{SpecState}$ value. The type system disallows constructing an abstract state that violates it.
 Action-method specifications that modify the state have a proof obligation to discharge the invariant.
-For example, the $\mathit{step}$ specification must supply a proof that the updated current pair still has GCD \mintinline{coq}{gcd st.(a) st.(b)} whenever it constructs the next $\mathit{SpecState}$.
+For example, the $\mathit{step}$ specification must supply a proof that the updated current pair still has GCD $\mathit{gcd}\;\mathit{st}.(\mathit{a})\;\mathit{st}.(\mathit{b})$ whenever it constructs the next $\mathit{SpecState}$.
 
 \paragraph{Connection to abstract data types.}
 This specification style is directly analogous to the theory of \emph{abstract data types} (ADTs).
