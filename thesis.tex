@@ -71,11 +71,11 @@
 \begin{abstract}
 High-performance processors rely on out-of-order execution, an instruction-scheduling algorithm that is both difficult to implement correctly and prone to timing side-channel attacks without principled defenses.
 This thesis develops an approach using the Rocq proof assistant for specifying and proving timing-security properties of hardware circuits.
-To express hardware circuits in a proof-friendly style, the thesis introduces \emph{Slate}, a shallowly embedded hardware-description language built on state monads.
+To express hardware circuits in a proof-friendly style, the thesis introduces Slate, a shallowly embedded hardware-description language built on state monads.
 Slate provides an imperative-programming model to describe circuits compactly in Gallina.
 Since Slate circuits are Gallina functions, reasoning about them in proofs is simple.
 The timing-security framework is exercised on a case study of a variable-latency multiplier.
-The thesis also presents \emph{Golemma}, a deeply embedded hardware language in Rocq, to establish correctness results for key out-of-order processor submodules.
+The thesis also presents Golemma, a deeply embedded hardware language in Rocq, to establish correctness results for key out-of-order processor submodules.
 Golemma provides facilities for modularity and exposes a sequential execution model which makes functional-correctness reasoning simple.
 The functional-correctness framework is exercised on a case study of a ring buffer.
 Together, these contributions provide a foundation for progression towards integrated proofs of correctness and timing security for full out-of-order processors.
@@ -166,7 +166,7 @@ Then it covers prior work on timing security, both the attacks that motivate thi
 Kami~\cite{choi2017} is a hardware-description language, embedded in Rocq, for specifying and verifying hardware circuits in the style of Bluespec SystemVerilog.
 Circuits are semantically treated as labeled transition systems composed of guarded atomic rules, and correctness arguments proceed by refinement between more-abstract and more-concrete specifications.
 
-Ko\^{i}ka~\cite{koika2020} is another language for rule-based hardware design that gives Bluespec-style rules a precise sequential semantics characterized by the \emph{one-rule-at-a-time} (ORAAT) property.
+Ko\^{i}ka~\cite{koika2020} is another language for rule-based hardware design that gives Bluespec-style rules a precise sequential semantics characterized by the one-rule-at-a-time (ORAAT) property.
 Circuits are described as collections of rules over register state, and the language provides a scheduler that resolves rule conflicts while preserving a one-rule-at-a-time execution model.
 Ko\^{i}ka is accompanied by a verified compiler that lowers circuit descriptions to RTL, providing an end-to-end path from high-level specifications to synthesizable netlists.
 However, Ko\^{i}ka does not support a module system, so circuits must be described monolithically, and it lacks support for compositional reasoning.
@@ -187,7 +187,7 @@ The single-copy formulation of constant time used in this thesis is taken from t
 
 SecSep~\cite{song2025} addresses the gap between source-level constant-time guarantees and speculative execution on real hardware through an assembly-level transformation framework.
 SecSep targets processors similar to ProSpeCT~\cite{daniel2023}, which partitions memory into regions whose speculative loads are delayed until non-speculative and regions whose loads are not, provably enforcing the constant-time policy without relying on fencing.
-SecSep rewrites compiled assembly programs so that secret and public data are partitioned on the stack, using a new typed assembly language called \emph{Octal} to guide the transformation.
+SecSep rewrites compiled assembly programs so that secret and public data are partitioned on the stack, using a new typed assembly language called Octal to guide the transformation.
 The approach correctly handles secrets on the stack and achieves a low additional runtime overhead on cryptographic programs.
 
 Prior work on hardware timing security~\cite{duxovni2018} builds off the Kami framework to reason about timing-security properties of hardware circuits, showing that the same embedding used to verify functional correctness can also support security arguments.
@@ -196,12 +196,12 @@ More recent work~\cite{lau2024} formally specifies and verifies strong timing is
 \chapter{Verifying timing security for circuits} \label{chap:Slate}
 
 This chapter presents a framework for timing-security verification of hardware circuits.
-It begins by giving a formalism of state machines to model hardware circuits (\Cref{sec:timing-state-machine})  and then introduces \emph{Slate}, a shallowly embedded language in Rocq for specifying hardware circuits (\Cref{sec:timing-monads}).
+It begins by giving a formalism of state machines to model hardware circuits (\Cref{sec:timing-state-machine}) and then introduces Slate, a shallowly embedded language in Rocq for specifying hardware circuits (\Cref{sec:timing-monads}).
 Finally, it defines hardware timing security and develops the simulation-based proof structure used to establish this security property (\Cref{sec:timing-security}).
 
 \section{State machines} \label{sec:timing-state-machine}
 
-A \emph{state machine} is an abstraction used to describe the behavior of a computation by defining its possible states and the rules for transitioning between them.
+A state machine is an abstraction used to describe the behavior of a computation by defining its possible states and the rules for transitioning between them.
 Hardware modules function as physical state machines.
 Registers serve as the memory that holds the current state, while combinational logic describes the transition function that determines both the module's outputs and its next state as a function of the current state.
 We view hardware modules as interacting through well-defined interfaces composed of methods rather than raw, unstructured signals.
@@ -220,12 +220,12 @@ We adopt the following formal definition of a state machine.
 
 We model hardware circuits as such machines.
 A state $s \in S$ captures the current values of the sequential logic relevant to the module.
-Each input in $I$ represents a \emph{method invocation}: a variant type carrying a method tag together with the argument values for that call.
-The transition function $\delta$ is partial on $S \times I$ to reflect that the model may not produce a well-defined successor state and output when the call is \emph{aborted} by a guard (for example, dequeuing from an empty buffer).
+Each input in $I$ represents a method invocation: a variant type carrying a method tag together with the argument values for that call.
+The transition function $\delta$ is partial on $S \times I$ to reflect that the model may not produce a well-defined successor state and output when the call is aborted by a guard (for example, dequeuing from an empty buffer).
 An aborted call leaves the circuit in the same configuration.
 This convention simplifies trace definitions and simulation proofs: each input sequence determines one run, and the optional output indicates whether the call produced a visible event in the output trace.
 
-For the purpose of reasoning about security with this framework, we additionally restrict attention to circuits whose behavior is \emph{deterministic} in the sense above:
+For the purpose of reasoning about security with this framework, we additionally restrict attention to circuits whose behavior is deterministic in the sense above:
 \[
   \begin{aligned}
   &\forall s \in S.\; \forall \iota \in I.\;
@@ -242,13 +242,13 @@ In words, if a state and input can step to two results, then those results must 
 This restriction is convenient for reasoning about the proof obligations in \Cref{sec:timing-security}, where we compare runs under related inputs and want equality of traces without existentially quantifying over implementation-defined resolution of nondeterminism in proofs.
 Determinism is a design choice of convenience, not necessity; as discussed in \Cref{chap:Golemma}, the framework for deeply embedded circuits can use nondeterministic semantics (in particular, omnisemantics~\cite{chargueraud2023}) to describe specifications.
 
-Given an input sequence $(\iota_1, \iota_2, \ldots, \iota_n) \in I^*$, repeatedly applying $\delta$ from the initial state $s_0$ defines a \emph{run} of the machine.
-The corresponding sequence of per-step outputs is called the machine's \emph{observation trace}.
+Given an input sequence $(\iota_1, \iota_2, \ldots, \iota_n) \in I^*$, repeatedly applying $\delta$ from the initial state $s_0$ defines a run of the machine.
+The corresponding sequence of per-step outputs is called the machine's observation trace.
 Concretely, the machine $\mathcal{M}$ produces a sequence of outputs by repeatedly applying $\delta$ from $s_0$ for each input $\iota_k \in I$:
 \[
   s_0 \xrightarrow{\iota_1 / o_1} s_1 \xrightarrow{\iota_2 / o_2} s_2 \;\cdots\; \xrightarrow{\iota_n / o_n} s_n, \qquad o_i \in O,\ s_i \in S.
 \]
-The \emph{observation trace} of the run is the list:
+The observation trace of the run is the list:
 \[
   \mathcal{T}\bigl( \mathcal{M}, \vec\iota \bigr) \;\triangleq\; \bigl(o_1,o_2,\ldots,o_n \bigr)
 .\]
@@ -263,10 +263,10 @@ It then discusses guarded state monads as a way to model imperative programs sha
 Finally, it presents a small illustrative example of using the Slate language (\Cref{sec:timing-monads-slate}).
 
 \subsection{Shallow and deep embeddings} \label{sec:timing-monads-shallow}
-A \emph{shallow embedding} encodes a source language directly as terms of the host language.
-In this style, the host's type system, reduction rules, and terms \emph{are} the semantics of the object language.
+A shallow embedding encodes a source language directly as terms of the host language.
+In this style, the host's type system, reduction rules, and terms are the semantics of the object language.
 In Rocq, shallow embeddings are represented as ordinary Gallina functions rather than abstract syntax trees requiring a separate interpreter.
-By contrast, a \emph{deep embedding} defines explicit syntax via inductive datatypes for commands and expressions.
+By contrast, a deep embedding defines explicit syntax via inductive datatypes for commands and expressions.
 Since syntax trees do not execute by reducing as Gallina terms, deep embeddings must come with separate semantics, such as an interpreter or operational semantics.
 
 Each style has distinct advantages and costs.
@@ -277,13 +277,13 @@ These tasks often require reification and metaprogramming support to recover a s
 Deep embeddings make syntax explicit from the beginning, so compiler construction and optimization passes are easier to express.
 However, they impose additional verification overhead: one must define and reason about an interpreter (or step relation), and prove that this semantics aligns with the intended meaning.
 As a result, proofs on deep embeddings are more-involved than similar theorems on shallow embeddings.
-\emph{Slate}, the surface language used for timing-security verification in this thesis, is a shallow embedding.
+Slate, the surface language used for timing-security verification in this thesis, is a shallow embedding.
 Its core semantics work as an imperative language with mutable references.
 We introduce the state-monad structure that underlies Slate method definitions.
 
 \subsection{State monads and actions} \label{sec:timing-monads-state}
 \paragraph{State monads}
-For a fixed state type $s$, the \emph{state monad} is the type family that maps each result type $t$ to
+For a fixed state type $s$, the state monad is the type family that maps each result type $t$ to
 \[
   \mathsf{State}_s(t) \;\triangleq\; s \to (s * t)
 ,\]
@@ -320,8 +320,8 @@ Definition put {s} (x : s) : State s unit :=
 \end{figure}
 
 \paragraph{Guarded state monads}
-% For a fixed state type $s$, the \emph{state monad} is the type family that maps each result type $t$ to
-For a fixed state type $s$, the \emph{guarded state monad} or \emph{action} is type family that maps each result type $t$ to
+% For a fixed state type $s$, the state monad is the type family that maps each result type $t$ to
+For a fixed state type $s$, the guarded state monad or action is type family that maps each result type $t$ to
 \[
   \mathsf{Action}_s\;(t) \;\triangleq\; s \to \mathit{option}\;(s * t)
 ,\]
@@ -454,7 +454,7 @@ It first introduces cryptographic constant time (CCT) in the software setting an
 It then develops the simulation-based proof strategy used to establish HCT: using lockstep simulation with trace-equivalence lemmas that connects simulations to the HCT definition (\Cref{sec:timing-proof-lockstep}).
 
 \subsection{Cryptographic constant time} \label{sec:cct}
-Cryptographic software often cares about the \emph{cryptographic-constant-time} (CCT) property: attackers should not observe leakage events such as branch direction, memory-access patterns, or variable-latency instructions influenced by secret inputs.
+Cryptographic software often cares about the cryptographic-constant-time (CCT) property: attackers should not observe leakage events such as branch direction, memory-access patterns, or variable-latency instructions influenced by secret inputs.
 This principle has been formalized and mechanically verified for software programs in multiple prior works~\cite{guarnieri2021,conoly2025,almeida2016}.
 \Cref{fig:cct-intuition} illustrates the key intuition with two small routines: one has a secret-dependent branch and is not constant time, while the other computes through bit masking and avoids control-flow dependent on secret data.
 
@@ -493,7 +493,7 @@ uint32_t f_ct(x, y, secret) {
 \end{figure}
 
 \begin{definition}[Cryptographic constant time as a two-copy hyperproperty] \label{def:two-copy}
-A state machine $\mathcal{M} = (S, s_0, I, O, \delta)$ is \emph{cryptographic-constant-time} (CCT)
+A state machine $\mathcal{M} = (S, s_0, I, O, \delta)$ is cryptographic-constant-time (CCT)
 if given partitions
 \[
   s = (s^{\mathrm{pub}}, s^{\mathrm{sec}}), \quad
@@ -510,7 +510,7 @@ This definition is relational: it compares two universally quantified executions
 Next, we introduce a one-copy formalism of constant time which is logically equivalent to \Cref{def:two-copy}.
 
 \begin{definition}[Cryptographic constant time as a one-copy property]
-A state machine $\mathcal{M} = (S, s_0, I, O, \delta)$ is \emph{cryptographic-constant-time} (CCT)
+A state machine $\mathcal{M} = (S, s_0, I, O, \delta)$ is cryptographic-constant-time (CCT)
 if given partitions of states, inputs, and outputs
 \[
   s = (s^{\mathrm{pub}}, s^{\mathrm{sec}}), \quad
@@ -543,21 +543,21 @@ The hardware development in this thesis uses the same one-copy perspective but r
 Hardware constant time is motivated by hardware-software contracts~\cite{guarnieri2021}: the security guarantee is stated relative to an explicit attacker observation model. In that line of work, the contract ties together what information the attacker can observe (leakage events) and what information the system must hide as a function of secret inputs. In this thesis, we adopt the same pattern: we first make the attacker's observational capabilities explicit via erasure contracts (\Cref{def:erasure-spec}) and then define hardware constant time as an invariance of the erased observation when secret (erased) inputs vary.
 
 \begin{definition}[Erasure contract] \label{def:erasure-spec}
-For a state machine $\mathcal{M}=(S,s_0,I,O,\delta)$, an \emph{erasure contract} is a pair $\mathcal{E} = (\mathsf{erase_{in}}, \mathsf{erase_{out}})$ where $\mathsf{erase_{in}}$ is a function that erases secret components of inputs $\iota \in I$, and $\mathsf{erase_{out}}$ is a function that erases secret components of outputs $o \in O$ from the observational trace.
+For a state machine $\mathcal{M}=(S,s_0,I,O,\delta)$, an erasure contract is a pair $\mathcal{E} = (\mathsf{erase_{in}}, \mathsf{erase_{out}})$ where $\mathsf{erase_{in}}$ is a function that erases secret components of inputs $\iota \in I$, and $\mathsf{erase_{out}}$ is a function that erases secret components of outputs $o \in O$ from the observational trace.
 \end{definition}
 
 \begin{definition}[Erased observation trace] \label{def:erased-run-outputs}
 Given $\mathcal{M}$, $\mathcal{E}$, and an input sequence $\vec\iota \in I^*$, we define
-$\mathcal{T}_{\mathcal{E}}\bigl( \mathcal{M}, \vec\iota \bigr)$ as the \emph{erased observation trace}, which is the observation trace $\mathcal{T}\bigl( \mathcal{M}, \vec\iota \bigr)$ with private output components deleted.
+$\mathcal{T}_{\mathcal{E}}\bigl( \mathcal{M}, \vec\iota \bigr)$ as the erased observation trace, which is the observation trace $\mathcal{T}\bigl( \mathcal{M}, \vec\iota \bigr)$ with private output components deleted.
 \end{definition}
 
 \begin{definition}[Erased input sequence] \label{def:erased-input-sequence}
 Given $\mathcal{M}$, $\mathcal{E}$, and an input sequence $\vec\iota \in I^*$, we define
-$\vec\iota_\mathcal{E}$ as the \emph{erased input sequence}, which is the input sequence with private input components deleted.
+$\vec\iota_\mathcal{E}$ as the erased input sequence, which is the input sequence with private input components deleted.
 \end{definition}
 
 \begin{definition}[Hardware constant time] \label{def:hct-single}
-A state machine $\mathcal{M}$ is \emph{hardware-constant-time} (HCT) with respect to an erasure contract $\mathcal{E}$ when
+A state machine $\mathcal{M}$ is hardware-constant-time (HCT) with respect to an erasure contract $\mathcal{E}$ when
 \[
   \forall \vec\iota \in I^*.\;\;
   \mathcal{T}_\mathcal{E}(\mathcal{M}, \vec\iota)
@@ -576,7 +576,7 @@ Under this interpretation, HCT says that varying secret (erased) inputs cannot c
 \subsection{Writing proofs} \label{sec:timing-proof-lockstep}
 The hardware-constant-time property (\Cref{def:hct-single}) reasons about entire runs of state machines rather than isolated steps.
 Entire-run reasoning affords flexibility in potential proof techniques that may not reason about each step in isolation, but in the future it could allow simulation-based proofs that rely on skipping steps or taking multiple steps.
-We will restrict ourselves to reason only about \emph{lockstep} simulations, which disallow skipping or multiple steps.
+We will restrict ourselves to reason only about lockstep simulations, which disallow skipping or multiple steps.
 \Cref{fig:sim-machines} demonstrates the two different proof techniques introduced in this section: first, a machine compared against itself under erased inputs (self-simulation); and second, an implementation machine compared against an abstract specification (cross-simulation).
 
 \paragraph{Setup}
@@ -593,7 +593,7 @@ For related starting states $(s_1,s_2)\in R$, suppose each action steps to a suc
 \]
 
 \begin{definition}[Erased-result relation] \label{def:erased-relation}
-Given a relation $R \subseteq S_1 \times S_2$ and erasure contract $\mathcal{E}$, we say $R_\mathcal{E} \subseteq S_1 \times O \times S_2 \times O$ is the \emph{erased-result relation} when
+Given a relation $R \subseteq S_1 \times S_2$ and erasure contract $\mathcal{E}$, we say $R_\mathcal{E} \subseteq S_1 \times O \times S_2 \times O$ is the erased-result relation when
 \[
   R_\mathcal{E}\bigl(s_1,o_1,s_2,o_2\bigr)
   \;\triangleq\;
@@ -602,7 +602,7 @@ Given a relation $R \subseteq S_1 \times S_2$ and erasure contract $\mathcal{E}$
 \end{definition}
 
 \begin{definition}[Action simulation] \label{def:action-refinement}
-We say $a_1 \sim a_2$ (read \emph{simulates}) under \((R,\mathcal{E})\) at \((s_1,s_2)\) when
+We say $a_1 \sim a_2$ (read simulates) under \((R,\mathcal{E})\) at \((s_1,s_2)\) when
 \[
   R(s_1,s_2) \Rightarrow R_\mathcal{E}\bigl(s_1',o_1,s_2',o_2\bigr).
 \]
@@ -623,7 +623,7 @@ This condition is depicted as a commutative diagram in~\Cref{fig:sim-action-squa
 Next, machine simulation instantiates~\Cref{def:action-refinement} on every method invocation $\iota \in I$ where the abstract machine observes~\(\mathsf{erase_{in}}(\iota)\) wherever the implementation machine observes~\(\iota\).
 
 \begin{definition}[Machine simulation] \label{def:machine-refinement}
-$\mathcal{M}_1 \sim \mathcal{M}_2$ (read \emph{simulates}) \emph{under} $(R, \mathcal{E})$ when, for all related states $(s_1,s_2)\in R$, the following input-indexed action simulation holds:
+$\mathcal{M}_1 \sim \mathcal{M}_2$ (read simulates) under $(R, \mathcal{E})$ when, for all related states $(s_1,s_2)\in R$, the following input-indexed action simulation holds:
 \[
   \forall \iota \in I.\;\;
   \bigl(\lambda s.\; \delta_1(s,\iota)\bigr)
@@ -664,7 +664,7 @@ The self-simulation and cross-simulation instances of this definition are shown 
 Next, we turn the stepwise lockstep obligations from~\Cref{fig:sim-action-square,fig:sim-machines} into trace consequences. We first define output-erased trace equivalence and show that machine simulation lifts to equality of erased traces. We then use these lemmas to derive the two proof patterns for hardware constant time: direct self-simulation and cross-simulation via a trace-equivalent specification.
 
 \begin{definition}[Erased-trace equivalence] \label{def:outputs-erased-bridge}
-Call~\(\mathcal M_2\) \emph{erased-trace equivalent} to~\(\mathcal M_1\) under~\(\mathcal E\) when, for every~\(\vec\iota\in I^*\), the erased-input histories~\(\vec\iota_{\mathcal E}\) induce the same erased observation trace:
+Call~\(\mathcal M_2\) erased-trace equivalent to~\(\mathcal M_1\) under~\(\mathcal E\) when, for every~\(\vec\iota\in I^*\), the erased-input histories~\(\vec\iota_{\mathcal E}\) induce the same erased observation trace:
 \[
   \mathcal{T}^{\mathcal E}(\mathcal M_1,\vec\iota_{\mathcal E})
   =
@@ -716,12 +716,12 @@ This section introduces the key constructs of Golemma through an example circuit
 The interface and module definition are shown in~\Cref{fig:Golemma-gcd-intf,fig:Golemma-gcd}, respectively.
 
 \subsection{Interfaces}
-An \emph{interface} in Golemma is a typed list of method signatures that a module presents to its environment.
+An interface in Golemma is a typed list of method signatures that a module presents to its environment.
 Interfaces serve as contracts in two complementary senses. First, interfaces defines the compositional boundary between a module and its environment, playing the same role as the port list of a Verilog module. Second, it constrains what can be verified, since any specification must be stated in terms of the same method signatures that the implementation exposes.
 
 The interface for the GCD module (\Cref{fig:Golemma-gcd-intf}) declares four methods.
-Two are \emph{action methods}: $\mathit{load}$ and $\mathit{step}$, which can write registers and may abort if their guards are not met; their return type is $\mathit{Action}$.
-Two are \emph{value methods}: $\mathit{result}$ and $\mathit{finished}$, which are purely observational  and cannot modify registers.
+Two are action methods: $\mathit{load}$ and $\mathit{step}$, which can write registers and may abort if their guards are not met; their return type is $\mathit{Action}$.
+Two are value methods: $\mathit{result}$ and $\mathit{finished}$, which are purely observational  and cannot modify registers.
 
 \begin{figure}[H]
 \begin{minted}{coq}
@@ -737,8 +737,8 @@ endinterface.
 \end{figure}
 
 \subsection{Modules}
-A \emph{module} instantiates an interface.
-Modules contain \emph{submodules} with which they interact through method invocations defined in interfaces.
+A module instantiates an interface.
+Modules contain submodules with which they interact through method invocations defined in interfaces.
 Registers are implemented as submodules: a register submodule holds state across clock cycles and exposes methods for reading and updating that state.
 \Cref{fig:Golemma-gcd} shows the implementation of the GCD module.
 The header declares that the module implements the $\mathit{GCD}$ interface.
@@ -785,7 +785,7 @@ endmodule.
 \subsection{Methods}
 Every module method is declared with a return type, a name, and an optional parameter list enclosed in angle brackets.
 Methods whose return type are $\mathit{Action}$ or $\mathit{ActionValue}\#(t)$ may call submodule action methods; they can also abort, leaving state unchanged.
-Methods with any other return types are \emph{value methods}: they may only read state and return pure values, and they never abort.
+Methods with any other return types are value methods: they may only read state and return pure values, and they never abort.
 This distinction is enforced syntactically: only action methods may contain write or abort statements, so the separation between observation and mutation is visible directly in the interface signature.
 
 \subsection{Expressions}
@@ -902,7 +902,7 @@ Example user_rx_has_read : elem_of Read user_rx. Proof. set_solver. Qed.
 \end{figure}
 
 \subsection{Metaprogramming} \label{par:ltac2}
-In proof assistants with foundations in type theory, such as Rocq, tactics are scripts that used to concisely construct proof terms.
+In proof assistants such as Rocq, tactics are used as scripts to concisely construct proof terms.
 Ltac1 is Rocq's original and most commonly used tactic language.
 Ltac2 is a newer, typed tactic language with better support for inspecting and constructing Rocq terms programmatically, making it a better fit for metaprogramming purposes.
 
@@ -910,7 +910,7 @@ Deriving instances for $\mathit{Struct}$, $\mathit{Enum}$, and $\mathit{Bitflags
 Rather than requiring these type-class instances to be derived by hand, the framework uses Ltac2 to perform this metaprogramming.
 The derivation tactics ($\mathit{derive\_struct}$, $\mathit{derive\_enum}$, $\mathit{derive\_bitflags}$) each reflect a Rocq inductive into a Golemma type signature and discharge any resulting proof obligations using Ltac1.
 
-When a Golemma expression contains an identifier, the language front-end uses a sophisticated type-class-resolution mechanism to decide if it refers to a local method parameter, a local let binding, or a submodule.
+When a Golemma expression contains an identifier, the language frontend uses a sophisticated type-class-resolution mechanism to decide if it refers to a local method parameter, a local let binding, or a submodule.
 To add support for referring to record projections or Gallina constructors, this system was extended to recognize identifiers related to synthesizable types.
 This resolution is handled by a hint in the type-class resolution database that fires whenever the elaborator encounters a particular type-class goal that resolves identifiers.
 The hint, written in Ltac2, recovers the identifier name as a Rocq string, searches first among local hypotheses and then the global environment for a binding with that name, and, if found, wraps the value in $\mathit{Cst}\;(\mathit{pack}\;\cdot)$: the syntax tree for a constant node in Golemma.
@@ -952,10 +952,10 @@ The only constraint is that a specification must cover the same interface as the
 The rest of this subsection develops a specification for the greatest-common-divisor module from \Cref{fig:Golemma-gcd-intf}, using it to illustrate the key features of this specification style.
 
 \paragraph{Abstract state.}
-Every specification module has an associated \emph{abstract state}, which is an ordinary Gallina type chosen to model the module's behavior at the desired level of abstraction.
+Every specification module has an associated abstract state, which is an ordinary Gallina type chosen to model the module's behavior at the desired level of abstraction.
 For the GCD module, the abstract state records both the original inputs and the current state of the Euclidean algorithm.
 The fields $\mathit{a}$ and $\mathit{b}$ are the original operands loaded into the module, while $\mathit{a'}$ and $\mathit{b'}$ are the current operands after some number of $\mathit{step}$ calls.
-The \emph{representation invariant} ($\mathit{wf}$) states that the current operands still have the same greatest common divisor as the original inputs.
+The representation invariant ($\mathit{wf}$) states that the current operands still have the same greatest common divisor as the original inputs.
 \Cref{fig:gcd-spec-state} shows the record.
 
 \begin{figure}[H]
@@ -1031,7 +1031,7 @@ The successor state stores the loaded operands twice: once as the fixed original
 The proof witness $\mathit{pf}$ establishes $\mathit{gcd}\;\mathit{a}\;\mathit{b} = \mathit{gcd}\;\mathit{a}\;\mathit{b}$, so the invariant holds immediately after loading.
 
 The $\mathit{step}$ method is more interesting because the implementation aborts when the current second operand is zero.
-A \emph{precondition} on the method is expressed as a conjunct placed \emph{outside} of $P$, before any existential quantification (\Cref{fig:gcd-step-spec}).
+A precondition on the method is expressed as a conjunct placed outside of $P$, before any existential quantification (\Cref{fig:gcd-step-spec}).
 
 \begin{figure}[H]
 \begin{minted}{coq}
@@ -1056,26 +1056,26 @@ Postconditions, by contrast, are captured by constructing the next abstract stat
 \paragraph{Representation invariants.}
 Not every tuple of natural numbers is a valid intermediate state for a GCD computation.
 The $\mathit{SpecState}$ record shown earlier encodes this constraint through the $\mathit{wf}$ field: a Rocq proof that the current pair $(\mathit{a'}, \mathit{b'})$ has the same GCD as the original pair $(\mathit{a}, \mathit{b})$.
-This proof field is a \emph{representation invariant} that every abstract state must carry.
+This proof field is a representation invariant that every abstract state must carry.
 
 Since $\mathit{wf}$ is a field of the record, Rocq's type system ensures it is present in every $\mathit{SpecState}$ value. The type system disallows constructing an abstract state that violates it.
 Action-method specifications that modify the state have a proof obligation to discharge the invariant.
 For example, the $\mathit{step}$ specification must supply a proof that the updated current pair still has GCD $\mathit{gcd}\;\mathit{st}.(\mathit{a})\;\mathit{st}.(\mathit{b})$ whenever it constructs the next $\mathit{SpecState}$.
 
 \paragraph{Connection to abstract data types.}
-This specification style is directly analogous to the theory of \emph{abstract data types} (ADTs).
+This specification style is directly analogous to the theory of abstract data types (ADTs).
 In an ADT, an abstraction function (AF) maps concrete states to abstract values, and each operation is specified by its effect on that abstract model.
 The same structure appears here: the $\mathit{SpecState}$ record is the abstract model, and each method specification describes the contract that any correct implementation must satisfy.
 The predicate-transformer style mirrors Hoare-logic-style method contracts.
 A precondition is a proposition outside $P$ that constrains what the method requires of its inputs; a postcondition is a proposition inside $P$ that describes what the method guarantees about its outputs.
-Similar to ADT specifications, these contracts are \emph{relational}. Specifications are allowed to use arbitrary Gallina propositions, including existential quantification, so they can express nondeterminism cleanly.
+Similar to ADT specifications, these contracts are relational. Specifications are allowed to use arbitrary Gallina propositions, including existential quantification, so they can express nondeterminism cleanly.
 An implementation that can nondeterministically return any element of a set satisfying some predicate is expressed by quantifying existentially over the return value. The specification makes no commitment about which element is chosen.
 This feature is particularly useful when specifying the issue logic of an out-of-order processor scheduler, where the choice of which ready instruction to issue is left unspecified.
 The abstraction function appears explicitly as the simulation relation between the concrete register state of the implementation and the abstract state, when establishing refinement.
 
 \subsection{Writing proofs} \label{sec:Golemma-spec-refinement}
 
-A functional-correctness proof in Golemma is a proof of \emph{module refinement}: every behavior the implementation can exhibit is permitted by the specification.
+A functional-correctness proof in Golemma is a proof of module refinement: every behavior the implementation can exhibit is permitted by the specification.
 The proof is organized around a simulation relation $R$ that pairs implementation states with their abstract counterparts, and proceeds method by method, showing that each implementation method satisfies the postcondition demanded by its specification whenever $R$ holds of the current state.
 
 \paragraph{Refinement.}
@@ -1085,7 +1085,7 @@ Given such a relation, refinement comes in three variants: value-method refineme
 
 \begin{definition}[Value-method refinement] \label{def:refines-value}
 Let $\varphi$ and $\psi$ be value-method-predicate transformers over states $I$ and $S$, respectively.
-$\varphi$ \emph{refines} $\psi$ under $R$ when, for every related pair $(i, s) \in R$, every argument $\alpha$, and every postcondition $P$,
+$\varphi$ refines $\psi$ under $R$ when, for every related pair $(i, s) \in R$, every argument $\alpha$, and every postcondition $P$,
 \[
   \psi(\alpha,\, s,\, P) \;\Rightarrow\; \varphi(\alpha,\, i,\, P).
 \]
@@ -1096,7 +1096,7 @@ Action methods will update state, so their refinement condition must also accoun
 
 \begin{definition}[Action-method refinement] \label{def:refines-action}
 Let $\varphi$ and $\psi$ be action-method-predicate transformers over states $I$ and $S$, respectively.
-$\varphi$ \emph{refines} $\psi$ under $R : I \to S \to \text{Prop}$ when, for every $(i, s) \in R$, every argument $\alpha$, and every postcondition $P$,
+$\varphi$ refines $\psi$ under $R : I \to S \to \text{Prop}$ when, for every $(i, s) \in R$, every argument $\alpha$, and every postcondition $P$,
 \[
   \psi(\alpha,\, s,\, P)
   \;\Rightarrow\;
@@ -1111,7 +1111,7 @@ Rule refinement therefore follows the same shape as action-method refinement, wi
 
 \begin{definition}[Rule refinement] \label{def:refines-rules}
 Let $\varphi$ and $\psi$ be rule-predicate transformers over states $I$ and $S$, respectively.
-$\varphi$ \emph{refines} $\psi$ under $(R, R' : I \to S \to \text{Prop})$ when, for every $(i, s) \in R$ and every postcondition $P$,
+$\varphi$ refines $\psi$ under $(R, R' : I \to S \to \text{Prop})$ when, for every $(i, s) \in R$ and every postcondition $P$,
 \[
   \psi(s,\, P)
   \;\Rightarrow\;
@@ -1125,7 +1125,7 @@ The use of $R'$ as the post-relation separates the invariant needed to fire a ru
 Module refinement packages all of the method-level and rule-level obligations together with a proof that the reset states are related:
 
 \begin{definition}[Module refinement] \label{def:refines-module}
-A module $\mathcal{M}_I$ \emph{refines} a module $\mathcal{M}_S$ when there exist simulation relations $R, R' : I \to S \to \text{Prop}$ and initial states $i_0 \in I$, $s_0 \in S$ such that:
+A module $\mathcal{M}_I$ refines a module $\mathcal{M}_S$ when there exist simulation relations $R, R' : I \to S \to \text{Prop}$ and initial states $i_0 \in I$, $s_0 \in S$ such that:
 \begin{enumerate}
   \item $R(i_0, s_0)$ (the reset states are related);
   \item every external method of $\mathcal{M}_I$ refines the corresponding method of $\mathcal{M}_S$ under $R$; and
@@ -1540,11 +1540,11 @@ Definition RingBuffer (@$\varepsilon$@ : type) (N : nat) : ModSig :=
     method  Bit#(1)        full;
     method  @$\varepsilon$@              first;
     method  Bit#(N)        tail;
-    method  Entry          sub     <Bit#(N) idx>;
+    method  @$\varepsilon$@              sub     <Bit#(N) idx>;
     method  Action         deq;
     method  Action         enq     <@$\varepsilon$@ e>;
     method  Action         squash  <Bit#(N) tail'>;
-    method  Action         upd     <Bit#(N) idx, Entry e>;
+    method  Action         upd     <Bit#(N) idx, @$\varepsilon$@ e>;
   endinterface.
 \end{minted}
 \caption[Ring-buffer interface]{Interface definition for the ring buffer, parameterized by entry type and address width.}
@@ -1591,7 +1591,7 @@ Record State := mkState {
 
 The abstract model stores the logical contents of the buffer as the list $\mathit{entries}$, ordered from head to tail, along with a $\mathit{tail}$ index.
 The $\mathit{head}$ index is derived as $\mathit{tail} \ominus \mathit{size}$, the ring slot that is $\mathit{size}$ positions behind the tail.
-A \emph{logical index} is a ring address $j$ that falls within the live portion of the buffer: one satisfying $s.\mathit{valid\_index}(j)$, meaning the forward distance $j \ominus \mathit{head}(s)$ is strictly less than $\mathit{size}(s)$.
+A logical index is a ring address $j$ that falls within the live portion of the buffer: one satisfying $s.\mathit{valid\_index}(j)$, meaning the forward distance $j \ominus s.\mathit{head}$ is strictly less than $s.\mathit{size}$.
 The $\mathit{sub}$ and $\mathit{upd}$ operations access elements by logical index, and $\mathit{squash}$ accepts a new tail that must itself be a logical index.
 The representation invariant $\mathit{wf}$ bounds $\mathit{tail}$ and $\mathit{size}$ to stay within $2^{N}$.
 When the head equals the tail, the buffer may be full or empty; the size disambiguates the two cases, so no explicit full flag appears in the abstract state.
@@ -1684,7 +1684,7 @@ Assume $(i, s) \in R$.
 The implementation checks $\neg i.\mathit{full} \wedge (i.\mathit{head} = i.\mathit{tail})$.
 By $R$, we are given the following:
 \[
-(i.\mathit{full} = s.\mathit{full}) \land (i.\mathit{head} = s.\mathit{full}) \land (i.\mathit{tail} = s.\mathit{tail}).
+(i.\mathit{full} = s.\mathit{full}) \land (i.\mathit{head} = \mathit{nat\_to\_bv}(s.\mathit{head})) \land (i.\mathit{tail} = \mathit{nat\_to\_bv}(s.\mathit{tail})).
 \]
 A helper lemma establishes that $s.\mathit{head} = s.\mathit{tail} \iff s.\mathit{full} \lor s.\mathit{empty}$.
 Therefore the implementation's conjunction reduces to $\neg s.\mathit{full} \wedge (s.\mathit{head} = s.\mathit{tail})$, which holds exactly when $s.\mathit{empty}$.
@@ -1839,7 +1839,7 @@ Despite the size of the specification, the proof-to-spec ratio is reasonable: th
 
 To evaluate synthesizability, we ran the verified Golemma compiler on the verified ring buffer and synthesized the resulting netlist RTL with Yosys, an open-source synthesis suite.
 All configurations were targeted at a 250\,MHz clock and were successfully implemented on a Xilinx VCU118 FPGA.
-The experiment sweeps two parameters of the ring buffer: the address width $N$, which gives a buffer depth of $2^N$ entries, and the entry width $M$ (in bits), corresponding to the $\mathit{Width}$ and $\mathit{Entry}$ parameters in the interface.
+The experiment sweeps two parameters of the ring buffer: the address width $N$, which gives a buffer depth of $2^N$ entries, and the entry width $M$ (in bits), corresponding to the $N$ and $\varepsilon$ parameters in the interface (\Cref{sec:case-study-ring-buffer}).
 We evaluated $N \in \{3,5,7,9\}$ and $M \in \{32,128,512\}$; the configuration $(N=7,\,M=512)$ timed out during synthesis and larger configurations were not attempted.
 
 \Cref{fig:rb-gate-heatmap} shows a heatmap of total gate count as a function of $N$ and $M$.
