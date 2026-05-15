@@ -10,3 +10,4 @@
 *.blg
 _minted
 *.synctex
+.DS_Store
