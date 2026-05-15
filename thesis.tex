@@ -387,11 +387,10 @@ Definition call {s a b}
   (setter : a -> s -> s)
   (action : Action a b) : Action s b :=
   fun st =>
-    fun _ =>
-      match action (getter st) with
-      | Some (st', x) => Some (setter st' st, x)
-      | None => None
-      end.
+    match action (getter st) with
+    | Some (st', x) => Some (setter st' st, x)
+    | None => None
+    end.
 \end{minted}
 \caption[Call operator for actions]{$\mathit{call}$ operator lifts the effects of a submodule action to a larger state.}
 \label{fig:action-call}
