@@ -1792,7 +1792,7 @@ Despite the size of the specification, the proof-to-spec ratio is reasonable: th
 \quad Multi-cycle processor$^\dagger$                             & 365 \\\midrule
 \textbf{Golemma}                                                  & \textbf{5{,}018} \\
 \quad Language extensions~(\Cref{sec:Golemma-synth}) & 1{,}051 \\
-\quad Support libraries for natural numbers, bitvectors, etc. & 1{,}975 \\
+\quad Theories of natural numbers, bitvectors, etc. & 1{,}975 \\
 \quad Ring buffer~(\Cref{sec:case-study-ring-buffer})                           & 1{,}318 \\
 \quad Reorder buffer$^\dagger$              &    674  \\\midrule
 \textbf{Total}                                                    & \textbf{6{,}008} \\
@@ -1803,6 +1803,46 @@ Despite the size of the specification, the proof-to-spec ratio is reasonable: th
 \end{table}
 
 \section{Resource utilization} \label{sec:eval-resource}
+
+To evaluate synthesizability, we ran the verified Golemma compiler on the verified ring buffer and synthesized the resulting netlist RTL with Yosys, an open-source synthesis suite.
+All configurations were targeted at a 250\,MHz clock and were successfully implemented on a Xilinx VCU118 FPGA.
+The experiment sweeps two parameters of the ring buffer: the address width $N$, which gives a buffer depth of $2^N$ entries, and the entry width $M$ (in bits), corresponding to the $\mathit{Width}$ and $\mathit{Entry}$ parameters in the interface.
+We evaluated $N \in \{3,5,7,9\}$ and $M \in \{32,128,512\}$; the configuration $(N=7,\,M=512)$ timed out during synthesis and larger configurations were not attempted.
+
+\Cref{fig:rb-gate-heatmap} shows a heatmap of total gate count as a function of $N$ and $M$.
+Gate usage ranges from 1.9k gates at the smallest configuration $(N=3,\,M=32)$ to 188.8k at the largest successful configuration $(N=5,\,M=512)$, with the $N=7$ row reaching 52.1k and 186.0k for $M \in \{32,128\}$.
+Both dimensions drive gate count upward, but entry width has the stronger effect: tripling $M$ while holding $N$ fixed roughly quadruples the gate count.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\textwidth]{figures/fig1.pdf}
+  \caption[Ring-buffer gate count]{Total gate count across ring buffer configurations. The cell at $N=7$, $M=512$ is absent due to a synthesis timeout.}
+  \label{fig:rb-gate-heatmap}
+\end{figure}
+
+\Cref{fig:rb-synth-time} shows synthesis time as a function of $M$ for each depth.
+Synthesis time grows roughly exponentially with both parameters.
+The $N=3$ designs complete in under one second across all widths, while the $N=7$ configurations require hundreds of seconds at $M=128$ and exceed the timeout (30 minutes) at $M=512$.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\textwidth]{figures/fig2.pdf}
+  \caption[Ring-buffer synthesis time]{Synthesis time (log scale) versus entry width for each buffer depth. The red cross at $N=7$, $M=512$ marks a timeout.}
+  \label{fig:rb-synth-time}
+\end{figure}
+
+\Cref{fig:rb-resource-breakdown} breaks down resource usage into logic gates, multiplexers, and flip-flops for each configuration.
+The dominant resource shifts depending on which parameter is varied: increasing entry width $M$ causes logic gates to claim a larger share of total resources, while increasing buffer depth $N$ causes multiplexers to dominate, with flip-flops growing modestly as well.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{figures/fig3.pdf}
+  \caption[Ring-buffer resource breakdown]{Resource breakdown (logic gates, muxes, flip-flops) as a percentage of total resources for each buffer depth. Increasing $M$ raises the gate share; increasing $N$ raises the mux share.}
+  \label{fig:rb-resource-breakdown}
+\end{figure}
+
+Overall, the results confirm that the Golemma-compiled ring buffer is synthesizable across a practical range of parameters and produces designs that meet timing on a real FPGA.
+The verified compiler provides an end-to-end path from a mechanically checked Rocq proof to hardware, and the parameterized interface allows the module to be instantiated at whatever depth and width a given application requires.
 
 \chapter{Conclusion}
 
