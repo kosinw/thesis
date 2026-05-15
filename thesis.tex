@@ -16,8 +16,11 @@
 \usepackage[nottoc]{tocbibind}
 \usepackage[framemethod=default]{mdframed}
 \usepackage{float}
+\usepackage{booktabs}
+\usepackage{multirow}
 \usepackage{needspace}
 \usepackage[all]{nowidow}
+\usepackage{enumitem}
 
 \newcommand{\comment}[1]{\textcolor{blue}{\textbf{[#1]}}}
 \renewcommand{\bibname}{References}
@@ -55,7 +58,7 @@
 % \setcounter{topnumber}{1}
 
 \begin{document}
-\title{Towards Verifying Correctness and Timing Properties for \protect\\ Out-of-Order Machines}
+\title{Towards Verifying Correctness and Timing Properties for \\ Out-of-Order Machines}
 \Author{Kosi Nwabueze}{Department of Electrical Engineering and Computer Science} [S.B., Massachusetts Institute of Technology (2025)]
 \Degree{Master of Engineering in Electrical Engineering and Computer Science}{Department of Electrical Engineering and Computer Science}
 \Supervisor{Adam Chlipala}{Professor of Computer Science}[Department of Electrical Engineering and Computer Science]
@@ -64,13 +67,7 @@
 \ThesisDate{May 15, 2026}
 
 \maketitle
-% \cleardoublepage
-% \phantomsection % Necessary if using hyperref
-% \addcontentsline{toc}{chapter}{Title page} % or {section} for article class
 
-% \cleardoublepage
-% \phantomsection
-% \addcontentsline{toc}{chapter}{Abstract}
 \begin{abstract}
 High-performance processors rely on out-of-order execution, an instruction-scheduling algorithm that is both difficult to implement correctly and prone to timing side-channel attacks without principled defenses.
 This thesis develops an approach using the Rocq proof assistant for specifying and proving timing-security properties of hardware circuits.
@@ -80,6 +77,7 @@ Since Slate circuits are Gallina functions, reasoning about them in proofs is si
 The timing-security framework is exercised on a case study of a variable-latency multiplier.
 The thesis also presents \emph{Golemma}, a deeply embedded hardware language in Rocq, to establish correctness results for key out-of-order processor submodules.
 Golemma provides facilities for modularity and exposes a sequential execution model which makes functional-correctness reasoning simple.
+The functional-correctness framework is exercised on a case study of a ring buffer.
 Together, these contributions provide a foundation for progression towards integrated proofs of correctness and timing security for full out-of-order processors.
 \end{abstract}
 
@@ -99,6 +97,7 @@ I would like to thank the following people for their encouragement, support, and
 
 \tableofcontents
 \listoffigures
+\listoftables
 
 \chapter{Introduction} \label{chap:intro}
 This thesis contributes an approach for proving correctness and timing properties for hardware circuits described in the Rocq proof assistant.
@@ -1748,15 +1747,69 @@ The reset state satisfies $R$ trivially since both the implementation and specif
 \end{proof}
 
 \chapter{Evaluation} \label{chap:evaluation}
-\section{Developer effort}
-\section{Resource utilization}
+This chapter evaluates the two verification frameworks developed in this thesis.
+\Cref{sec:eval-verif} measures verification effort by counting lines of code across the specification, implementation, and proof components of each case study.
+\Cref{sec:eval-resource} examines resource utilization by reporting the synthesis results for the hardware designs produced by the Golemma compiler.
+\section{Verification effort} \label{sec:eval-verif}
+
+\Cref{tab:loc} summarizes the lines of code (LoC) required to specify, implement, and verify each case study, measured with "\texttt{wc -l}".
+For the multiplier, all three components live in a single file; the breakdown reflects logical sections of that file: the circuit implementation, the erasure contract, simulation relation, and the proof.
+For the ring buffer, each component corresponds to one or more dedicated Rocq source files.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lrrrrrr}
+\toprule
+\textbf{Module} & \textbf{Interface} & \textbf{Specification} & \textbf{Implementation} & \textbf{Proof} & \textbf{Total}
+\\\midrule
+Multiplier       & ---  &  44  & 132  &  86  &   262 \\
+Ring buffer      &  25  & 793  & 165  & 335  & 1{,}318 \\
+\bottomrule
+\end{tabular}
+\smallskip
+
+\caption[Case studies (LoC)]{Lines of code for each component across both case studies.}
+\label{tab:loc}
+\end{table}
+
+The multiplier is the more compact case study.
+Its proof is straightforward and highly automated.
+Each of the six lemmas requires only unfolding the definitions and rewriting goals using the equalities supplied by the simulation relation.
+The ring buffer case study is significantly larger.
+The specification file includes the abstract state and many helper lemmas used in the proof.
+The majority of the effort from the case study comes down to the large list of helper lemmas.
+Despite the size of the specification, the proof-to-spec ratio is reasonable: the 335-line proof covers nine methods plus the reset-state proof obligation.
+\Cref{tab:total-loc} breaks down the total LoC across both repositories including work-in-progress modules.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lr}
+\toprule
+\textbf{Component} & \textbf{LoC} \\\midrule
+\textbf{Slate}                                                    & \textbf{990} \\
+\quad Framework code~(\Cref{sec:timing-monads,sec:timing-security}) & 361 \\
+\quad Variable-latency multiplier~(\Cref{sec:case-study-multiplier})                                             & 264 \\
+\quad Multi-cycle processor$^\dagger$                             & 365 \\\midrule
+\textbf{Golemma}                                                  & \textbf{5{,}018} \\
+\quad Language extensions~(\Cref{sec:Golemma-synth}) & 1{,}051 \\
+\quad Support libraries for natural numbers, bitvectors, etc. & 1{,}975 \\
+\quad Ring buffer~(\Cref{sec:case-study-ring-buffer})                           & 1{,}318 \\
+\quad Reorder buffer$^\dagger$              &    674  \\\midrule
+\textbf{Total}                                                    & \textbf{6{,}008} \\
+\bottomrule
+\end{tabular}
+\caption[Personal contributions (LoC)]{Total lines of code across all personal contributions to this project. $^\dagger$WIP.}
+\label{tab:total-loc}
+\end{table}
+
+\section{Resource utilization} \label{sec:eval-resource}
 
 \chapter{Conclusion}
 
 This thesis presented two frameworks for mechanized verification of hardware circuits in Rocq. These frameworks target correctness and timing-security properties needed for a full proof of an out-of-order processor.
 \Cref{chap:intro,chap:related} introduced the background and motivation behind this thesis.
 \Cref{chap:Slate} introduced Slate and the hardware-constant-time property for timing security; \Cref{chap:Golemma} introduced Golemma and the modular-refinement property for functional correctness; and \Cref{chap:cases} applied both to case studies.
-\Cref{chap:evaluation} analyzed the amount of developer effort required to write proofs using these frameworks and compared the resource utilization between Golemma and Bluespec circuits.
+\Cref{chap:evaluation} analyzed the amount of effort required to write proofs using these frameworks and compared the resource utilization between Golemma and Bluespec circuits.
 
 \section{Summary}
 
@@ -1779,10 +1832,10 @@ After that, the renaming logic, the functional units, the physical register file
 
 Given those correctness proofs and specifications, the natural target for a conference paper is a composed correctness and timing-security result for a complete out-of-order processor backend without speculation on memory operations.
 Looking further ahead, a natural extension is to augment the processor with a hardware defense against transient-execution attacks and to verify that the defense is sufficient.
-Speculative taint tracking (STT)~\cite{yu2019} is a promising candidate, as it delays secret-dependent memory accesses until they are known to be non-speculative; adding STT to the Golemma model and proving that the resulting processor satisfies the same erasure-contract obligations would close the gap between the abstract security arguments from prior work and a concrete, synthesizable design.
+Speculative taint tracking~\cite{yu2019} is a promising candidate, as it delays secret-dependent memory accesses until they are known to be non-speculative; adding STT to the Golemma model and proving that the resulting processor satisfies the same erasure-contract obligations would close the gap between the abstract security arguments from prior work and a concrete, synthesizable design.
 
-Finally, a proof for an end-to-end theorem that involevs the source code level would be another target for a conference paper.
-Similar end-to-end theorems have been explored for proofs of correctness for a pipelined RISC-V processor in Kami and the Bedrock2 compiler~\cite{erbsen2021}.
+Finally, a proof for an end-to-end theorem that connects the execution of secure source code to a secure processor be another target for a conference paper.
+A similar end-to-end theorem has been explored for a pipelined RISC-V processor in Kami and the Bedrock2 compiler~\cite{erbsen2021}.
 This proposed work would compose together prior work on retrofitting the Bedrock2 compiler with constant-time preservation~\cite{conoly2025} and a proof of correctness of a complex out-of-order machine in Golemma.
 Connecting those results would yield an end-to-end guarantee that a secret-free source program running on the verified out-of-order processor cannot leak information through timing side channels.
 

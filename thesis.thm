@@ -1,0 +1,62 @@
+\contentsline {definition}{{Definition}{3.1.{1}}{State machine}}{15}{definition.3.1.1}%
+\contentsline {definition}{{Definition}{3.3.{1}}{Cryptographic constant time as a two-copy hyperproperty}}{24}{definition.3.3.1}%
+\contentsline {definition}{{Definition}{3.3.{2}}{Cryptographic constant time as a one-copy property}}{24}{definition.3.3.2}%
+\contentsline {definition}{{Definition}{3.3.{3}}{Erasure contract}}{25}{definition.3.3.3}%
+\contentsline {definition}{{Definition}{3.3.{4}}{Erased observation trace}}{25}{definition.3.3.4}%
+\contentsline {definition}{{Definition}{3.3.{5}}{Erased input sequence}}{26}{definition.3.3.5}%
+\contentsline {definition}{{Definition}{3.3.{6}}{Hardware constant time}}{26}{definition.3.3.6}%
+\contentsline {definition}{{Definition}{3.3.{7}}{Erased-result relation}}{27}{definition.3.3.7}%
+\contentsline {definition}{{Definition}{3.3.{8}}{Action simulation}}{27}{definition.3.3.8}%
+\contentsline {definition}{{Definition}{3.3.{9}}{Machine simulation}}{27}{definition.3.3.9}%
+\contentsline {definition}{{Definition}{3.3.{10}}{Erased-trace equivalence}}{28}{definition.3.3.10}%
+\contentsline {lemma}{{Lemma}{3.3.{1}}{Simulation implies erased-trace equivalence}}{28}{lemma.3.3.1}%
+\contentsline {proof}{{Proof}{1}{Proof}}{28}{proof.1}%
+\contentsline {lemma}{{Lemma}{3.3.{2}}{Self-simulation implies hardware constant time}}{28}{lemma.3.3.2}%
+\contentsline {proof}{{Proof}{2}{Proof}}{28}{proof.2}%
+\contentsline {lemma}{{Lemma}{3.3.{3}}{Cross-simulation with trace equivalence implies hardware constant time}}{29}{lemma.3.3.3}%
+\contentsline {proof}{{Proof}{3}{Proof}}{29}{proof.3}%
+\contentsline {definition}{{Definition}{4.3.{1}}{Value-method refinement}}{42}{definition.4.3.1}%
+\contentsline {definition}{{Definition}{4.3.{2}}{Action-method refinement}}{42}{definition.4.3.2}%
+\contentsline {definition}{{Definition}{4.3.{3}}{Rule refinement}}{42}{definition.4.3.3}%
+\contentsline {definition}{{Definition}{4.3.{4}}{Module refinement}}{42}{definition.4.3.4}%
+\contentsline {lemma}{{Lemma}{4.3.{1}}{}}{43}{lemma.4.3.1}%
+\contentsline {lemma}{{Lemma}{4.3.{2}}{}}{43}{lemma.4.3.2}%
+\contentsline {lemma}{{Lemma}{4.3.{3}}{}}{43}{lemma.4.3.3}%
+\contentsline {lemma}{{Lemma}{4.3.{4}}{}}{43}{lemma.4.3.4}%
+\contentsline {proof}{{Proof}{4}{Proof}}{43}{proof.4}%
+\contentsline {lemma}{{Lemma}{4.3.{5}}{}}{44}{lemma.4.3.5}%
+\contentsline {proof}{{Proof}{5}{Proof}}{44}{proof.5}%
+\contentsline {lemma}{{Lemma}{4.3.{6}}{}}{44}{lemma.4.3.6}%
+\contentsline {proof}{{Proof}{6}{Proof}}{44}{proof.6}%
+\contentsline {lemma}{{Lemma}{4.3.{7}}{}}{44}{lemma.4.3.7}%
+\contentsline {proof}{{Proof}{7}{Proof}}{44}{proof.7}%
+\contentsline {theorem}{{Theorem}{4.3.{1}}{}}{44}{theorem.4.3.1}%
+\contentsline {proof}{{Proof}{8}{Proof}}{44}{proof.8}%
+\contentsline {lemma}{{Lemma}{5.1.{1}}{}}{50}{lemma.5.1.1}%
+\contentsline {proof}{{Proof}{9}{Proof}}{50}{proof.9}%
+\contentsline {lemma}{{Lemma}{5.1.{2}}{}}{50}{lemma.5.1.2}%
+\contentsline {proof}{{Proof}{10}{Proof}}{50}{proof.10}%
+\contentsline {lemma}{{Lemma}{5.1.{3}}{}}{51}{lemma.5.1.3}%
+\contentsline {proof}{{Proof}{11}{Proof}}{51}{proof.11}%
+\contentsline {lemma}{{Lemma}{5.1.{4}}{}}{51}{lemma.5.1.4}%
+\contentsline {proof}{{Proof}{12}{Proof}}{51}{proof.12}%
+\contentsline {theorem}{{Theorem}{5.1.{1}}{}}{51}{theorem.5.1.1}%
+\contentsline {proof}{{Proof}{13}{Proof}}{51}{proof.13}%
+\contentsline {lemma}{{Lemma}{5.2.{1}}{}}{56}{lemma.5.2.1}%
+\contentsline {proof}{{Proof}{14}{Proof}}{56}{proof.14}%
+\contentsline {lemma}{{Lemma}{5.2.{2}}{}}{56}{lemma.5.2.2}%
+\contentsline {proof}{{Proof}{15}{Proof}}{56}{proof.15}%
+\contentsline {lemma}{{Lemma}{5.2.{3}}{}}{56}{lemma.5.2.3}%
+\contentsline {proof}{{Proof}{16}{Proof}}{56}{proof.16}%
+\contentsline {lemma}{{Lemma}{5.2.{4}}{}}{56}{lemma.5.2.4}%
+\contentsline {proof}{{Proof}{17}{Proof}}{56}{proof.17}%
+\contentsline {lemma}{{Lemma}{5.2.{5}}{}}{56}{lemma.5.2.5}%
+\contentsline {proof}{{Proof}{18}{Proof}}{56}{proof.18}%
+\contentsline {lemma}{{Lemma}{5.2.{6}}{}}{57}{lemma.5.2.6}%
+\contentsline {proof}{{Proof}{19}{Proof}}{57}{proof.19}%
+\contentsline {lemma}{{Lemma}{5.2.{7}}{}}{57}{lemma.5.2.7}%
+\contentsline {proof}{{Proof}{20}{Proof}}{57}{proof.20}%
+\contentsline {lemma}{{Lemma}{5.2.{8}}{}}{57}{lemma.5.2.8}%
+\contentsline {proof}{{Proof}{21}{Proof}}{57}{proof.21}%
+\contentsline {theorem}{{Theorem}{5.2.{1}}{}}{57}{theorem.5.2.1}%
+\contentsline {proof}{{Proof}{22}{Proof}}{57}{proof.22}%
