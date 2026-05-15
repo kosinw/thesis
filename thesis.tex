@@ -1606,7 +1606,7 @@ The method specifications are written in the predicate-transformer style describ
 
 \begin{figure}[ht]
 \begin{minted}[escapeinside=||]{coq}
-Definition enq (st : State) (e : Entry) `{~ full st} : State :=
+Definition enq st e `{~ full st} : State :=
     mkState (entries st ++ [e]) (nat_wrap_succ (tail st)) _.
 
 Definition enq' :=
@@ -1614,7 +1614,7 @@ Definition enq' :=
     exists Hfull : ~ full st,
       P (tt, enq st (args[[@0]]) Hfull).
 
-Definition deq (st : State) `{~ empty st} : State :=
+Definition deq st `{~ empty st} : State :=
   mkState (tl (entries st)) (tail st) _.
 
 Definition deq' :=
@@ -1656,7 +1656,7 @@ Unlike the specification, which derives the $\mathit{full}$ condition from the s
 
 The refinement relation $R$ connects implementation states to specification states as shown in \Cref{fig:rb-rel}.
 The relation has four components.
-First, for every valid logical index $i$ in the specification's ring buffer, the corresponding entry in the implementation's ring buffer matches. The notation $\mathit{xs !!! i}$ denotes a lookup into a list $\mathit{xs}$ at position $\mathit{i}$, returning a default value if the index is out of bounds.
+First, for every valid logical index $i$ in the specification's ring buffer, the corresponding entry in the implementation's ring buffer matches. The notation $\mathit{xs\;!!!\;i}$ denotes a lookup into a list $\mathit{xs}$ at position $\mathit{i}$, returning a default value if the index is out of bounds.
 Second, the implementation $\mathit{head}$ and $\mathit{tail}$ registers equal the bitvector representations of the specification's head and tail.
 Third, the implementation $\mathit{full}$ bit matches with the specification's full predicate.
 Notably, $R$ imposes no constraint on vector slots at indices that are not valid in the specification, so the implementation is allowed to hold arbitrary data in those positions.
