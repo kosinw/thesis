@@ -129,7 +129,7 @@ The retire stage retires instructions in program order, committing their effects
 Our design diverges from the R10K algorithm in two key ways to reduce the invariants needed for proofs.
 The biggest difference is how the renaming mechanism works.
 The original R10K algorithm records, in the reorder buffer (ROB), the previous physical register index for each instruction's destination so that the rename map can be rolled back precisely when a younger execution path is squashed.
-We instead maintain two register alias tables (RATs), avoiding the need to track a per-instruction previous physical destination in the ROB.
+We instead maintain two register-alias tables (RATs), avoiding the need to track a per-instruction previous physical destination in the ROB.
 The future table holds the most up-to-date speculative mapping from architectural registers to physical registers, while the commit table records the mapping as of the last retired instruction.
 Squashing speculative state can then be performed by reverting the future back to the commit table.
 
@@ -1077,16 +1077,16 @@ The abstraction function appears explicitly as the simulation relation between t
 \subsection{Writing proofs} \label{sec:Golemma-spec-refinement}
 
 A functional-correctness proof in Golemma is a proof of module refinement: every behavior the implementation can exhibit is permitted by the specification.
-The proof is organized around a simulation relation $R$ that pairs implementation states with their abstract counterparts, and proceeds method by method, showing that each implementation method satisfies the postcondition demanded by its specification whenever $R$ holds of the current state.
+The proof is organized around a simulation relation $R$ that pairs implementation states with their abstract counterparts. The proof proceeds method-by-method, showing that each implementation method satisfies the postcondition demanded by its specification whenever $R$ holds of the current state.
 
 \paragraph{Refinement.}
 A simulation relation $R : I \to S \to \text{Prop}$ relates each implementation state $i \in I$ to an abstract specification state $s \in S$.
-Throughout the definitions below, $\varphi$ denotes a predicate transformer for the implementation and $\psi$ denotes the corresponding predicate transformer for the specification, where each is a predicate transformer of the appropriate type from \Cref{sec:Golemma-spec-framework}.
-Given such a relation, refinement comes in three variants: value-method refinement, action-method refinement, and for rule refinement.
+Throughout the definitions below, $\varphi$ denotes a predicate transformer for the implementation, and $\psi$ denotes the corresponding predicate transformer for the specification, where each is a predicate transformer of the appropriate type from \Cref{sec:Golemma-spec-framework}.
+Given such a relation, refinement comes in three variants: value-method refinement, action-method refinement, and rule refinement.
 
 \begin{definition}[Value-method refinement] \label{def:refines-value}
 Let $\varphi$ and $\psi$ be value-method predicate transformers over states $I$ and $S$, respectively.
-$\varphi$ refines $\psi$ under $R$ when, for every related pair $(i, s) \in R$, every argument $\alpha$, and every postcondition $P$,
+$\varphi$ refines $\psi$ under $R$ when, for every related pair $(i, s) \in R$, every argument $\alpha$, and every postcondition $P : \textsf{ret} \to \textsf{Prop}$,
 \[
   \psi(\alpha,\, s,\, P) \;\Rightarrow\; \varphi(\alpha,\, i,\, P).
 \]
@@ -1097,7 +1097,7 @@ Action methods will update state, so their refinement condition must also accoun
 
 \begin{definition}[Action-method refinement] \label{def:refines-action}
 Let $\varphi$ and $\psi$ be action-method predicate transformers over states $I$ and $S$, respectively.
-$\varphi$ refines $\psi$ under $R : I \to S \to \text{Prop}$ when, for every $(i, s) \in R$, every argument $\alpha$, and every postcondition $P$,
+$\varphi$ refines $\psi$ under $R : I \to S \to \text{Prop}$ when, for every $(i, s) \in R$, every argument $\alpha$, and every postcondition $P : (\textsf{ret} \times S) \to \textsf{Prop}$,
 \[
   \psi(\alpha,\, s,\, P)
   \;\Rightarrow\;
@@ -1107,12 +1107,12 @@ $\varphi$ refines $\psi$ under $R : I \to S \to \text{Prop}$ when, for every $(i
 \end{definition}
 
 Rather than demanding a unique successor state, the existential allows the implementation to reach any state $i'$ for which there exists a specification successor $s'$ still in $R$ and satisfying $P$.
-Rules carry no arguments and produce no return value, but they do update state.
-Rule refinement therefore follows the same shape as action-method refinement, with the added flexibility of a possibly different post-relation $R'$ for relating successor states:
+Rules carry no arguments and produce no return values, but they do update state.
+Rule refinement follows the same shape as action-method refinement, with the added flexibility of a possibly different post-relation $R'$ for relating successor states:
 
 \begin{definition}[Rule refinement] \label{def:refines-rules}
 Let $\varphi$ and $\psi$ be rule predicate transformers over states $I$ and $S$, respectively.
-$\varphi$ refines $\psi$ under $(R, R' : I \to S \to \text{Prop})$ when, for every $(i, s) \in R$ and every postcondition $P$,
+$\varphi$ refines $\psi$ under $(R, R' : I \to S \to \text{Prop})$ when, for every $(i, s) \in R$ and every postcondition $P : S \to \textsf{Prop}$,
 \[
   \psi(s,\, P)
   \;\Rightarrow\;
@@ -1253,11 +1253,11 @@ Definition Multiplier : ModSig :=
 \label{fig:mult-intf}
 \end{figure}
 
-\Cref{fig:mult-block-diagram} shows the port-level signals of the multiplier.
-Each method is represented as a group of signals: an enable input, driven by the caller to invoke the method, and a ready output, driven by the module to indicate that the method's guard holds and the call will succeed.
+\Cref{fig:mult-block-diagram} shows what the port-level signals of the multiplier might look like at the RTL abstraction.
+Each method is represented as a group of signals: an enable input, driven by the caller to invoke the method; and a ready output, driven by the module to indicate that the method's guard holds and the call will succeed.
 These signals form a handshaking protocol that ensures that the method will only execute if both signals are latched high on the same cycle.
 Stateful methods may also carry data signals: $\mathit{enq}$ takes the two operands $\mathit{a}$ and $\mathit{b}$ as inputs, while $\mathit{deq}$ produces the 16-bit product $\mathit{c}$ as an output.
-The observational methods ($\mathit{empty}$, $\mathit{busy}$, $\mathit{full}$) each return a single boolean result and do not require handshaking.
+The observational methods ($\mathit{empty}$, $\mathit{busy}$, $\mathit{full}$) each return a single Boolean result and do not require handshaking.
 
 \begin{figure}[H]
 \centering
@@ -1530,7 +1530,7 @@ These extra operations are motivated by their use in an out-of-order processor's
 
 The ring buffer exposes nine methods, shown in \Cref{fig:rb-intf}.
 Five are value methods: $\mathit{empty}$ and $\mathit{full}$ return the status of the buffer; $\mathit{first}$ returns the element at the head; $\mathit{tail}$ returns the current tail index; and $\mathit{sub}$ returns the element at a given logical index.
-Four are action methods: $\mathit{enq}$ inserts an entry at the tail and advances the tail, $\mathit{deq}$ removes the element at the head, $\mathit{squash}$ retracts the tail to a given earlier position discarding pending entries, and $\mathit{upd}$ overwrites an existing entry in place.
+Four are action methods: $\mathit{enq}$ inserts an entry at the tail and advances the tail, $\mathit{deq}$ removes the element at the head, $\mathit{squash}$ retracts the tail to a given earlier position discarding pending entries, and $\mathit{upd}$ overwrites an existing entry in-place.
 Each action method guards against invalid calls: $\mathit{enq}$ aborts when the buffer is full; $\mathit{deq}$ and $\mathit{first}$ abort when it is empty; and $\mathit{sub}$, $\mathit{upd}$, and $\mathit{squash}$ abort when the provided index does not have a valid element there.
 
 \begin{figure}[H]
@@ -1566,7 +1566,7 @@ Definition x @$\otimes$@ y := (x * y) mod 2 ^ N.
 Definition @$\ominus$@ x := (2 ^ N - x mod 2 ^ N) mod 2 ^ N.
 Definition x @$\equiv$@ y := nat_wrap x = nat_wrap y.
 \end{minted}
-\caption[Modular arithmetic over naturals]{Modular arithmetic definitions over natural numbers.}
+\caption[Modular-arithmetic over naturals]{Modular arithmetic definitions over natural numbers.}
 \label{fig:rb-nat-ring}
 \end{figure}
 
@@ -1590,7 +1590,7 @@ Record State := mkState {
   valid_index i := i < 2 ^ N /\ index i < size;
 }.
 \end{minted}
-\caption[Ring-buffer abstract state]{Abstract state for the ring buffer specification.}
+\caption[Ring-buffer abstract state]{Abstract state for the ring-buffer specification.}
 \label{fig:rb-spec-state}
 \end{figure}
 
@@ -1643,7 +1643,7 @@ module mkRingBuffer#(RingBuffer#(@$\varepsilon$@, N));
   Reg#(Bit#(N)) tail <- mkReg();
   Reg#(Bit#(1)) full <- mkReg();
 \end{minted}
-\caption[Ring-buffer implementation]{Module declaration for the ring buffer implementation.}
+\caption[Ring-buffer implementation]{Module declaration for the ring-buffer implementation.}
 \label{fig:rb-impl}
 \end{figure}
 
@@ -1673,10 +1673,10 @@ Definition R (ist : ImplState) (sst : SpecState) :=
 \label{fig:rb-rel}
 \end{figure}
 
-The main theorem is proved by first applying \Cref{def:refines-module}, which produces one proof obligation per method.
+The main theorem is proved by first applying \Cref{def:refines-module}, which produces one proof obligation per-method.
 We derive a suite of 52 helper lemmas that reason about combinations of methods (e.g. taking the tail of the specification buffer after a dequeue).
 We use these helper lemmas to rewrite proof obligations without internally inspecting the components of the specification state.
-Reasoning about the implementation requires destructing the state and combining bitvector arithmetic facts with modular arithmetic lemmas.
+Reasoning about the implementation requires destructing the state and combining bitvector-arithmetic facts with modular-arithmetic lemmas.
 
 \begin{lemma} \label{lem:rb-full-tail}
 The $\mathit{full}$, $\mathit{head}$ and $\mathit{tail}$ methods each refine their specifications under $R$.
@@ -1707,7 +1707,7 @@ The $\mathit{first}$ method refines its specification under $R$.
 
 \begin{proof}[Proof]
 Assume $(i, s) \in R$.
-The non-empty guard agrees with the specification's precondition by the same reasoning as \Cref{lem:rb-empty}.
+The nonempty guard agrees with the specification's precondition by the same reasoning as \Cref{lem:rb-empty}.
 A helper lemma shows that when $s$ is non-empty, $s.\mathit{head}$ is a valid index.
 By $R$, we get $i.\mathit{entries}[s.\mathit{head}] = s.\mathit{sub}(s.\mathit{head}) = s.\mathit{first}$.
 \end{proof}
@@ -1733,7 +1733,7 @@ The fullness check agrees by \Cref{lem:rb-full-tail}.
 After writing $i.\mathit{entries}[i.\mathit{tail}] := e$ and advancing $i.\mathit{tail}$ by one, let $i'$ and $s' = s.\mathit{enq}(e)$ be the successor states.
 We must show $(i', s') \in R$.
 For array agreement, fix a valid index $j$ of $s'$.
-If $j$ was already a valid index of $s$, then $i'.\mathit{entries}[j] = i.\mathit{entries}[j]$ and by $R$ we get $i.\mathit{entries}[j] = s.\mathit{sub}(j) = s'.\mathit{sub}(j)$.
+If $j$ was already a valid index of $s$, then $i'.\mathit{entries}[j] = i.\mathit{entries}[j]$, and by $R$ we get $i.\mathit{entries}[j] = s.\mathit{sub}(j) = s'.\mathit{sub}(j)$.
 Otherwise $j = s.\mathit{tail}$, the newly occupied slot, and $i'.\mathit{entries}[j] = e = s'.\mathit{sub}(j)$.
 For the remaining conjuncts, $s'$ updates $\mathit{head}$, $\mathit{tail}$, and $\mathit{full}$ in the same way as $i'$, so those components of $R$ are reestablished.
 \end{proof}
@@ -1749,7 +1749,7 @@ After advancing $i.\mathit{head}$ by one and clearing $i.\mathit{full}$, let $i'
 We must show $(i', s') \in R$.
 For array agreement, if $j$ is valid in $s'$ then $j$ was valid in $s$ and $s'.\mathit{sub}(j) = s.\mathit{sub}(j)$; by $R$ we get $i'.\mathit{entries}[j] = i.\mathit{entries}[j] = s'.\mathit{sub}(j)$.
 For the head pointer, $s'.\mathit{head} = s.\mathit{head} \oplus 1$, so by $R$ we get $\mathit{nat\_to\_bv}(s'.\mathit{head}) = i.\mathit{head} + 1 = i'.\mathit{head}$.
-Dequeue always produces a non-full state, so $i'.\mathit{full} = 0 = s'.\mathit{full}$.
+Dequeue always produces a nonfull state, so $i'.\mathit{full} = 0 = s'.\mathit{full}$.
 \end{proof}
 
 \begin{lemma} \label{lem:rb-squash}
@@ -1781,7 +1781,7 @@ The $\mathit{head}$, $\mathit{tail}$, and $\mathit{full}$ registers are unaffect
 \end{proof}
 
 \begin{theorem} \label{thm:rb-correct}
-The ring buffer implementation refines the ring buffer specification.
+The ring-buffer implementation refines the ring-buffer specification.
 \end{theorem}
 
 \begin{proof}[Proof]
@@ -1816,10 +1816,10 @@ Ring buffer      &  25  & 793  & 165  & 335  & 1{,}318 \\
 \label{tab:loc}
 \end{table}
 
-The multiplier is the more compact case study.
+The multiplier is the more-compact case study.
 Its proof is straightforward and highly automated.
 Each of the six lemmas requires only unfolding the definitions and rewriting goals using the equalities supplied by the simulation relation.
-The ring buffer case study is significantly larger.
+The ring-buffer case study is significantly larger.
 The specification file includes the abstract state and many helper lemmas used in the proof.
 The majority of the effort in the ring-buffer case study stems from the large suite of helper lemmas.
 Despite the size of the specification, the proof-to-spec ratio is reasonable: the 335-line proof covers nine methods plus the reset-state proof obligation.
@@ -1850,17 +1850,17 @@ Despite the size of the specification, the proof-to-spec ratio is reasonable: th
 
 To evaluate synthesizability, we ran the verified Golemma compiler on the verified ring buffer and synthesized the resulting RTL code with Yosys, an open-source synthesis suite.
 All configurations were targeted at a 250\,MHz clock and were successfully implemented on a Xilinx VCU118 FPGA.
-The experiment sweeps two parameters of the ring buffer: the address width $N$, which gives a buffer depth of $2^N$ entries, and the buffer width $M$ (in bits), corresponding to the $N$ and $\varepsilon$ parameters in the interface (\Cref{sec:case-study-ring-buffer}).
-We evaluated $N \in \{3,5,7,9\}$ and $M \in \{32,128,512\}$; the configuration $(N=7,\,M=512)$ timed out during synthesis and larger configurations were not attempted.
+The experiment sweeps two parameters of the ring buffer: the address width $N$, which gives a buffer depth of $2^N$ entries; and the buffer width $M$ (in bits), corresponding to the $N$ and $\varepsilon$ parameters in the interface (\Cref{sec:case-study-ring-buffer}).
+We evaluated $N \in \{3,5,7,9\}$ and $M \in \{32,128,512\}$; the configuration $(N=7,\,M=512)$ timed out during synthesis, and larger configurations were not attempted.
 
 \Cref{fig:rb-gate-heatmap} shows a heatmap of total gate count as a function of $N$ and $M$.
 Gate usage ranges from 1.9k gates at the smallest configuration $(N=3,\,M=32)$ to 188.8k at the largest successful configuration $(N=5,\,M=512)$, with the $N=7$ row reaching 52.1k and 186.0k for $M \in \{32,128\}$.
-Both dimensions drive gate count upward, but buffer width has the stronger effect: tripling $M$ while holding $N$ fixed roughly quadruples the gate count.
+Both dimensions drive gate count upward, but buffer width has the stronger effect: quadrupling $M$ while holding $N$ fixed roughly quadruples the gate count.
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.7\textwidth]{figures/fig1.pdf}
-  \caption[Ring-buffer gate count]{Total gate count across ring buffer configurations. The cell at $N=7$, $M=512$ is absent due to a synthesis timeout.}
+  \caption[Ring-buffer gate count]{Total gate count across ring-buffer configurations. The cell at $N=7$, $M=512$ is absent due to a synthesis timeout.}
   \label{fig:rb-gate-heatmap}
 \end{figure}
 
@@ -1913,7 +1913,7 @@ Together, these contributions provide a solid foundation for scaling towards int
 
 The immediate next step is to complete the correctness proofs for the remaining submodules of the out-of-order processor.
 The reorder buffer specification and implementation are already complete; the remaining work is to finish its correctness proof.
-After that, the renaming logic, the functional units, the physical register file, and the register alias tables each require specifications and correctness proofs.
+After that, the renaming logic, the functional units, the physical register file, and the register-alias tables each require specifications and correctness proofs.
 
 Given those correctness proofs and specifications, the natural target for a conference paper is a composed correctness and timing-security result for a complete out-of-order processor backend without speculation on memory operations.
 Looking further ahead, a natural extension is to augment the processor with a hardware defense against transient-execution attacks and to verify that the defense is sufficient.
