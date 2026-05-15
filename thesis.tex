@@ -1798,7 +1798,7 @@ This chapter evaluates the two verification frameworks developed in this thesis.
 \section{Verification effort} \label{sec:eval-verif}
 
 \Cref{tab:loc} summarizes the lines of code (LoC) required to specify, implement, and verify each case study, measured with "\texttt{wc -l}".
-For the multiplier, all three components live in a single file; the breakdown reflects logical sections of that file: the circuit implementation, the erasure contract, simulation relation, and the proof.
+For the multiplier, all three components live in a single file; the breakdown reflects logical sections of that file: the circuit implementation, the erasure contract, and the proof.
 For the ring buffer, each component corresponds to one or more dedicated Rocq source files.
 
 \begin{table}[h]
@@ -1849,14 +1849,14 @@ Despite the size of the specification, the proof-to-spec ratio is reasonable: th
 
 \section{Resource utilization} \label{sec:eval-resource}
 
-To evaluate synthesizability, we ran the verified Golemma compiler on the verified ring buffer and synthesized the resulting netlist RTL with Yosys, an open-source synthesis suite.
+To evaluate synthesizability, we ran the verified Golemma compiler on the verified ring buffer and synthesized the resulting RTL code with Yosys, an open-source synthesis suite.
 All configurations were targeted at a 250\,MHz clock and were successfully implemented on a Xilinx VCU118 FPGA.
-The experiment sweeps two parameters of the ring buffer: the address width $N$, which gives a buffer depth of $2^N$ entries, and the entry width $M$ (in bits), corresponding to the $N$ and $\varepsilon$ parameters in the interface (\Cref{sec:case-study-ring-buffer}).
+The experiment sweeps two parameters of the ring buffer: the address width $N$, which gives a buffer depth of $2^N$ entries, and the buffer width $M$ (in bits), corresponding to the $N$ and $\varepsilon$ parameters in the interface (\Cref{sec:case-study-ring-buffer}).
 We evaluated $N \in \{3,5,7,9\}$ and $M \in \{32,128,512\}$; the configuration $(N=7,\,M=512)$ timed out during synthesis and larger configurations were not attempted.
 
 \Cref{fig:rb-gate-heatmap} shows a heatmap of total gate count as a function of $N$ and $M$.
 Gate usage ranges from 1.9k gates at the smallest configuration $(N=3,\,M=32)$ to 188.8k at the largest successful configuration $(N=5,\,M=512)$, with the $N=7$ row reaching 52.1k and 186.0k for $M \in \{32,128\}$.
-Both dimensions drive gate count upward, but entry width has the stronger effect: tripling $M$ while holding $N$ fixed roughly quadruples the gate count.
+Both dimensions drive gate count upward, but buffer width has the stronger effect: tripling $M$ while holding $N$ fixed roughly quadruples the gate count.
 
 \begin{figure}[H]
   \centering
@@ -1872,12 +1872,12 @@ The $N=3$ designs complete in under one second across all widths, while the $N=7
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.7\textwidth]{figures/fig2.pdf}
-  \caption[Ring-buffer synthesis time]{Synthesis time (log scale) versus entry width for each buffer depth. The red cross at $N=7$, $M=512$ marks a timeout.}
+  \caption[Ring-buffer synthesis time]{Synthesis time (log scale) versus buffer width for each buffer depth. The red cross at $N=7$, $M=512$ marks a timeout.}
   \label{fig:rb-synth-time}
 \end{figure}
 
 \Cref{fig:rb-resource-breakdown} breaks down resource usage into logic gates, multiplexers, and flip-flops for each configuration.
-The dominant resource shifts depending on which parameter is varied: increasing entry width $M$ causes logic gates to claim a larger share of total resources, while increasing buffer depth $N$ causes multiplexers to dominate, with flip-flops growing modestly as well.
+The dominant resource shifts depending on which parameter is varied: increasing buffer width $M$ causes logic gates to claim a larger share of total resources, while increasing buffer depth $N$ causes multiplexers to dominate, with flip-flops growing modestly as well.
 
 \begin{figure}[H]
   \centering
