@@ -1,5 +1,6 @@
 \documentclass[fontset=fira-newtxsf]{mitthesis}
 
+\usepackage[a-1b]{pdfx}
 \usepackage{setspace}
 \usepackage[capitalise,noabbrev]{cleveref}
 \usepackage{xcolor}
@@ -12,7 +13,6 @@
 \let\openbox\relax
 \usepackage{amsthm}
 \usepackage[titletoc,page]{appendix}
-\usepackage{hyperref}
 \usepackage[nottoc]{tocbibind}
 \usepackage[framemethod=default]{mdframed}
 \usepackage{float}
@@ -59,7 +59,7 @@
 
 \begin{document}
 \title{Towards Verifying Correctness and Timing Properties for \\ Out-of-Order Machines}
-\Author{Kosi Nwabueze}{Department of Electrical Engineering and Computer Science} [S.B., Massachusetts Institute of Technology (2025)]
+\Author{Kosi Nwabueze}{Department of Electrical Engineering and Computer Science} [SB, Electrical Engineering and Computer Science, MIT, 2025]
 \Degree{Master of Engineering in Electrical Engineering and Computer Science}{Department of Electrical Engineering and Computer Science}
 \Supervisor{Adam Chlipala}{Professor of Computer Science}[Department of Electrical Engineering and Computer Science]
 \Acceptor{Katrina LaCurts}{Chair, Master of Engineering Thesis Committee}{}
@@ -666,9 +666,9 @@ Next, we turn the stepwise lockstep obligations from~\Cref{fig:sim-action-square
 \begin{definition}[Erased-trace equivalence] \label{def:outputs-erased-bridge}
 Call~\(\mathcal M_2\) erased-trace equivalent to~\(\mathcal M_1\) under~\(\mathcal E\) when, for every~\(\vec\iota\in I^*\), the erased-input histories~\(\vec\iota_{\mathcal E}\) induce the same erased observation trace:
 \[
-  \mathcal{T}^{\mathcal E}(\mathcal M_1,\vec\iota_{\mathcal E})
+  \mathcal{T}_{\mathcal E}(\mathcal M_1,\vec\iota_{\mathcal E})
   =
-  \mathcal{T}^{\mathcal E}(\mathcal M_2,\vec\iota_{\mathcal E}).
+  \mathcal{T}_{\mathcal E}(\mathcal M_2,\vec\iota_{\mathcal E}).
 \]
 \end{definition}
 
