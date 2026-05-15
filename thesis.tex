@@ -82,7 +82,7 @@ Together, these contributions provide a foundation for progression towards integ
 \end{abstract}
 
 \chapter*{Acknowledgments}
-I would like to thank the following people for their encouragement, support, and mentorship throughout the completion of my master's thesis.
+I would like to thank the following people for their encouragement, support, and mentorship throughout my master's thesis.
 \begin{itemize}
   \item \textbf{Adam and Mengjia}, my research advisors, for their guidance, insights, and support throughout this project.
   Their expert knowledge in both formal methods and computer architecture research made this work possible.
@@ -101,11 +101,11 @@ I would like to thank the following people for their encouragement, support, and
 
 \chapter{Introduction} \label{chap:intro}
 This thesis contributes an approach for proving correctness and timing properties for hardware circuits described in the Rocq proof assistant.
-This work serves as the first step towards the mechanization of entire correctness and timing proofs for a realistic, modern out-of-order core.
+This work is the first step toward mechanizing complete correctness and timing proofs for a realistic, modern out-of-order core.
 
 \section{Background: out-of-order execution} \label{sec:ooo}
 Most modern high-speed processors are based on out-of-order (OoO) execution, which allows the CPU to reorder instructions dynamically based on the availability of functional units (FUs) and input operands.
-Instruction-scheduling algorithms supporting out-of-order execution with precise exceptions began with Tomasulo's algorithm~\cite{tomasulo1967}, which first introduced the concept of register renaming to eliminate false dependencies between instructions.
+The first instruction-scheduling algorithm to support out-of-order execution with precise exceptions was Tomasulo's algorithm~\cite{tomasulo1967}, which introduced register renaming to eliminate false dependencies between instructions.
 Out-of-order processors combined with speculative execution are vulnerable to transient-execution attacks, which in-order processors are not.
 Principled defenses must be carefully designed to ensure that attackers cannot exploit programs that are safe for in-order processors to execute but unsafe for out-of-order processors.
 
@@ -126,7 +126,7 @@ The issue stage selects ready renamed operations and sends them to functional un
 The writeback stage then writes results to the physical register file, so that downstream instructions can consume these results.
 The retire stage retires instructions in program order, committing their effects to the architectural state.
 
-Our design diverges from the R10K algorithm in two major aspects to simplify which invariants are needed to write proofs.
+Our design diverges from the R10K algorithm in two key ways to reduce the invariants needed for proofs.
 The biggest difference is how the renaming mechanism works.
 The original R10K algorithm records, in the reorder buffer (ROB), the previous physical register index for each instruction's destination so that the rename map can be rolled back precisely when a younger execution path is squashed.
 We instead maintain two register alias tables (RATs), avoiding the need to track a per-instruction previous physical destination in the ROB.
@@ -139,8 +139,8 @@ Enough snapshots are retained to reconstruct the physical register file as it st
 The maximum number of snapshots is finite, so it bounds the number of branches the machine can speculate ahead; once that budget is exhausted, the issue stage must stall until retire frees snapshot capacity.
 
 A second major deviation concerns speculative memory accesses.
-To make timing security easier prove at first, we delay all speculative loads and stores.
-This policy is extremely pessimistic: it foregoes the performance gains that comes from speculative execution and is not meant as a proposal for a serious, production-ready design.
+To make timing security easier to prove initially, we delay all speculative loads and stores.
+This policy is extremely pessimistic: it foregoes the performance gains that come from speculative execution and is not meant as a proposal for a serious, production-ready design.
 Looking ahead, we expect that a realistic design can be achieved by pairing speculative memory execution with a dynamic taint-tracking defense, together with a mechanized proof that the resulting design still satisfies the same security property.
 
 \section{Goal: verifying hardware circuits}
@@ -152,8 +152,8 @@ This thesis focuses on synthesizable circuits because they are consumable by dow
 \section{Individual contributions}
 The content presented in this thesis was completed during an active collaboration between me, Shixin Song, Jiazheng Liu, Stella Lau, and Andres Erbsen, advised by Professors Adam Chlipala and Mengjia Yan.
 Golemma, the deeply embedded hardware-description language described in \Cref{chap:Golemma}, was developed by Jiazheng Liu.
-Stella contributed security formalizations and proofs for a five-stage pipelined processor combined with an external I/O and memory system, which does not directly appear in this thesis, but whose theoretical ideas carry over.
-Shixin worked on a correctness proof for the out-of-order algorithm described in \Cref{sec:ooo}, for which a full mechanized proof is the end goal for a larger project.
+Stella contributed security formalizations and proofs for a five-stage pipelined processor with an external I/O and memory system; this work does not directly appear in this thesis, but its theoretical ideas carry over.
+Shixin worked on a correctness proof for the out-of-order algorithm described in \Cref{sec:ooo}, which is part of a larger project whose ultimate goal is a fully mechanized proof.
 My personal contributions include specifications, implementations, correctness proofs, and timing proofs for individual submodules of the out-of-order machine, as discussed in \Cref{chap:cases}.
 
 \chapter{Related work} \label{chap:related}
@@ -378,7 +378,7 @@ Introducing failure in the monad itself keeps reasoning about guards local to me
 The operator $\mathit{call}$ implements modular method calls over nested state.
 It uses $\mathit{getter}$ to project a substate, runs an $\mathit{Action}$ on that substate, and then reintegrates the updated substate using $\mathit{setter}$ as shown in \Cref{fig:action-call}.
 If the callee action fails, the caller fails.
-Submodule calls with guarded state monads calling semantics in Bluespec SystemVerilog, where a method call that fails to fire causes the caller to fail to fire.
+Submodule calls with guarded state monads mirror the calling semantics of Bluespec SystemVerilog, where a method call that fails to fire causes the caller to also fail to fire.
 
 \begin{figure}[H]
 \begin{minted}{coq}
@@ -507,7 +507,7 @@ the public output components agree at every step $k$, $o_k^{\mathrm{pub}} = o_k^
 \end{definition}
 
 This definition is relational: it compares two universally quantified executions and is therefore a hyperproperty.
-Next, we introduce a one-copy formalism of constant time which is logically equivalent to \Cref{def:two-copy}.
+Next, we introduce a one-copy formalism of constant time that is logically equivalent to \Cref{def:two-copy}.
 
 \begin{definition}[Cryptographic constant time as a one-copy property]
 A state machine $\mathcal{M} = (S, s_0, I, O, \delta)$ is cryptographic-constant-time (CCT)
