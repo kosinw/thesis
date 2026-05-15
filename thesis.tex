@@ -76,7 +76,7 @@ Slate provides an imperative-programming model to describe circuits compactly in
 Since Slate circuits are Gallina functions, reasoning about them in proofs is simple.
 The timing-security framework is exercised on a case study of a variable-latency multiplier.
 The thesis also presents Golemma, a deeply embedded hardware language in Rocq, to establish correctness results for key out-of-order processor submodules.
-Golemma provides facilities for modularity and exposes a sequential execution model which makes functional-correctness reasoning simple.
+Golemma provides facilities for modularity and exposes a sequential execution model that makes functional-correctness reasoning simple.
 The functional-correctness framework is exercised on a case study of a ring buffer.
 Together, these contributions provide a foundation for progression towards integrated proofs of correctness and timing security for full out-of-order processors.
 \end{abstract}
@@ -276,7 +276,7 @@ These tasks often require reification and metaprogramming support to recover a s
 
 Deep embeddings make syntax explicit from the beginning, so compiler construction and optimization passes are easier to express.
 However, they impose additional verification overhead: one must define and reason about an interpreter (or step relation), and prove that this semantics aligns with the intended meaning.
-As a result, proofs on deep embeddings are more-involved than similar theorems on shallow embeddings.
+As a result, proofs on deep embeddings are more involved than similar theorems on shallow embeddings.
 Slate, the surface language used for timing-security verification in this thesis, is a shallow embedding.
 Its core semantics work as an imperative language with mutable references.
 We introduce the state-monad structure that underlies Slate method definitions.
@@ -575,8 +575,8 @@ Under this interpretation, HCT says that varying secret (erased) inputs cannot c
 \phantomsection\label{sec:timing-proof}
 \subsection{Writing proofs} \label{sec:timing-proof-lockstep}
 The hardware-constant-time property (\Cref{def:hct-single}) reasons about entire runs of state machines rather than isolated steps.
-Entire-run reasoning affords flexibility in potential proof techniques that may not reason about each step in isolation, but in the future it could allow simulation-based proofs that rely on skipping steps or taking multiple steps.
-We will restrict ourselves to reason only about lockstep simulations, which disallow skipping or multiple steps.
+Reasoning over entire runs permits proof techniques that are not limited to step-by-step analysis; in the future, this could include simulation-based proofs that skip steps or take multiple steps at once.
+We restrict ourselves to reasoning only about lockstep simulations, which disallow skipping or multiple steps.
 \Cref{fig:sim-machines} demonstrates the two different proof techniques introduced in this section: first, a machine compared against itself under erased inputs (self-simulation); and second, an implementation machine compared against an abstract specification (cross-simulation).
 
 \paragraph{Setup}
@@ -717,7 +717,9 @@ The interface and module definition are shown in~\Cref{fig:Golemma-gcd-intf,fig:
 
 \subsection{Interfaces}
 An interface in Golemma is a typed list of method signatures that a module presents to its environment.
-Interfaces serve as contracts in two complementary senses. First, interfaces defines the compositional boundary between a module and its environment, playing the same role as the port list of a Verilog module. Second, it constrains what can be verified, since any specification must be stated in terms of the same method signatures that the implementation exposes.
+Interfaces serve as contracts in two complementary senses.
+First, interfaces define the compositional boundary between a module and its environment, playing the same role as the port list of a Verilog module.
+Second, they constrain what can be verified, since any specification must be stated in terms of the same method signatures that the implementation exposes.
 
 The interface for the GCD module (\Cref{fig:Golemma-gcd-intf}) declares four methods.
 Two are action methods: $\mathit{load}$ and $\mathit{step}$, which can write registers and may abort if their guards are not met; their return type is $\mathit{Action}$.
@@ -803,10 +805,10 @@ The result of calling an action-method can be captured with $\mathit{let}\;\math
 Conditional branching uses $\mathit{if}\;(\mathit{c})\;\{\ldots\}\;\mathit{else}\;\{\ldots\}$, where $\mathit{c}$ is an expression of type $\mathit{Bit}\#(1)$; the $\mathit{else}$ branch is optional and defaults to a no-op.
 A statement may be terminated early by $\mathit{abort}$, which causes the entire method to fail and appear as if it never exited.
 No special synthesis is needed to implement $\mathit{abort}$, but it induces a precondition on the method.
-The method only will be called in states where execution cannot reach the $\mathit{abort}$.
+The method will only be called in states where execution cannot reach the $\mathit{abort}$.
 During verification, callers must prove that this precondition holds.
 Statements are sequenced by separating them with semicolons inside a $\mathit{begin}$ ... $\mathit{end}$ block.
-A block may end with a $\mathit{return}\;\mathit{e}$ expression that specifies the method's output value; methods of type $\mathit{Action}$ whose return type are $\mathit{unit}$ may omit $\mathit{return}$ and close with $\mathit{end}$ directly.
+A block may end with a $\mathit{return}\;\mathit{e}$ expression that specifies the method's output value; methods of type $\mathit{Action}$ whose return type is $\mathit{unit}$ may omit $\mathit{return}$ and close with $\mathit{end}$ directly.
 
 \section{Extending Golemma with type classes} \label{sec:Golemma-synth}
 
@@ -817,7 +819,7 @@ It also discusses how this extension enables other language features such as str
 
 Golemma programs cannot directly use standard Rocq types such as plain records and inductive types; instead, they must use the types provided by Golemma's type system.
 Writing functional specifications and invariants that reason directly over Golemma types is possible but cumbersome.
-Proofs would need to reason about raw bitvectors rather than natural Gallina types, which are the easiest to work with and the most performant with the type checker in proofs.
+Proofs would need to reason about raw bitvectors rather than natural Gallina types, which are the most natural to work with and perform best with Rocq's type checker
 A better approach is to allow the developer to use familiar Gallina types directly in Golemma circuits, so that specifications and proofs can be stated at the Gallina level and then connected to the hardware representation transparently.
 
 The Synthesizable type class formalizes this connection.
@@ -847,7 +849,7 @@ Each provides a Synthesizable instance automatically during type-class resolutio
 
 \subsection{Structures} \label{sec:Golemma-struct}
 The Struct type class handles Gallina records whose fields are all synthesizable.
-An instance maps the record to a Golemma deeply embedded struct type, with each field packed and unpacked field-by-field.
+An instance maps the record to a Golemma deeply embedded struct type, packing and unpacking each field individually.
 \Cref{fig:synth-struct} shows a simple example.
 The tactic $\mathit{derive\_struct}$ inspects the definition of the record using Ltac2 metaprogramming (\Cref{par:ltac2}), extracts the field names and types, constructs the packing and unpacking mechanism, and discharges all proof obligations automatically.
 
@@ -902,7 +904,7 @@ Example user_rx_has_read : elem_of Read user_rx. Proof. set_solver. Qed.
 \end{figure}
 
 \subsection{Metaprogramming} \label{par:ltac2}
-In proof assistants such as Rocq, tactics are used as scripts to concisely construct proof terms.
+In proof assistants such as Rocq, tactics are used as scripts to construct proof terms concisely.
 Ltac1 is Rocq's original and most commonly used tactic language.
 Ltac2 is a newer, typed tactic language with better support for inspecting and constructing Rocq terms programmatically, making it a better fit for metaprogramming purposes.
 
@@ -973,7 +975,7 @@ Record SpecState := mkState {
 \end{figure}
 
 The abstract state lives entirely in Gallina; it is only the implementation that requires the use of the hardware-description language.
-This specification style is a benefit: proofs, invariants, and lemmas about the specification are stated in terms of natural-number arithmetic and the standard GCD function rather than in terms of bitvectors.
+This specification style is advantageous: proofs, invariants, and lemmas about the specification are stated in terms of natural-number arithmetic and the standard GCD function rather than in terms of bitvectors.
 
 \paragraph{Predicate-transformer semantics.}
 Each method specification is written in a continuation-passing style.
@@ -1084,7 +1086,7 @@ Throughout the definitions below, $\varphi$ denotes a predicate transformer for 
 Given such a relation, refinement comes in three variants: value-method refinement, action-method refinement, and for rule refinement.
 
 \begin{definition}[Value-method refinement] \label{def:refines-value}
-Let $\varphi$ and $\psi$ be value-method-predicate transformers over states $I$ and $S$, respectively.
+Let $\varphi$ and $\psi$ be value-method predicate transformers over states $I$ and $S$, respectively.
 $\varphi$ refines $\psi$ under $R$ when, for every related pair $(i, s) \in R$, every argument $\alpha$, and every postcondition $P$,
 \[
   \psi(\alpha,\, s,\, P) \;\Rightarrow\; \varphi(\alpha,\, i,\, P).
@@ -1095,7 +1097,7 @@ Value-method refinement is straightforward: if the specification establishes pos
 Action methods will update state, so their refinement condition must also account for how the two states evolve:
 
 \begin{definition}[Action-method refinement] \label{def:refines-action}
-Let $\varphi$ and $\psi$ be action-method-predicate transformers over states $I$ and $S$, respectively.
+Let $\varphi$ and $\psi$ be action-method predicate transformers over states $I$ and $S$, respectively.
 $\varphi$ refines $\psi$ under $R : I \to S \to \text{Prop}$ when, for every $(i, s) \in R$, every argument $\alpha$, and every postcondition $P$,
 \[
   \psi(\alpha,\, s,\, P)
@@ -1232,7 +1234,7 @@ The goal is to establish hardware constant time with respect to an erasure contr
 
 \subsection{Interface}
 
-The multiplier exposes six methods which are summarized in \Cref{fig:mult-intf} as a Golemma interface.
+The multiplier exposes six methods that are summarized in \Cref{fig:mult-intf} as a Golemma interface.
 Three operations are stateful: $\mathit{enq}$ loads a pair of operands and starts the computation, $\mathit{step}$ advances the shift-and-add algorithm by one step, and $\mathit{deq}$ retrieves the 16-bit product once it is ready.
 Three additional operations are observational: $\mathit{empty}$, $\mathit{busy}$, and $\mathit{full}$.
 
@@ -1254,7 +1256,7 @@ Definition Multiplier : ModSig :=
 
 \Cref{fig:mult-block-diagram} shows the port-level signals of the multiplier.
 Each method is represented as a group of signals: an enable input, driven by the caller to invoke the method, and a ready output, driven by the module to indicate that the method's guard holds and the call will succeed.
-These signals form a handshaking protocol which ensures that the method will only execute if both signals are latched high on the same cycle.
+These signals form a handshaking protocol that ensures that the method will only execute if both signals are latched high on the same cycle.
 Stateful methods may also carry data signals: $\mathit{enq}$ takes the two operands $\mathit{a}$ and $\mathit{b}$ as inputs, while $\mathit{deq}$ produces the 16-bit product $\mathit{c}$ as an output.
 The observational methods ($\mathit{empty}$, $\mathit{busy}$, $\mathit{full}$) each return a single boolean result and do not require handshaking.
 
@@ -1411,7 +1413,7 @@ Record State := {
 \end{figure}
 
 Each method call to $\mathit{step}$ invokes the $\mathit{shift\_and\_add}$ subroutine defined in \Cref{fig:mult-shift-add}.
-If $\mathit{src1}$ is already zero then $\mathit{shift\_and\_add}$ is a no-op. If the least significant bit of $\mathit{src1}$ is one, the subroutine adds $\mathit{src2}$ shifted left by $\mathit{count}$ to $\mathit{dst}$. If the least significant bit is instead zero, nothing is added to $\mathit{dst}$.
+If $\mathit{src1}$ is already zero then $\mathit{shift\_and\_add}$ is a no-op. If the least-significant bit of $\mathit{src1}$ is one, the subroutine adds $\mathit{src2}$ shifted left by $\mathit{count}$ to $\mathit{dst}$. If the least-significant bit is instead zero, nothing is added to $\mathit{dst}$.
 In both cases, $\mathit{src1}$ is right-shifted by one and $\mathit{count}$ is incremented.
 Once $\mathit{src1}$ reaches zero, the outer $\mathit{step}$ transitions the phase to $\mathit{Full}$, making the result available for dequeue.
 
@@ -1443,7 +1445,7 @@ Definition shift_and_add :=
 
 \subsection{Verification}
 
-The central observation is that the timing of the multiplier depends entirely on $\mathit{src1}$: the number of steps before the phase transitions to $\mathit{Full}$ is exactly the position of the most significant set bit of $\mathit{src1}$.
+The central observation is that the timing of the multiplier depends entirely on $\mathit{src1}$: the number of steps before the phase transitions to $\mathit{Full}$ is exactly the position of the most-significant set bit of $\mathit{src1}$.
 The value of $\mathit{src2}$ affects only the accumulator $\mathit{dst}$ and therefore does not influence any externally observable signal.
 This observation is captured by the simulation relation in \Cref{fig:mult-rel}, which equates the $\mathit{phase}$, $\mathit{count}$, and $\mathit{src1}$ registers of two states but makes no requirement on $\mathit{src2}$ or $\mathit{dst}$.
 
@@ -1513,14 +1515,14 @@ The multiplier satisfies hardware constant time with respect to the erasure cont
 \end{theorem}
 
 \begin{proof}[Proof]
-Apply \Cref{lem:self-sim-hct} using simultion relation $R$.
+Apply \Cref{lem:self-sim-hct} using simulation relation $R$.
 \Cref{lem:mult-enq,lem:mult-deq,lem:mult-rule,lem:mult-status} discharge the resulting proof obligations.
 The reset state satisfies $R$ trivially since both copies of the reset record are identical.
 \end{proof}
 
 \section{Functional correctness: Ring buffer} \label{sec:case-study-ring-buffer}
 
-This section presents the proof of correctness for a ring buffer,
+This section presents the proof of correctness for a ring buffer.
 The ring buffer holds entries of parameterized type $\varepsilon$ and supports a capacity of $2^N$ slots.
 Beyond the standard enqueue and dequeue operations, the ring buffer also exposes a squash method that retracts the tail pointer to an earlier position.
 These extra operations are motivated by their use in an out-of-order processor's reorder buffer, where instructions that are resident in the buffer may need to be squashed upon a branch misprediction.
@@ -1583,6 +1585,10 @@ Record State := mkState {
   size          := length entries;
   head          := tail @$\ominus$@ size;
   wf            : tail < 2 ^ N /\ size <= 2 ^ N;
+  full          := size = 2 ^ N;
+  empty         := size = 0;
+  index i       := i @$\ominus$@ head;
+  valid_index i := i < 2 ^ N /\ index i < size;
 }.
 \end{minted}
 \caption[Ring-buffer abstract state]{Abstract state for the ring buffer specification.}
@@ -1600,12 +1606,18 @@ The method specifications are written in the predicate-transformer style describ
 
 \begin{figure}[ht]
 \begin{minted}[escapeinside=||]{coq}
-Definition enq' : MRASpec State (mkMetSig <|$\varepsilon$| e> Void) :=
+Definition enq (st : State) (e : Entry) `{~ full st} : State :=
+    mkState (entries st ++ [e]) (nat_wrap_succ (tail st)) _.
+
+Definition enq' :=
   fun '(args, st) P =>
     exists Hfull : ~ full st,
       P (tt, enq st (args[[@0]]) Hfull).
 
-Definition deq' : MRASpec State (mkMetSig <> Void) :=
+Definition deq (st : State) `{~ empty st} : State :=
+  mkState (tl (entries st)) (tail st) _.
+
+Definition deq' :=
   fun '(_, st) P =>
     exists Hempty : ~ empty st,
       P (tt, deq st Hempty).
@@ -1810,7 +1822,7 @@ Its proof is straightforward and highly automated.
 Each of the six lemmas requires only unfolding the definitions and rewriting goals using the equalities supplied by the simulation relation.
 The ring buffer case study is significantly larger.
 The specification file includes the abstract state and many helper lemmas used in the proof.
-The majority of the effort from the case study comes down to the large list of helper lemmas.
+The majority of the effort in the ring-buffer case study stems from the large suite of helper lemmas.
 Despite the size of the specification, the proof-to-spec ratio is reasonable: the 335-line proof covers nine methods plus the reset-state proof obligation.
 \Cref{tab:total-loc} breaks down the total LoC across both repositories including work-in-progress modules.
 
@@ -1831,7 +1843,7 @@ Despite the size of the specification, the proof-to-spec ratio is reasonable: th
 \textbf{Total}                                                    & \textbf{6{,}008} \\
 \bottomrule
 \end{tabular}
-\caption[Personal contributions (LoC)]{Total lines of code across all personal contributions to this project. $^\dagger$WIP.}
+\caption[Personal contributions (LoC)]{Total lines of code across all personal contributions to this project. $^\dagger$Work-in-progress.}
 \label{tab:total-loc}
 \end{table}
 
@@ -1882,17 +1894,18 @@ The verified compiler provides an end-to-end path from a mechanically checked Ro
 This thesis presented two frameworks for mechanized verification of hardware circuits in Rocq. These frameworks target correctness and timing-security properties needed for a full proof of an out-of-order processor.
 \Cref{chap:intro,chap:related} introduced the background and motivation behind this thesis.
 \Cref{chap:Slate} introduced Slate and the hardware-constant-time property for timing security; \Cref{chap:Golemma} introduced Golemma and the modular-refinement property for functional correctness; and \Cref{chap:cases} applied both to case studies.
-\Cref{chap:evaluation} analyzed the amount of effort required to write proofs using these frameworks and compared the resource utilization between Golemma and Bluespec circuits.
+\Cref{chap:evaluation} analyzed the amount of effort required to write proofs using these frameworks and investigated the resource utilization when synthesizing Golemma circuits.
 
 \section{Summary}
 
 The first framework, Slate, is a shallowly embedded language based on guarded state monads that models hardware circuits as deterministic state machines.
-Slate supports a proof strategy for hardware constant time, in which security reduces to a per-method simulation argument. Erasure contracts makes the attacker's observation model explicit.
+Slate supports a proof strategy for hardware constant time, in which security reduces to a per-method simulation argument.
+Erasure contracts make the attacker's observation model explicit.
 This approach was exercised on a variable-latency multiplier, establishing that its timing behavior is independent of the secret second operand.
 
 The second framework, Golemma, is a deeply embedded hardware-description language whose syntax is inspired by Bluespec SystemVerilog.
 Golemma provides a module system, typed interfaces, and a weakest-precondition semantics that supports compositional, per-method correctness proofs via modular refinement.
-Extensions to the language include type classes for synthesizing structs, enums, and bitflags and a for-loop construct, allowing specifications to be stated directly over familiar Gallina types.
+Extensions to the language include type classes for synthesizing structs, enums, and bitflags, as well as a for-loop construct, enabling specifications to be stated directly over familiar Gallina types."
 Functional correctness was demonstrated on a ring buffer whose specification is written using modular arithmetic over naturals.
 
 Together, these contributions provide a solid foundation for scaling towards integrated proofs of correctness and timing security for a full out-of-order processor.
@@ -1907,7 +1920,7 @@ Given those correctness proofs and specifications, the natural target for a conf
 Looking further ahead, a natural extension is to augment the processor with a hardware defense against transient-execution attacks and to verify that the defense is sufficient.
 Speculative taint tracking~\cite{yu2019} is a promising candidate, as it delays secret-dependent memory accesses until they are known to be non-speculative; adding STT to the Golemma model and proving that the resulting processor satisfies the same erasure-contract obligations would close the gap between the abstract security arguments from prior work and a concrete, synthesizable design.
 
-Finally, a proof for an end-to-end theorem that connects the execution of secure source code to a secure processor be another target for a conference paper.
+Finally, an end-to-end theorem connecting the execution of secure source code to a verified processor would be another target for a conference paper.
 A similar end-to-end theorem has been explored for a pipelined RISC-V processor in Kami and the Bedrock2 compiler~\cite{erbsen2021}.
 This proposed work would compose together prior work on retrofitting the Bedrock2 compiler with constant-time preservation~\cite{conoly2025} and a proof of correctness of a complex out-of-order machine in Golemma.
 Connecting those results would yield an end-to-end guarantee that a secret-free source program running on the verified out-of-order processor cannot leak information through timing side channels.
